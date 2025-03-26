@@ -49,17 +49,17 @@ where
 
         let brightness = 0b11100000 | (map_f32_to_u8_range(self.brightness, 31) & 0b00011111);
 
-        for item in pixels.into_iter() {
-            let item: Srgb = item.into_color();
-            let item: LinSrgb = item.into_color();
-            let item: LinSrgb<u8> = item.into_format();
+        for color in pixels.into_iter() {
+            let color: Srgb = color.into_color();
+            let color: LinSrgb = color.into_color();
+            let color: LinSrgb<u8> = color.into_format();
             let led_frame = match self.rgb_order {
-                RgbOrder::RGB => [brightness, item.red, item.green, item.blue],
-                RgbOrder::RBG => [brightness, item.red, item.blue, item.green],
-                RgbOrder::GRB => [brightness, item.green, item.red, item.blue],
-                RgbOrder::GBR => [brightness, item.green, item.blue, item.red],
-                RgbOrder::BRG => [brightness, item.blue, item.red, item.green],
-                RgbOrder::BGR => [brightness, item.blue, item.green, item.red],
+                RgbOrder::RGB => [brightness, color.red, color.green, color.blue],
+                RgbOrder::RBG => [brightness, color.red, color.blue, color.green],
+                RgbOrder::GRB => [brightness, color.green, color.red, color.blue],
+                RgbOrder::GBR => [brightness, color.green, color.blue, color.red],
+                RgbOrder::BRG => [brightness, color.blue, color.red, color.green],
+                RgbOrder::BGR => [brightness, color.blue, color.green, color.red],
             };
             self.writer.write(&led_frame)?;
         }

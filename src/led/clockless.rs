@@ -73,6 +73,10 @@ where
         }
         Ok(())
     }
+
+    pub fn delay_for_reset(&mut self) {
+        self.delay.delay_ns(Led::T_RESET.to_nanos())
+    }
 }
 
 impl<Led, Pin, Delay> LedDriver for ClocklessDelayDriver<Led, Pin, Delay>
@@ -102,7 +106,7 @@ where
             };
             self.write_buffer(&buffer)?;
         }
-        self.delay.delay_ns(Led::T_RESET.to_nanos());
+        self.delay_for_reset();
         Ok(())
     }
 }

@@ -8,4 +8,5 @@ defmt = "0.3.10"
 embedded-hal = "1.0.0"
 fugit = "0.3.7"
 heapless = "0.8.0"
+num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 palette = { version = "0.7.6", default-features = false, features = ["libm", "bytemuck"] }

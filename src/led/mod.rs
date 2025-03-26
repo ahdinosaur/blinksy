@@ -3,6 +3,8 @@ use palette::IntoColor;
 mod chipsets;
 mod clocked;
 mod clockless;
+#[cfg(feature = "esp")]
+mod esp;
 
 pub use chipsets::*;
 pub use clocked::ClockedWriterBitBang;

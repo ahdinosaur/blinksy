@@ -49,3 +49,59 @@ where
         self.driver.write(pixels)
     }
 }
+
+#[cfg(feature = "esp")]
+mod esp {
+    use crate::{led::esp::ClocklessRmtDriver, LedDriver, RgbOrder};
+    use esp_hal::{
+        gpio::interconnect::PeripheralOutput,
+        peripheral::Peripheral,
+        rmt::{PulseCode, TxChannel, TxChannelCreator},
+    };
+
+    use super::Ws2812;
+
+    pub struct Ws2812Rmt<Tx, const BUFFER_SIZE: usize>
+    where
+        Tx: TxChannel,
+    {
+        driver: ClocklessRmtDriver<Ws2812, Tx, BUFFER_SIZE>,
+    }
+
+    impl<Tx, const BUFFER_SIZE: usize> Ws2812Rmt<Tx, BUFFER_SIZE>
+    where
+        Tx: TxChannel,
+    {
+        pub fn new<'d, C, P>(
+            channel: C,
+            pin: impl Peripheral<P = P> + 'd,
+            rmt_buffer: [u32; BUFFER_SIZE],
+        ) -> Self
+        where
+            C: TxChannelCreator<'d, Tx, P>,
+            P: PeripheralOutput + Peripheral<P = P>,
+        {
+            Self {
+                driver: ClocklessRmtDriver::new(channel, pin, rmt_buffer, RgbOrder::GRB),
+            }
+        }
+    }
+
+    impl<Tx, const BUFFER_SIZE: usize> LedDriver for Ws2812Rmt<Tx, BUFFER_SIZE>
+    where
+        Tx: TxChannel,
+    {
+        type Error = <ClocklessRmtDriver<Ws2812, Tx, BUFFER_SIZE> as LedDriver>::Error;
+        type Color = <ClocklessRmtDriver<Ws2812, Tx, BUFFER_SIZE> as LedDriver>::Color;
+
+        fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
+        where
+            C: palette::IntoColor<Self::Color>,
+        {
+            self.driver.write(pixels)
+        }
+    }
+}
+
+#[cfg(feature = "esp")]
+pub use self::esp::*;

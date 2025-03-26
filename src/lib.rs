@@ -4,6 +4,7 @@ mod layout;
 mod led;
 mod pattern;
 mod pixels;
+pub mod time;
 mod util;
 
 pub use crate::layout::*;

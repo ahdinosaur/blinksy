@@ -196,7 +196,7 @@ where
 
     fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
     where
-        C: palette::IntoColor<Self::Color>,
+        Self::Color: palette::FromColor<C>,
     {
         self.write_pixels(pixels)
     }

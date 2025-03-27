@@ -1,4 +1,4 @@
-use palette::{IntoColor, LinSrgb, Srgb};
+use palette::{FromColor, LinSrgb, Srgb};
 
 use crate::led::clocked::ClockedWriter;
 use crate::util::map_f32_to_u8_range;
@@ -41,7 +41,7 @@ where
 
     fn write<Color, const N: usize>(&mut self, pixels: [Color; N]) -> Result<(), Self::Error>
     where
-        Color: IntoColor<Self::Color>,
+        Self::Color: FromColor<Color>,
     {
         self.writer.write(&[0x00, 0x00, 0x00, 0x00])?;
 
@@ -50,9 +50,7 @@ where
         let brightness = 0b11100000 | (map_f32_to_u8_range(self.brightness, 31) & 0b00011111);
 
         for color in pixels.into_iter() {
-            let color: Srgb = color.into_color();
-            let color: LinSrgb = color.into_color();
-            let color: LinSrgb<u8> = color.into_format();
+            let color: LinSrgb<u8> = Srgb::from_color(color).into_linear().into_format();
             let led_frame = self.rgb_order.reorder(color.red, color.green, color.blue);
             self.writer.write(&[brightness])?;
             self.writer.write(&led_frame)?;

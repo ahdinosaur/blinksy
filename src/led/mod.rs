@@ -7,7 +7,7 @@ mod clockless;
 mod esp;
 
 pub use chipsets::*;
-pub use clocked::ClockedGpio;
+pub use clocked::ClockedDelayWriter;
 use smart_leds_trait::SmartLedsWrite;
 
 pub trait LedDriver {

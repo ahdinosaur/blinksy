@@ -53,7 +53,7 @@ where
             let color: Srgb = color.into_color();
             let color: LinSrgb = color.into_color();
             let color: LinSrgb<u8> = color.into_format();
-            let led_frame = self.rgb_order.reorder((color.red, color.green, color.blue));
+            let led_frame = self.rgb_order.reorder(color.red, color.green, color.blue);
             self.writer.write(&[brightness])?;
             self.writer.write(&led_frame)?;
         }

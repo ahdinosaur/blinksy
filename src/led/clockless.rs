@@ -96,14 +96,7 @@ where
             let color: Srgb = color.into_color();
             let color: LinSrgb = color.into_color();
             let color: LinSrgb<u8> = color.into_format();
-            let buffer = match self.rgb_order {
-                RgbOrder::RGB => [color.red, color.green, color.blue],
-                RgbOrder::RBG => [color.red, color.blue, color.green],
-                RgbOrder::GRB => [color.green, color.red, color.blue],
-                RgbOrder::GBR => [color.green, color.blue, color.red],
-                RgbOrder::BRG => [color.blue, color.red, color.green],
-                RgbOrder::BGR => [color.blue, color.green, color.red],
-            };
+            let buffer = self.rgb_order.reorder(color.red, color.green, color.blue);
             self.write_buffer(&buffer)?;
         }
         self.delay_for_reset();

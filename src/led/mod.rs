@@ -1,4 +1,4 @@
-use palette::IntoColor;
+use palette::{cast::ArrayCast, FromColor, IntoColor};
 
 mod chipsets;
 mod clocked;
@@ -16,7 +16,8 @@ pub trait LedDriver {
 
     fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
     where
-        C: IntoColor<Self::Color>;
+        Self::Color: FromColor<C> + ArrayCast + Clone,
+        C: FromColor<Self::Color> + ArrayCast<Array = <Self::Color as ArrayCast>::Array> + Clone;
 }
 
 impl<Driver, DriverColor> LedDriver for Driver
@@ -29,11 +30,12 @@ where
 
     fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
     where
-        C: IntoColor<Self::Color>,
+        Self::Color: FromColor<C> + ArrayCast + Clone,
+        C: FromColor<Self::Color> + ArrayCast<Array = <Self::Color as ArrayCast>::Array> + Clone,
     {
         let iterator = pixels.into_iter().map(|item| {
             let item: palette::Srgb = item.into_color();
-            let item: palette::LinSrgb = item.into_color();
+            let item: palette::LinSrgb = item.into_linear();
             smart_leds_trait::RGB::<f32>::new(item.red, item.green, item.blue)
         });
         SmartLedsWrite::write(self, iterator)

@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 use fugit::NanosDurationU32 as Nanoseconds;
-use palette::{IntoColor, LinSrgb, Srgb};
+use palette::{cast::ArrayCast, FromColor, FromColorMut, LinSrgb, Srgb};
 
 use super::{LedDriver, RgbOrder};
 
@@ -88,17 +88,22 @@ where
     type Error = Pin::Error;
     type Color = Srgb;
 
-    fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
+    fn write<C, const N: usize>(&mut self, mut pixels: [C; N]) -> Result<(), Self::Error>
     where
-        C: palette::IntoColor<Self::Color>,
+        Self::Color: FromColor<C> + ArrayCast + Clone,
+        C: FromColor<Self::Color> + ArrayCast<Array = <Self::Color as ArrayCast>::Array> + Clone,
     {
+        let pixels = <[Srgb]>::from_color_mut(&mut pixels);
+        let pixels = pixels.then_into_color_mut::<[LinSrgb]>();
+        /*
         for color in pixels {
-            let color: Srgb = color.into_color();
+            let mut color = <[Srgb]>::from_color_mut(color);
             let color: LinSrgb = color.into_color();
             let color: LinSrgb<u8> = color.into_format();
             let buffer = self.rgb_order.reorder(color.red, color.green, color.blue);
             self.write_buffer(&buffer)?;
         }
+        */
         self.delay_for_reset();
         Ok(())
     }

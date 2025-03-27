@@ -2,6 +2,7 @@
 
 use super::{clockless::LedClockless, LedDriver, RgbOrder};
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
+use defmt::info;
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
@@ -27,7 +28,7 @@ pub enum ClocklessRmtDriverError {
 /// an `LedAdapterError:BufferSizeExceeded` error.
 #[macro_export]
 macro_rules! create_rmt_buffer {
-    ( $buffer_size: literal ) => {
+    ($buffer_size:expr) => {
         // The size we're assigning here is calculated as following
         //  (
         //   Nr. of LEDs
@@ -47,7 +48,7 @@ where
     channel: Option<Tx>,
     rgb_order: RgbOrder,
     rmt_buffer: [u32; BUFFER_SIZE],
-    pulses: (u32, u32),
+    pulses: (u32, u32, u32),
 }
 
 impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
@@ -66,17 +67,31 @@ where
         C: TxChannelCreator<'d, Tx, P>,
         P: PeripheralOutput + Peripheral<P = P>,
     {
+        let clock_divider = 1;
         let config = TxChannelConfig::default()
-            .with_clk_divider(1)
+            .with_clk_divider(clock_divider)
             .with_idle_output_level(Level::Low)
-            .with_carrier_modulation(false)
-            .with_idle_output(true);
+            .with_idle_output(true)
+            .with_carrier_modulation(false);
 
         let channel = channel.configure(pin, config).unwrap();
 
         // Assume the RMT peripheral is set up to use the APB clock
         let clocks = Clocks::get();
-        let clock_cycle_in_ms = clocks.apb_clock.as_duration().as_micros() as u32;
+        let freq_hz = clocks.apb_clock.as_hz() / clock_divider as u32;
+        let freq_mhz = freq_hz / 1_000_000;
+
+        let t_0h = ((Led::T_0H.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_0l = ((Led::T_0L.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_1h = ((Led::T_1H.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_1l = ((Led::T_1L.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_reset = ((Led::T_RESET.to_nanos() * freq_mhz) / 1_000) as u16;
+
+        info!("T_0H: {}", t_0h);
+        info!("T_0L: {}", t_0l);
+        info!("T_1H: {}", t_1h);
+        info!("T_1L: {}", t_1l);
+        info!("T_RESET: {}", t_reset);
 
         Self {
             led: PhantomData,
@@ -84,18 +99,9 @@ where
             channel: Some(channel),
             rmt_buffer,
             pulses: (
-                PulseCode::new(
-                    Level::High,
-                    (Led::T_0H.to_micros() / clock_cycle_in_ms) as u16,
-                    Level::Low,
-                    (Led::T_0L.to_micros() / clock_cycle_in_ms) as u16,
-                ),
-                PulseCode::new(
-                    Level::High,
-                    (Led::T_1H.to_micros() / clock_cycle_in_ms) as u16,
-                    Level::Low,
-                    (Led::T_1L.to_micros() / clock_cycle_in_ms) as u16,
-                ),
+                PulseCode::new(Level::High, t_0h, Level::Low, t_0l),
+                PulseCode::new(Level::High, t_1h, Level::Low, t_1l),
+                PulseCode::new(Level::Low, t_reset, Level::Low, 0),
             ),
         }
     }
@@ -103,7 +109,7 @@ where
     fn write_color_byte_to_rmt(
         byte: &u8,
         rmt_iter: &mut IterMut<u32>,
-        pulses: (u32, u32),
+        pulses: &(u32, u32, u32),
     ) -> Result<(), ClocklessRmtDriverError> {
         for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
             *rmt_iter
@@ -117,24 +123,53 @@ where
         Ok(())
     }
 
-    /// Convert all  items of the iterator to the RMT format and
+    fn write_color_to_rmt<C: IntoColor<Srgb>>(
+        color: C,
+        rmt_iter: &mut IterMut<u32>,
+        rgb_order: &RgbOrder,
+        pulses: &(u32, u32, u32),
+    ) -> Result<(), ClocklessRmtDriverError> {
+        let color: Srgb = color.into_color();
+        let color: LinSrgb = color.into_color();
+        let color: LinSrgb<u8> = color.into_format();
+        let (a, b, c) = match rgb_order {
+            RgbOrder::RGB => (color.red, color.green, color.blue),
+            RgbOrder::RBG => (color.red, color.blue, color.green),
+            RgbOrder::GRB => (color.green, color.red, color.blue),
+            RgbOrder::GBR => (color.green, color.blue, color.red),
+            RgbOrder::BRG => (color.blue, color.red, color.green),
+            RgbOrder::BGR => (color.blue, color.green, color.red),
+        };
+        Self::write_color_byte_to_rmt(&a, rmt_iter, pulses)?;
+        Self::write_color_byte_to_rmt(&b, rmt_iter, pulses)?;
+        Self::write_color_byte_to_rmt(&c, rmt_iter, pulses)?;
+        Ok(())
+    }
+
+    /// Convert all pixels to the RMT format and
     /// add them to internal buffer, then start a singular RMT operation
     /// based on that buffer.
-    pub fn write_buffer(&mut self, buffer: &[u8]) -> Result<(), ClocklessRmtDriverError> {
+    pub fn write_pixels<C, const N: usize>(
+        &mut self,
+        pixels: [C; N],
+    ) -> Result<(), ClocklessRmtDriverError>
+    where
+        C: IntoColor<Srgb>,
+    {
         // We always start from the beginning of the buffer
         let mut rmt_iter = self.rmt_buffer.iter_mut();
 
         // Add all converted iterator items to the buffer.
         // This will result in an `BufferSizeExceeded` error in case
         // the iterator provides more elements than the buffer can take.
-        for item in buffer {
-            Self::write_color_byte_to_rmt(item, &mut rmt_iter, self.pulses)?;
+        for color in pixels {
+            Self::write_color_to_rmt(color, &mut rmt_iter, &self.rgb_order, &self.pulses)?;
         }
 
-        // Finally, add an end element.
+        // Finally, add the end element.
         *rmt_iter
             .next()
-            .ok_or(ClocklessRmtDriverError::BufferSizeExceeded)? = PulseCode::empty();
+            .ok_or(ClocklessRmtDriverError::BufferSizeExceeded)? = self.pulses.2;
 
         // Perform the actual RMT operation. We use the u32 values here right away.
         let channel = self.channel.take().unwrap();
@@ -163,20 +198,6 @@ where
     where
         C: palette::IntoColor<Self::Color>,
     {
-        for color in pixels {
-            let color: Srgb = color.into_color();
-            let color: LinSrgb = color.into_color();
-            let color: LinSrgb<u8> = color.into_format();
-            let buffer = match self.rgb_order {
-                RgbOrder::RGB => [color.red, color.green, color.blue],
-                RgbOrder::RBG => [color.red, color.blue, color.green],
-                RgbOrder::GRB => [color.green, color.red, color.blue],
-                RgbOrder::GBR => [color.green, color.blue, color.red],
-                RgbOrder::BRG => [color.blue, color.red, color.green],
-                RgbOrder::BGR => [color.blue, color.green, color.red],
-            };
-            self.write_buffer(&buffer)?;
-        }
-        Ok(())
+        self.write_pixels(pixels)
     }
 }

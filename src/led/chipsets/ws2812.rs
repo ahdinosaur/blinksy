@@ -56,7 +56,7 @@ mod esp {
     use esp_hal::{
         gpio::interconnect::PeripheralOutput,
         peripheral::Peripheral,
-        rmt::{PulseCode, TxChannel, TxChannelCreator},
+        rmt::{TxChannel, TxChannelCreator},
     };
 
     use super::Ws2812;

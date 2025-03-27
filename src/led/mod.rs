@@ -7,7 +7,7 @@ mod clockless;
 mod esp;
 
 pub use chipsets::*;
-pub use clocked::ClockedWriterBitBang;
+pub use clocked::ClockedGpio;
 use smart_leds_trait::SmartLedsWrite;
 
 pub trait LedDriver {
@@ -48,4 +48,17 @@ pub enum RgbOrder {
     GBR,
     BRG,
     BGR,
+}
+
+impl RgbOrder {
+    pub fn reorder<Word>(&self, rgb: (Word, Word, Word)) -> [Word; 3] {
+        match self {
+            RgbOrder::RGB => [rgb.0, rgb.1, rgb.2],
+            RgbOrder::RBG => [rgb.0, rgb.2, rgb.1],
+            RgbOrder::GRB => [rgb.1, rgb.0, rgb.2],
+            RgbOrder::GBR => [rgb.1, rgb.2, rgb.0],
+            RgbOrder::BRG => [rgb.2, rgb.0, rgb.1],
+            RgbOrder::BGR => [rgb.2, rgb.1, rgb.0],
+        }
+    }
 }

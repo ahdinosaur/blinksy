@@ -10,14 +10,14 @@ pub trait ClockedWriter {
 }
 
 #[derive(Debug)]
-pub struct ClockedWriterBitBang<Data: OutputPin, Clock: OutputPin, Delay: DelayNs> {
+pub struct ClockedGpio<Data: OutputPin, Clock: OutputPin, Delay: DelayNs> {
     data: Data,
     clock: Clock,
     delay: Delay,
     t_half_cycle_ns: u32,
 }
 
-impl<Data: OutputPin, Clock: OutputPin, Delay: DelayNs> ClockedWriterBitBang<Data, Clock, Delay> {
+impl<Data: OutputPin, Clock: OutputPin, Delay: DelayNs> ClockedGpio<Data, Clock, Delay> {
     pub fn new(data: Data, clock: Clock, delay: Delay, data_rate: Megahertz) -> Self {
         let t_cycle: Nanoseconds = data_rate.into_duration();
         let t_half_cycle = t_cycle / 2;
@@ -33,15 +33,15 @@ impl<Data: OutputPin, Clock: OutputPin, Delay: DelayNs> ClockedWriterBitBang<Dat
 }
 
 #[derive(Debug)]
-pub enum ClockedWriterBitBangError<Data: OutputPin, Clock: OutputPin> {
+pub enum ClockedGpioError<Data: OutputPin, Clock: OutputPin> {
     Data(Data::Error),
     Clock(Clock::Error),
 }
 
 impl<Data: OutputPin, Clock: OutputPin, Delay: DelayNs> ClockedWriter
-    for ClockedWriterBitBang<Data, Clock, Delay>
+    for ClockedGpio<Data, Clock, Delay>
 {
-    type Error = ClockedWriterBitBangError<Data, Clock>;
+    type Error = ClockedGpioError<Data, Clock>;
     type Word = u8;
 
     fn write(&mut self, buffer: &[Self::Word]) -> Result<(), Self::Error> {
@@ -54,19 +54,15 @@ impl<Data: OutputPin, Clock: OutputPin, Delay: DelayNs> ClockedWriter
                     0 => self.data.set_low(),
                     _ => self.data.set_high(),
                 }
-                .map_err(ClockedWriterBitBangError::Data)?;
+                .map_err(ClockedGpioError::Data)?;
 
                 self.delay.delay_ns(self.t_half_cycle_ns);
 
-                self.clock
-                    .set_high()
-                    .map_err(ClockedWriterBitBangError::Clock)?;
+                self.clock.set_high().map_err(ClockedGpioError::Clock)?;
 
                 self.delay.delay_ns(self.t_half_cycle_ns);
 
-                self.clock
-                    .set_low()
-                    .map_err(ClockedWriterBitBangError::Clock)?;
+                self.clock.set_low().map_err(ClockedGpioError::Clock)?;
             }
         }
         Ok(())

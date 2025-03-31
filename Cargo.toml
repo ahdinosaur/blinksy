@@ -10,7 +10,7 @@ esp-hal = { version = "1.0.0-beta.0", optional = true }
 # esp-hal = { version = "1.0.0-beta.0", features = ["esp32"] }
 fugit = "0.3.7"
 heapless = "0.8.0"
-noise = "0.9.0"
+noise = { git = "https://github.com/ahdinosaur/noise-rs", branch = "no-std", default-features = false, features = ["libm"] }
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 palette = { version = "0.7.6", default-features = false, features = ["libm", "bytemuck"] }
 smart-leds-trait = "0.3.1"

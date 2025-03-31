@@ -3,6 +3,10 @@ use palette::Hsl;
 
 use crate::{Layout1d, Layout2d, Pattern};
 
+pub mod noise_fns {
+    pub use noise::{OpenSimplex, Perlin, Simplex};
+}
+
 #[derive(Debug)]
 pub struct NoiseParams {
     time_scalar: f64,

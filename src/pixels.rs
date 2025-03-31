@@ -1,4 +1,4 @@
-pub use palette::{Hsv, IntoColor, Srgb};
+pub use palette::{Hsl, Hsv, IntoColor, Srgb};
 
 pub struct Pixels<const N: usize>([Srgb; N]);
 

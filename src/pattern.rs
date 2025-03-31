@@ -1,8 +1,8 @@
-pub trait Pattern1d<const N: usize> {
+pub trait Pattern<const NUM_PIXELS: usize> {
     type Params;
     type Layout;
     type Color;
 
     fn new(params: Self::Params, layout: Self::Layout) -> Self;
-    fn tick(time_in_ms: u64) -> [Self::Color; N];
+    fn tick(&self, time_in_ms: u64) -> [Self::Color; NUM_PIXELS];
 }

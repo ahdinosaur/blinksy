@@ -5,6 +5,7 @@ use core::{
     ops::{Add, Mul},
 };
 
+use defmt::info;
 pub use glam::Vec2;
 use num_traits::FromPrimitive;
 
@@ -278,6 +279,7 @@ impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
         T: Sized,
     {
         if self.pixel_count() != NUM_PIXELS {
+            info!("run-time Layout2d::pixel_count() != compile-time NUM_PIXELS");
             panic!("run-time Layout2d::pixel_count() != compile-time NUM_PIXELS");
         }
 
@@ -286,7 +288,8 @@ impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
 
         for (index, point) in self.points().enumerate() {
             if index >= NUM_PIXELS {
-                panic!("overflow while mapping points")
+                info!("overflow while mapping points");
+                panic!("overflow while mapping points");
             }
             array[index].write(mapper(point));
         }

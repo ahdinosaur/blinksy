@@ -1,5 +1,5 @@
 use noise::NoiseFn;
-use palette::Hsl;
+use palette::Hsv;
 
 use crate::{Layout1d, Layout2d, Pattern};
 
@@ -9,16 +9,18 @@ pub mod noise_fns {
 
 #[derive(Debug)]
 pub struct NoiseParams {
-    time_scalar: f64,
-    position_scalar: f64,
+    pub time_scalar: f64,
+    pub position_scalar: f64,
+    pub brightness: f32,
 }
 
 impl Default for NoiseParams {
     fn default() -> Self {
-        const NANOSECONDS_PER_SECOND: f64 = 1e9;
+        const MILLISECONDS_PER_SECOND: f64 = 1e3;
         Self {
-            time_scalar: 0.75 / NANOSECONDS_PER_SECOND,
+            time_scalar: 0.75 / MILLISECONDS_PER_SECOND,
             position_scalar: 0.5,
+            brightness: 1.,
         }
     }
 }
@@ -38,7 +40,7 @@ where
 {
     type Params = NoiseParams;
     type Layout = Layout1d;
-    type Color = Hsl;
+    type Color = Hsv;
 
     fn new(params: Self::Params, _layout: Self::Layout) -> Self {
         Self {
@@ -52,17 +54,18 @@ where
         let NoiseParams {
             time_scalar,
             position_scalar,
+            brightness,
         } = params;
 
+        let noise_time = time_in_ms as f64 * time_scalar;
+
         core::array::from_fn(move |index| {
-            let noise_time = time_in_ms as f64 * time_scalar;
             let noise = noise.get([position_scalar * index as f64, noise_time]);
 
             let hue = 360. * noise as f32;
             let saturation = 1.;
-            let lightness = 0.5;
 
-            Hsl::new_srgb(hue, saturation, lightness)
+            Hsv::new_srgb(hue, saturation, *brightness)
         })
     }
 }
@@ -84,7 +87,7 @@ where
 {
     type Params = NoiseParams;
     type Layout = Layout2d<NUM_SHAPES>;
-    type Color = Hsl;
+    type Color = Hsv;
 
     fn new(params: Self::Params, layout: Self::Layout) -> Self {
         Self {
@@ -103,10 +106,12 @@ where
         let NoiseParams {
             time_scalar,
             position_scalar,
+            brightness,
         } = params;
 
+        let noise_time = time_in_ms as f64 * time_scalar;
+
         layout.map_points(|point| {
-            let noise_time = time_in_ms as f64 * time_scalar;
             let noise = noise.get([
                 position_scalar * point.x as f64,
                 position_scalar * point.y as f64,
@@ -115,9 +120,8 @@ where
 
             let hue = 360. * noise as f32;
             let saturation = 1.;
-            let lightness = 0.5;
 
-            Hsl::new_srgb(hue, saturation, lightness)
+            Hsv::new_srgb(hue, saturation, *brightness)
         })
     }
 }

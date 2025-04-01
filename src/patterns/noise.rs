@@ -1,4 +1,3 @@
-use defmt::info;
 use noise::NoiseFn;
 use palette::Hsl;
 
@@ -106,7 +105,6 @@ where
         } = params;
 
         layout.map_points(|point| {
-            info!("point: {} {}", point.x, point.y);
             let noise_time = time_in_ms as f64 * time_scalar;
 
             let hue = noise.get([

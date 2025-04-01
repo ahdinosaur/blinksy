@@ -41,6 +41,7 @@ pub enum Shape2d {
 pub enum Shape2dPointsIterator {
     Point(Once<Vec2>),
     Line(StepIterator<Vec2, f32>),
+    Grid(GridStepIterator<Vec2, f32>),
 }
 
 impl Iterator for Shape2dPointsIterator {
@@ -50,6 +51,7 @@ impl Iterator for Shape2dPointsIterator {
         match self {
             Shape2dPointsIterator::Point(iter) => iter.next(),
             Shape2dPointsIterator::Line(iter) => iter.next(),
+            Shape2dPointsIterator::Grid(iter) => iter.next(),
         }
     }
 }
@@ -105,6 +107,80 @@ impl From<StepIterator<Vec2, f32>> for Shape2dPointsIterator {
     }
 }
 
+#[derive(Debug)]
+pub struct GridStepIterator<Item, Scalar> {
+    start: Item,
+    row_step: Item,
+    col_step: Item,
+    row_pixel_count: usize,
+    col_pixel_count: usize,
+    serpentine: bool,
+    row_index: usize,
+    col_index: usize,
+    scalar: PhantomData<Scalar>,
+}
+
+impl<Item, Scalar> GridStepIterator<Item, Scalar> {
+    pub fn new(
+        start: Item,
+        row_step: Item,
+        col_step: Item,
+        row_pixel_count: usize,
+        col_pixel_count: usize,
+        serpentine: bool,
+    ) -> Self {
+        Self {
+            start,
+            row_step,
+            col_step,
+            row_pixel_count,
+            col_pixel_count,
+            serpentine,
+            row_index: 0,
+            col_index: 0,
+            scalar: PhantomData,
+        }
+    }
+}
+
+impl<Item, Scalar> Iterator for GridStepIterator<Item, Scalar>
+where
+    Item: Add<Output = Item> + Copy,
+    Scalar: FromPrimitive + Mul<Item, Output = Item>,
+{
+    type Item = Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.row_index >= self.row_pixel_count {
+            return None;
+        }
+        let row_index = Scalar::from_usize(self.row_index)?;
+
+        // If serpentine, reverse the column order on every other row.
+        let col_index = if self.serpentine && (self.row_index % 2 == 1) {
+            self.col_pixel_count - 1 - self.col_index
+        } else {
+            self.col_index
+        };
+        let col_index = Scalar::from_usize(col_index)?;
+
+        let point = self.start + row_index * self.row_step + col_index * self.col_step;
+
+        self.col_index += 1;
+        if self.col_index >= self.col_pixel_count {
+            self.col_index = 0;
+            self.row_index += 1;
+        }
+        Some(point)
+    }
+}
+
+impl From<GridStepIterator<Vec2, f32>> for Shape2dPointsIterator {
+    fn from(value: GridStepIterator<Vec2, f32>) -> Self {
+        Shape2dPointsIterator::Grid(value)
+    }
+}
+
 impl Shape2d {
     pub const fn pixel_count(&self) -> usize {
         match *self {
@@ -137,7 +213,19 @@ impl Shape2d {
                 row_pixel_count,
                 col_pixel_count,
                 serpentine,
-            } => todo!(),
+            } => {
+                let row_step = (start - row_end) / row_pixel_count as f32;
+                let col_step = (start - col_end) / col_pixel_count as f32;
+                GridStepIterator::new(
+                    start,
+                    row_step,
+                    col_step,
+                    row_pixel_count,
+                    col_pixel_count,
+                    serpentine,
+                )
+                .into()
+            }
             Shape2d::Arc {
                 center,
                 radius,

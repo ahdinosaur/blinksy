@@ -2,7 +2,6 @@
 
 use super::{clockless::LedClockless, LedDriver, RgbOrder};
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
-use defmt::info;
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
@@ -86,12 +85,6 @@ where
         let t_1h = ((Led::T_1H.to_nanos() * freq_mhz) / 1_000) as u16;
         let t_1l = ((Led::T_1L.to_nanos() * freq_mhz) / 1_000) as u16;
         let t_reset = ((Led::T_RESET.to_nanos() * freq_mhz) / 1_000) as u16;
-
-        info!("T_0H: {}", t_0h);
-        info!("T_0L: {}", t_0l);
-        info!("T_1H: {}", t_1h);
-        info!("T_1L: {}", t_1l);
-        info!("T_RESET: {}", t_reset);
 
         Self {
             led: PhantomData,

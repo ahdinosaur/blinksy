@@ -1,3 +1,4 @@
+use defmt::info;
 use noise::NoiseFn;
 use palette::Hsl;
 
@@ -97,19 +98,22 @@ where
         let Self {
             noise,
             params,
-            layout: _,
+            layout,
         } = self;
         let NoiseParams {
             time_scalar,
             position_scalar,
         } = params;
 
-        // TODO implement
-
-        core::array::from_fn(move |index| {
+        layout.map_points(|point| {
+            info!("point: {} {}", point.x, point.y);
             let noise_time = time_in_ms as f64 * time_scalar;
 
-            let hue = noise.get([position_scalar * index as f64, 0., noise_time]) as f32;
+            let hue = noise.get([
+                position_scalar * point.x as f64,
+                position_scalar * point.y as f64,
+                noise_time,
+            ]) as f32;
             let saturation = 1.;
             let lightness = 0.5;
 

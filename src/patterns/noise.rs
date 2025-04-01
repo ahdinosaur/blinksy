@@ -15,7 +15,7 @@ pub struct NoiseParams {
 
 impl Default for NoiseParams {
     fn default() -> Self {
-        const NANOSECONDS_PER_SECOND: f64 = 1e-9;
+        const NANOSECONDS_PER_SECOND: f64 = 1e9;
         Self {
             time_scalar: 0.75 / NANOSECONDS_PER_SECOND,
             position_scalar: 0.5,
@@ -56,8 +56,9 @@ where
 
         core::array::from_fn(move |index| {
             let noise_time = time_in_ms as f64 * time_scalar;
+            let noise = noise.get([position_scalar * index as f64, noise_time]);
 
-            let hue = noise.get([position_scalar * index as f64, noise_time]) as f32;
+            let hue = 360. * noise as f32;
             let saturation = 1.;
             let lightness = 0.5;
 
@@ -106,12 +107,13 @@ where
 
         layout.map_points(|point| {
             let noise_time = time_in_ms as f64 * time_scalar;
-
-            let hue = noise.get([
+            let noise = noise.get([
                 position_scalar * point.x as f64,
                 position_scalar * point.y as f64,
                 noise_time,
-            ]) as f32;
+            ]);
+
+            let hue = 360. * noise as f32;
             let saturation = 1.;
             let lightness = 0.5;
 

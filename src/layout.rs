@@ -1,6 +1,11 @@
-use core::iter::once;
+use core::{
+    iter::{once, Map, Once},
+    marker::PhantomData,
+    ops::{Add, Mul, Range},
+};
 
 use glam::Vec2;
+use num_traits::FromPrimitive;
 
 #[derive(Debug)]
 pub struct Layout1d;
@@ -31,17 +36,74 @@ pub enum Shape2d {
     },
 }
 
+#[derive(Debug)]
+pub enum Shape2dPointsIterator {
+    Point(Once<Vec2>),
+    Line(StepIterator<Vec2, f32>),
+}
+
+impl From<Once<Vec2>> for Shape2dPointsIterator {
+    fn from(value: Once<Vec2>) -> Self {
+        Shape2dPointsIterator::Point(value)
+    }
+}
+
+#[derive(Debug)]
+pub struct StepIterator<Item, Scalar> {
+    start: Item,
+    step: Item,
+    index: usize,
+    length: usize,
+    scalar: PhantomData<Scalar>,
+}
+
+impl<Item, Scalar> StepIterator<Item, Scalar> {
+    pub fn new(start: Item, step: Item, length: usize) -> Self {
+        Self {
+            start,
+            step,
+            index: 0,
+            length,
+            scalar: PhantomData,
+        }
+    }
+}
+
+impl<Item, Scalar> Iterator for StepIterator<Item, Scalar>
+where
+    Item: Add<Output = Item> + Copy,
+    Scalar: FromPrimitive + Mul<Item, Output = Item>,
+{
+    type Item = Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.length {
+            return None;
+        }
+        let index = Scalar::from_usize(self.index)?;
+        let next = self.start + index * self.step;
+        self.index += 1;
+        Some(next)
+    }
+}
+
+impl From<StepIterator<Vec2, f32>> for Shape2dPointsIterator {
+    fn from(value: StepIterator<Vec2, f32>) -> Self {
+        Shape2dPointsIterator::Line(value)
+    }
+}
+
 impl Shape2d {
-    fn points(&self) -> impl Iterator<Item = &Vec2> {
-        match self {
-            Shape2d::Point(point) => once(point),
+    fn points(&self) -> Shape2dPointsIterator {
+        match *self {
+            Shape2d::Point(point) => once(point).into(),
             Shape2d::Line {
                 start,
                 end,
                 pixel_count,
             } => {
-                let spacing = (start - end) / *pixel_count as f32;
-                (0..pixel_count).map(|index| start + index * spacing)
+                let step = (start - end) / pixel_count as f32;
+                StepIterator::new(start, step, pixel_count).into()
             }
             Shape2d::Grid {
                 start,

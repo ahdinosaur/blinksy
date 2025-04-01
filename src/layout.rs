@@ -1,10 +1,10 @@
 use core::{
-    iter::{once, Map, Once},
+    iter::{once, Once},
     marker::PhantomData,
-    ops::{Add, Mul, Range},
+    ops::{Add, Mul},
 };
 
-use glam::Vec2;
+pub use glam::Vec2;
 use num_traits::FromPrimitive;
 
 #[derive(Debug)]
@@ -94,7 +94,20 @@ impl From<StepIterator<Vec2, f32>> for Shape2dPointsIterator {
 }
 
 impl Shape2d {
-    fn points(&self) -> Shape2dPointsIterator {
+    pub const fn pixel_count(&self) -> usize {
+        match *self {
+            Shape2d::Point(_) => 1,
+            Shape2d::Line { pixel_count, .. } => pixel_count,
+            Shape2d::Grid {
+                row_pixel_count,
+                col_pixel_count,
+                ..
+            } => row_pixel_count * col_pixel_count,
+            Shape2d::Arc { pixel_count, .. } => pixel_count,
+        }
+    }
+
+    pub fn points(&self) -> Shape2dPointsIterator {
         match *self {
             Shape2d::Point(point) => once(point).into(),
             Shape2d::Line {
@@ -125,6 +138,22 @@ impl Shape2d {
 
 #[derive(Debug)]
 pub struct Layout2d<const NUM_SHAPES: usize>([Shape2d; NUM_SHAPES]);
+
+impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
+    pub const fn new(shapes: [Shape2d; NUM_SHAPES]) -> Self {
+        Self(shapes)
+    }
+
+    pub const fn pixel_count(&self) -> usize {
+        let mut count = 0;
+        let mut i = 0;
+        while i < NUM_SHAPES {
+            count += self.0[i].pixel_count();
+            i += 1;
+        }
+        count
+    }
+}
 
 #[derive(Debug)]
 pub enum Shape3d {}

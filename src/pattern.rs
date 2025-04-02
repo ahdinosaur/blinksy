@@ -1,9 +1,9 @@
-use crate::Layout;
+use crate::Layout1d;
 
-pub trait Pattern<const NUM_SHAPES: usize, const LAYOUT: Layout<{ NUM_SHAPES }>> {
+pub trait Pattern1d<Layout: Layout1d> {
     type Params;
     type Color;
 
     fn new(params: Self::Params) -> Self;
-    fn tick(&self, time_in_ms: u64) -> [Self::Color; LAYOUT.pixel_count()];
+    fn tick(&self, time_in_ms: u64) -> [Self::Color; Layout::NUM_PIXELS];
 }

@@ -10,7 +10,32 @@ pub use glam::Vec2;
 use num_traits::FromPrimitive;
 
 #[derive(Debug, Clone)]
-pub struct Layout1d;
+pub enum Layout<const NUM_SHAPES: usize> {
+    L1d(Layout1d),
+    L2d(Layout2d<NUM_SHAPES>),
+    L3d(Layout3d<NUM_SHAPES>),
+}
+
+impl<const NUM_SHAPES: usize> Layout<NUM_SHAPES> {
+    pub const fn pixel_count(&self) -> usize {
+        match self {
+            Layout::L1d(layout) => layout.pixel_count(),
+            Layout::L2d(layout) => layout.pixel_count(),
+            Layout::L3d(_layout) => todo!(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Layout1d {
+    pixel_count: usize,
+}
+
+impl Layout1d {
+    pub const fn pixel_count(&self) -> usize {
+        self.pixel_count
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Shape2d {

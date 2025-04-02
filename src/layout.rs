@@ -9,10 +9,10 @@ use defmt::info;
 pub use glam::Vec2;
 use num_traits::FromPrimitive;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Layout1d;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Shape2d {
     Point(Vec2),
     Line {
@@ -263,7 +263,7 @@ impl<const NUM_SHAPES: usize> Iterator for Layout2dPointsIterator<NUM_SHAPES> {
 }
 */
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Layout2d<const NUM_SHAPES: usize>([Shape2d; NUM_SHAPES]);
 
 impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
@@ -320,8 +320,8 @@ impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Shape3d {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Layout3d<const NUM_SHAPES: usize>([Shape3d; NUM_SHAPES]);

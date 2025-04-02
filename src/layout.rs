@@ -9,12 +9,32 @@ use defmt::info;
 pub use glam::Vec2;
 use num_traits::FromPrimitive;
 
-pub trait Layout1d {
-    const NUM_PIXELS: usize;
+#[derive(Debug, Clone)]
+pub enum Layout<const NUM_SHAPES: usize> {
+    L1d(Layout1d),
+    L2d(Layout2d<NUM_SHAPES>),
+    L3d(Layout3d<NUM_SHAPES>),
 }
 
-pub const fn pixel_count_1d<Layout: Layout1d>() -> usize {
-    Layout::NUM_PIXELS
+impl<const NUM_SHAPES: usize> Layout<NUM_SHAPES> {
+    pub const fn pixel_count(&self) -> usize {
+        match self {
+            Layout::L1d(layout) => layout.pixel_count(),
+            Layout::L2d(layout) => layout.pixel_count(),
+            Layout::L3d(_layout) => todo!(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Layout1d {
+    pixel_count: usize,
+}
+
+impl Layout1d {
+    pub const fn pixel_count(&self) -> usize {
+        self.pixel_count
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -242,58 +262,87 @@ impl Shape2d {
     }
 }
 
-pub trait Layout2d<const NUM_SHAPES: usize> {
-    const SHAPES: [Shape2d; NUM_SHAPES];
+/*
+#[derive(Debug)]
+pub struct Layout2dPointsIterator<const NUM_SHAPES: usize> {
+    layout: Layout2d<NUM_SHAPES>,
+    index: usize,
 }
 
-pub const fn pixel_count_2d<const NUM_SHAPES: usize, Layout: Layout2d<NUM_SHAPES>>() -> usize {
-    let mut count = 0;
-    let mut i = 0;
-    while i < NUM_SHAPES {
-        count += Layout::SHAPES[i].pixel_count();
-        i += 1;
+impl<const NUM_SHAPES: usize> Layout2dPointsIterator<NUM_SHAPES> {
+    pub const fn new(layout: Layout2d<NUM_SHAPES>) -> Self {
+        Self { layout, index: 0 }
     }
-    count
 }
 
-pub fn points_2d<const NUM_SHAPES: usize, Layout: Layout2d<NUM_SHAPES>>(
-) -> impl Iterator<Item = Vec2> {
-    Layout::SHAPES.iter().flat_map(|s| s.points())
-}
 
-pub fn map_points_2d<
-    const NUM_SHAPES: usize,
-    Layout: Layout2d<NUM_SHAPES>,
-    const NUM_PIXELS: usize,
-    T,
->(
-    mapper: impl Fn(Vec2) -> T,
-) -> [T; NUM_PIXELS]
-where
-    T: Sized,
-{
-    if pixel_count_2d::<NUM_SHAPES, Layout>() != NUM_PIXELS {
-        info!("run-time Layout2d::pixel_count() != compile-time NUM_PIXELS");
-        panic!("run-time Layout2d::pixel_count() != compile-time NUM_PIXELS");
-    }
+impl<const NUM_SHAPES: usize> Iterator for Layout2dPointsIterator<NUM_SHAPES> {
+    type Item = Vec2;
 
-    let mut array: [MaybeUninit<T>; NUM_PIXELS] = unsafe { MaybeUninit::uninit().assume_init() };
-
-    for (index, point) in points_2d::<NUM_SHAPES, Layout>().enumerate() {
-        if index >= NUM_PIXELS {
-            info!("overflow while mapping points");
-            panic!("overflow while mapping points");
+    fn next(&mut self) -> Option<Self::Item> {
+        if (self.index >= NUM_SHAPES) {
+            return None;
         }
-        array[index].write(mapper(point));
+        let next = self.layout.0[self.index]
+    }
+}
+*/
+
+#[derive(Debug, Clone)]
+pub struct Layout2d<const NUM_SHAPES: usize>([Shape2d; NUM_SHAPES]);
+
+impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
+    pub fn points(&self) -> impl Iterator<Item = Vec2> + '_ {
+        self.0.iter().flat_map(|s| s.points())
     }
 
-    // SAFETY: We have initialized exactly NUM_PIXELS elements.
-    unsafe { array_assume_init(array) }
+    pub fn map_points<T, const NUM_PIXELS: usize>(
+        &self,
+        mapper: impl Fn(Vec2) -> T,
+    ) -> [T; NUM_PIXELS]
+    where
+        T: Sized,
+    {
+        if self.pixel_count() != NUM_PIXELS {
+            info!("run-time Layout2d::pixel_count() != compile-time NUM_PIXELS");
+            panic!("run-time Layout2d::pixel_count() != compile-time NUM_PIXELS");
+        }
+
+        let mut array: [MaybeUninit<T>; NUM_PIXELS] =
+            unsafe { MaybeUninit::uninit().assume_init() };
+
+        for (index, point) in self.points().enumerate() {
+            if index >= NUM_PIXELS {
+                info!("overflow while mapping points");
+                panic!("overflow while mapping points");
+            }
+            array[index].write(mapper(point));
+        }
+
+        // SAFETY: We have initialized exactly NUM_PIXELS elements.
+        unsafe { array_assume_init(array) }
+    }
 }
 
 unsafe fn array_assume_init<T, const N: usize>(array: [MaybeUninit<T>; N]) -> [T; N] {
     // SAFETY: The caller must guarantee that each element is initialized.
     core::ptr::read(&array as *const _ as *const [T; N])
+}
+
+impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
+    pub const fn new(shapes: [Shape2d; NUM_SHAPES]) -> Self {
+        Self(shapes)
+    }
+
+    pub const fn pixel_count(&self) -> usize {
+        let mut count = 0;
+        let mut i = 0;
+        while i < NUM_SHAPES {
+            count += self.0[i].pixel_count();
+            i += 1;
+        }
+        count
+    }
 }
 
 #[derive(Debug, Clone)]

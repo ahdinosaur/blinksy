@@ -4,7 +4,6 @@ mod layout;
 mod led;
 mod pattern;
 pub mod patterns;
-mod pixels;
 pub mod time;
 mod util;
 
@@ -12,10 +11,13 @@ use core::marker::PhantomData;
 
 use palette::FromColor;
 
+pub mod color {
+    pub use palette::{FromColor, Hsl, Hsv, IntoColor, LinSrgb, RgbHue, Srgb};
+}
+
 pub use crate::layout::*;
 pub use crate::led::*;
 pub use crate::pattern::*;
-pub use crate::pixels::*;
 
 pub struct Control1d<Layout, Pattern, Driver>
 where

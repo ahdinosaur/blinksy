@@ -38,7 +38,7 @@ macro_rules! create_rmt_buffer {
     };
 }
 
-pub struct ClocklessRmtDriver<Led, Tx, const BUFFER_SIZE: usize>
+pub struct ClocklessRmtDriver<const PIXEL_COUNT: usize, Led, Tx>
 where
     Led: LedClockless,
     Tx: TxChannel,
@@ -46,22 +46,17 @@ where
     led: PhantomData<Led>,
     channel: Option<Tx>,
     rgb_order: RgbOrder,
-    rmt_buffer: [u32; BUFFER_SIZE],
+    rmt_buffer: [u32; PIXEL_COUNT * 24 + 1],
     pulses: (u32, u32, u32),
 }
 
-impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+impl<'d, const PIXEL_COUNT: usize, Led, Tx> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: LedClockless,
     Tx: TxChannel,
 {
     /// Create a new adapter object that drives the pin using the RMT channel.
-    pub fn new<C, P>(
-        channel: C,
-        pin: impl Peripheral<P = P> + 'd,
-        rmt_buffer: [u32; BUFFER_SIZE],
-        rgb_order: RgbOrder,
-    ) -> Self
+    pub fn new<C, P>(channel: C, pin: impl Peripheral<P = P> + 'd, rgb_order: RgbOrder) -> Self
     where
         C: TxChannelCreator<'d, Tx, P>,
         P: PeripheralOutput + Peripheral<P = P>,
@@ -85,6 +80,8 @@ where
         let t_1h = ((Led::T_1H.to_nanos() * freq_mhz) / 1_000) as u16;
         let t_1l = ((Led::T_1L.to_nanos() * freq_mhz) / 1_000) as u16;
         let t_reset = ((Led::T_RESET.to_nanos() * freq_mhz) / 1_000) as u16;
+
+        let rmt_buffer = [0u32; PIXEL_COUNT * 24 + 1];
 
         Self {
             led: PhantomData,

@@ -10,7 +10,7 @@ pub use chipsets::*;
 pub use clocked::ClockedDelayWriter;
 use smart_leds_trait::SmartLedsWrite;
 
-pub trait LedDriver {
+pub trait LedDriver<const PIXEL_COUNT: usize> {
     type Error;
     type Color;
 
@@ -20,7 +20,7 @@ pub trait LedDriver {
         Self::Color: FromColor<C>;
 }
 
-impl<Driver, DriverColor> LedDriver for Driver
+impl<const PIXEL_COUNT: usize, Driver, DriverColor> LedDriver<PIXEL_COUNT> for Driver
 where
     Driver: SmartLedsWrite<Color = DriverColor>,
     DriverColor: From<smart_leds_trait::RGB<f32>>,

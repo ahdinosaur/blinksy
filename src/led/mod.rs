@@ -14,7 +14,7 @@ pub trait LedDriver {
     type Error;
     type Color;
 
-    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>;
@@ -28,13 +28,14 @@ where
     type Color = palette::Srgb;
     type Error = Driver::Error;
 
-    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
         let iterator = pixels.into_iter().map(|color| {
             let color: LinSrgb<f32> = Srgb::from_color(color).into_linear();
+            let color = color * brightness;
             smart_leds_trait::RGB::<f32>::new(color.red, color.green, color.blue)
         });
         SmartLedsWrite::write(self, iterator)

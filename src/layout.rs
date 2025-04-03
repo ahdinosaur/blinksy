@@ -11,6 +11,16 @@ pub trait Layout1d {
     const PIXEL_COUNT: usize;
 }
 
+#[macro_export]
+macro_rules! layout1d {
+    ( $name:ident, $pixel_count:expr ) => {
+        struct $name;
+        impl $crate::Layout1d for $name {
+            const PIXEL_COUNT: usize = $pixel_count;
+        }
+    };
+}
+
 #[derive(Debug, Clone)]
 pub enum Shape2d {
     Point(Vec2),

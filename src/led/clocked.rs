@@ -54,7 +54,7 @@ where
     }
 }
 
-impl<const PIXEL_COUNT: usize, Led, Writer> LedDriver<PIXEL_COUNT> for ClockedDriver<Led, Writer>
+impl<Led, Writer> LedDriver for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
     Writer: ClockedWriter<Word = Led::Word>,

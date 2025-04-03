@@ -79,8 +79,7 @@ where
     }
 }
 
-impl<const PIXEL_COUNT: usize, Led, Pin, Delay> LedDriver<PIXEL_COUNT>
-    for ClocklessDelayDriver<Led, Pin, Delay>
+impl<Led, Pin, Delay> LedDriver for ClocklessDelayDriver<Led, Pin, Delay>
 where
     Led: LedClockless,
     Pin: OutputPin,

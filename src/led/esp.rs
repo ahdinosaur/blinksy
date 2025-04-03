@@ -8,7 +8,7 @@ use esp_hal::{
     peripheral::Peripheral,
     rmt::{Error as RmtError, PulseCode, TxChannel, TxChannelConfig, TxChannelCreator},
 };
-use palette::{IntoColor, LinSrgb, Srgb};
+use palette::{FromColor, IntoColor, LinSrgb, Srgb};
 
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands
@@ -27,14 +27,14 @@ pub enum ClocklessRmtDriverError {
 /// an `LedAdapterError:BufferSizeExceeded` error.
 #[macro_export]
 macro_rules! create_rmt_buffer {
-    ($buffer_size:expr) => {
+    ($led_count:expr) => {
         // The size we're assigning here is calculated as following
         //  (
         //   Nr. of LEDs
         //   * channels (r,g,b -> 3)
         //   * pulses per channel 8)
         //  ) + 1 additional pulse for the end delimiter
-        [0u32; $buffer_size * 24 + 1]
+        [0u32; $led_count * 24 + 1]
     };
 }
 
@@ -142,11 +142,9 @@ where
     /// Convert all pixels to the RMT format and
     /// add them to internal buffer, then start a singular RMT operation
     /// based on that buffer.
-    pub fn write_pixels<C, const N: usize>(
-        &mut self,
-        pixels: [C; N],
-    ) -> Result<(), ClocklessRmtDriverError>
+    pub fn write_pixels<I, C>(&mut self, pixels: I) -> Result<(), ClocklessRmtDriverError>
     where
+        I: IntoIterator<Item = C>,
         C: IntoColor<Srgb>,
     {
         // We always start from the beginning of the buffer
@@ -187,9 +185,10 @@ where
     type Error = ClocklessRmtDriverError;
     type Color = Srgb;
 
-    fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
-        Self::Color: palette::FromColor<C>,
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
     {
         self.write_pixels(pixels)
     }

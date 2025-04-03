@@ -8,17 +8,19 @@ mod esp;
 
 pub use chipsets::*;
 pub use clocked::ClockedDelayWriter;
-use smart_leds_trait::SmartLedsWrite;
+// use smart_leds_trait::SmartLedsWrite;
 
 pub trait LedDriver {
     type Error;
     type Color;
 
-    fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
+        I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>;
 }
 
+/*
 impl<Driver, DriverColor> LedDriver for Driver
 where
     Driver: SmartLedsWrite<Color = DriverColor>,
@@ -38,6 +40,7 @@ where
         SmartLedsWrite::write(self, iterator)
     }
 }
+*/
 
 #[derive(Debug)]
 pub enum RgbOrder {

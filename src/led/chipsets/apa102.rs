@@ -31,7 +31,6 @@ impl ClockedLed for Apa102 {
     fn start<Writer: ClockedWriter<Word = Self::Word>>(
         &self,
         writer: &mut Writer,
-        _length: usize,
     ) -> Result<(), Writer::Error> {
         writer.write(&[0x00, 0x00, 0x00, 0x00])
     }
@@ -108,9 +107,10 @@ where
     type Color =
         <ClockedDriver<Apa102, ClockedDelayWriter<Data, Clock, Delay>> as LedDriver>::Color;
 
-    fn write<Color, const N: usize>(&mut self, pixels: [Color; N]) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
-        Self::Color: FromColor<Color>,
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
     {
         self.driver.write(pixels)
     }
@@ -142,9 +142,10 @@ where
     type Error = <ClockedDriver<Apa102, Spi> as LedDriver>::Error;
     type Color = <ClockedDriver<Apa102, Spi> as LedDriver>::Color;
 
-    fn write<Color, const N: usize>(&mut self, pixels: [Color; N]) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
-        Self::Color: FromColor<Color>,
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
     {
         self.driver.write(pixels)
     }

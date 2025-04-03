@@ -1,16 +1,15 @@
 use core::{
     iter::{once, Once},
     marker::PhantomData,
-    mem::MaybeUninit,
     ops::{Add, Mul},
 };
 
-use defmt::info;
 pub use glam::Vec2;
 use num_traits::FromPrimitive;
 
-#[derive(Debug, Clone)]
-pub struct Layout1d;
+pub trait Layout1d {
+    const PIXEL_COUNT: usize;
+}
 
 #[derive(Debug, Clone)]
 pub enum Shape2d {
@@ -237,91 +236,29 @@ impl Shape2d {
     }
 }
 
-/*
-#[derive(Debug)]
-pub struct Layout2dPointsIterator<const NUM_SHAPES: usize> {
-    layout: Layout2d<NUM_SHAPES>,
-    index: usize,
-}
+pub trait Layout2d {
+    const PIXEL_COUNT: usize;
 
-impl<const NUM_SHAPES: usize> Layout2dPointsIterator<NUM_SHAPES> {
-    pub const fn new(layout: Layout2d<NUM_SHAPES>) -> Self {
-        Self { layout, index: 0 }
+    fn shapes() -> impl Iterator<Item = Shape2d>;
+
+    fn points() -> impl Iterator<Item = Vec2> {
+        Self::shapes().flat_map(|s| s.points())
     }
 }
 
+#[macro_export]
+macro_rules! layout2d {
+    ( $name:ident, [ $( $shape:expr ),* $(,)? ] ) => {
+        struct $name;
+        impl $crate::Layout2d for $name {
+            const PIXEL_COUNT: usize = 0 $(+ $shape.pixel_count())*;
 
-impl<const NUM_SHAPES: usize> Iterator for Layout2dPointsIterator<NUM_SHAPES> {
-    type Item = Vec2;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if (self.index >= NUM_SHAPES) {
-            return None;
-        }
-        let next = self.layout.0[self.index]
-    }
-}
-*/
-
-#[derive(Debug, Clone)]
-pub struct Layout2d<const NUM_SHAPES: usize>([Shape2d; NUM_SHAPES]);
-
-impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
-    pub fn points(&self) -> impl Iterator<Item = Vec2> + '_ {
-        self.0.iter().flat_map(|s| s.points())
-    }
-
-    pub fn map_points<T, const NUM_PIXELS: usize>(
-        &self,
-        mapper: impl Fn(Vec2) -> T,
-    ) -> [T; NUM_PIXELS]
-    where
-        T: Sized,
-    {
-        if self.pixel_count() != NUM_PIXELS {
-            info!("run-time Layout2d::pixel_count() != compile-time NUM_PIXELS");
-            panic!("run-time Layout2d::pixel_count() != compile-time NUM_PIXELS");
-        }
-
-        let mut array: [MaybeUninit<T>; NUM_PIXELS] =
-            unsafe { MaybeUninit::uninit().assume_init() };
-
-        for (index, point) in self.points().enumerate() {
-            if index >= NUM_PIXELS {
-                info!("overflow while mapping points");
-                panic!("overflow while mapping points");
+            fn shapes() -> impl Iterator<Item = $crate::Shape2d> {
+                [$($shape),*].into_iter()
             }
-            array[index].write(mapper(point));
         }
-
-        // SAFETY: We have initialized exactly NUM_PIXELS elements.
-        unsafe { array_assume_init(array) }
-    }
-}
-
-unsafe fn array_assume_init<T, const N: usize>(array: [MaybeUninit<T>; N]) -> [T; N] {
-    // SAFETY: The caller must guarantee that each element is initialized.
-    core::ptr::read(&array as *const _ as *const [T; N])
-}
-
-impl<const NUM_SHAPES: usize> Layout2d<NUM_SHAPES> {
-    pub const fn new(shapes: [Shape2d; NUM_SHAPES]) -> Self {
-        Self(shapes)
-    }
-
-    pub const fn pixel_count(&self) -> usize {
-        let mut count = 0;
-        let mut i = 0;
-        while i < NUM_SHAPES {
-            count += self.0[i].pixel_count();
-            i += 1;
-        }
-        count
-    }
+    };
 }
 
 #[derive(Debug, Clone)]
 pub enum Shape3d {}
-
-#[derive(Debug, Clone)]
-pub struct Layout3d<const NUM_SHAPES: usize>([Shape3d; NUM_SHAPES]);

@@ -1,5 +1,6 @@
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 use fugit::NanosDurationU32 as Nanoseconds;
+use palette::FromColor;
 
 use crate::{
     led::clockless::{ClocklessDelayDriver, LedClockless},
@@ -42,9 +43,10 @@ where
     type Error = Pin::Error;
     type Color = <ClocklessDelayDriver<Ws2812, Pin, Delay> as LedDriver>::Color;
 
-    fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
-        Self::Color: palette::FromColor<C>,
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
     {
         self.driver.write(pixels)
     }
@@ -58,6 +60,7 @@ mod esp {
         peripheral::Peripheral,
         rmt::{TxChannel, TxChannelCreator},
     };
+    use palette::FromColor;
 
     use super::Ws2812;
 
@@ -94,9 +97,10 @@ mod esp {
         type Error = <ClocklessRmtDriver<Ws2812, Tx, BUFFER_SIZE> as LedDriver>::Error;
         type Color = <ClocklessRmtDriver<Ws2812, Tx, BUFFER_SIZE> as LedDriver>::Color;
 
-        fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
+        fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
         where
-            Self::Color: palette::FromColor<C>,
+            I: IntoIterator<Item = C>,
+            Self::Color: FromColor<C>,
         {
             self.driver.write(pixels)
         }

@@ -8,124 +8,115 @@ mod pixels;
 pub mod time;
 mod util;
 
+use core::marker::PhantomData;
+
+use palette::FromColor;
+
 pub use crate::layout::*;
 pub use crate::led::*;
 pub use crate::pattern::*;
 pub use crate::pixels::*;
 
-use crate::pattern::Pattern as PatternTrait;
-
-pub struct Control<const NUM_PIXELS: usize, Layout, Pattern, Writer>
+pub struct Control1d<Layout, Pattern, Driver>
 where
-    Pattern: PatternTrait<NUM_PIXELS, Layout = Layout>,
-    Writer: FnMut([Pattern::Color; NUM_PIXELS]),
+    Layout: Layout1d,
+    Pattern: Pattern1d<Layout>,
+    Driver: LedDriver,
 {
+    layout: PhantomData<Layout>,
     pattern: Pattern,
-    writer: Writer,
+    driver: Driver,
 }
 
-impl<const NUM_PIXELS: usize, Layout, Pattern, Writer> Control<NUM_PIXELS, Layout, Pattern, Writer>
+impl<Layout, Pattern, Driver> Control1d<Layout, Pattern, Driver>
 where
-    Pattern: PatternTrait<NUM_PIXELS, Layout = Layout>,
-    Writer: FnMut([Pattern::Color; NUM_PIXELS]),
+    Layout: Layout1d,
+    Pattern: Pattern1d<Layout>,
+    Driver: LedDriver,
+    Driver::Color: FromColor<Pattern::Color>,
 {
-    pub fn new(pattern: Pattern, writer: Writer) -> Self {
-        Self { pattern, writer }
+    pub fn new(pattern: Pattern, driver: Driver) -> Self {
+        Self {
+            layout: PhantomData,
+            pattern,
+            driver,
+        }
     }
 
-    pub fn tick(&mut self, time_in_ms: u64) {
+    pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
-        (self.writer)(pixels);
+        self.driver.write(pixels)
     }
 }
 
-pub struct ControlBuilder<const NUM_PIXELS: usize, Layout, Pattern, Writer> {
-    pub layout: Layout,
+pub struct Control1dBuilder<Layout, Pattern, Driver> {
+    pub layout: PhantomData<Layout>,
     pub pattern: Pattern,
-    pub writer: Writer,
+    pub driver: Driver,
 }
 
-impl ControlBuilder<0, (), (), ()> {
+#[allow(clippy::new_without_default)]
+impl Control1dBuilder<(), (), ()> {
     pub fn new() -> Self {
-        ControlBuilder {
-            layout: (),
+        Control1dBuilder {
+            layout: PhantomData,
             pattern: (),
-            writer: (),
+            driver: (),
         }
     }
 }
 
-// TODO: take in layout as constant
-
-impl<Layout, Pattern, Writer> ControlBuilder<0, Layout, Pattern, Writer> {
-    pub fn with_num_pixels<const NUM_PIXELS: usize>(
-        self,
-    ) -> ControlBuilder<NUM_PIXELS, Layout, Pattern, Writer> {
-        ControlBuilder {
-            layout: self.layout,
+impl<Pattern, Driver> Control1dBuilder<(), Pattern, Driver> {
+    pub fn with_layout<Layout>(self) -> Control1dBuilder<Layout, Pattern, Driver> {
+        Control1dBuilder {
+            layout: PhantomData,
             pattern: self.pattern,
-            writer: self.writer,
+            driver: self.driver,
         }
     }
 }
 
-impl<const NUM_PIXELS: usize, Pattern, Writer> ControlBuilder<NUM_PIXELS, (), Pattern, Writer> {
-    pub fn with_layout<Layout>(
-        self,
-        layout: Layout,
-    ) -> ControlBuilder<NUM_PIXELS, Layout, Pattern, Writer> {
-        ControlBuilder {
-            layout,
-            pattern: self.pattern,
-            writer: self.writer,
-        }
-    }
-}
-
-impl<const NUM_PIXELS: usize, Layout, Writer> ControlBuilder<NUM_PIXELS, Layout, (), Writer>
+impl<Layout, Driver> Control1dBuilder<Layout, (), Driver>
 where
-    Layout: Clone,
+    Layout: Layout1d,
 {
     pub fn with_pattern<Pattern>(
         self,
         params: Pattern::Params,
-    ) -> ControlBuilder<NUM_PIXELS, Layout, Pattern, Writer>
+    ) -> Control1dBuilder<Layout, Pattern, Driver>
     where
-        Pattern: PatternTrait<NUM_PIXELS, Layout = Layout>,
+        Pattern: Pattern1d<Layout>,
     {
-        let pattern = Pattern::new(params, self.layout.clone());
-        ControlBuilder {
+        let pattern = Pattern::new(params);
+        Control1dBuilder {
             layout: self.layout,
             pattern,
-            writer: self.writer,
+            driver: self.driver,
         }
     }
 }
 
-impl<const NUM_PIXELS: usize, Layout, Pattern> ControlBuilder<NUM_PIXELS, Layout, Pattern, ()> {
-    pub fn with_writer<Writer>(
-        self,
-        writer: Writer,
-    ) -> ControlBuilder<NUM_PIXELS, Layout, Pattern, Writer>
+impl<Layout, Pattern> Control1dBuilder<Layout, Pattern, ()> {
+    pub fn with_driver<Driver>(self, driver: Driver) -> Control1dBuilder<Layout, Pattern, Driver>
     where
-        Pattern: PatternTrait<NUM_PIXELS>,
-        Writer: FnMut([Pattern::Color; NUM_PIXELS]),
+        Driver: LedDriver,
     {
-        ControlBuilder {
+        Control1dBuilder {
             layout: self.layout,
             pattern: self.pattern,
-            writer,
+            driver,
         }
     }
 }
 
-impl<const NUM_PIXELS: usize, Layout, Pattern, Writer>
-    ControlBuilder<NUM_PIXELS, Layout, Pattern, Writer>
+impl<Layout, Pattern, Driver> Control1dBuilder<Layout, Pattern, Driver>
 where
-    Pattern: PatternTrait<NUM_PIXELS, Layout = Layout>,
-    Writer: FnMut([Pattern::Color; NUM_PIXELS]),
+    Layout: Layout1d,
+    Pattern: Pattern1d<Layout>,
+    Driver: LedDriver,
+    Driver::Color: FromColor<Pattern::Color>,
 {
-    pub fn build(self) -> Control<NUM_PIXELS, Layout, Pattern, Writer> {
-        Control::new(self.pattern, self.writer)
+    pub fn build(self) -> Control1d<Layout, Pattern, Driver> {
+        Control1d::new(self.pattern, self.driver)
     }
 }

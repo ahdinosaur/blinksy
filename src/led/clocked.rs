@@ -17,7 +17,6 @@ pub trait ClockedLed {
     fn start<Writer: ClockedWriter<Word = Self::Word>>(
         &self,
         writer: &mut Writer,
-        length: usize,
     ) -> Result<(), Writer::Error>;
     fn color<Writer: ClockedWriter<Word = Self::Word>>(
         &self,
@@ -31,7 +30,7 @@ pub trait ClockedLed {
     fn end<Writer: ClockedWriter<Word = Self::Word>>(
         &self,
         writer: &mut Writer,
-        length: usize,
+        pixel_count: usize,
     ) -> Result<(), Writer::Error>;
 }
 
@@ -63,19 +62,22 @@ where
     type Error = Writer::Error;
     type Color = Led::Color;
 
-    fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
+        I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        self.led.start(&mut self.writer, N)?;
+        self.led.start(&mut self.writer)?;
 
+        let mut pixel_count = 0;
         for color in pixels.into_iter() {
             let color = Self::Color::from_color(color);
             self.led.color(&mut self.writer, color)?;
+            pixel_count += 1;
         }
 
         self.led.reset(&mut self.writer)?;
-        self.led.end(&mut self.writer, N)?;
+        self.led.end(&mut self.writer, pixel_count)?;
 
         Ok(())
     }

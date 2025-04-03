@@ -88,8 +88,9 @@ where
     type Error = Pin::Error;
     type Color = Srgb;
 
-    fn write<C, const N: usize>(&mut self, pixels: [C; N]) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
+        I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
         for color in pixels {

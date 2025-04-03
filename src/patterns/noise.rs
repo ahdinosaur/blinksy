@@ -1,7 +1,7 @@
 use noise::NoiseFn;
 use palette::Hsv;
 
-use crate::{Layout1d, Layout2d, Pattern};
+use crate::{Layout1d, Layout2d, Pattern1d, Pattern2d};
 
 pub mod noise_fns {
     pub use noise::{OpenSimplex, Perlin, Simplex};
@@ -34,22 +34,22 @@ where
     params: NoiseParams,
 }
 
-impl<Noise, const NUM_PIXELS: usize> Pattern<NUM_PIXELS> for Noise1d<Noise>
+impl<Layout, Noise> Pattern1d<Layout> for Noise1d<Noise>
 where
+    Layout: Layout1d,
     Noise: NoiseFn<f64, 2> + Default,
 {
     type Params = NoiseParams;
-    type Layout = Layout1d;
     type Color = Hsv;
 
-    fn new(params: Self::Params, _layout: Self::Layout) -> Self {
+    fn new(params: Self::Params) -> Self {
         Self {
             noise: Noise::default(),
             params,
         }
     }
 
-    fn tick(&self, time_in_ms: u64) -> [Self::Color; NUM_PIXELS] {
+    fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
         let Self { noise, params } = self;
         let NoiseParams {
             time_scalar,
@@ -59,7 +59,7 @@ where
 
         let noise_time = time_in_ms as f64 * time_scalar;
 
-        core::array::from_fn(move |index| {
+        (0..Layout::PIXEL_COUNT).map(move |index| {
             let noise = noise.get([position_scalar * index as f64, noise_time]);
 
             let hue = 360. * noise as f32;
@@ -71,38 +71,31 @@ where
 }
 
 #[derive(Debug)]
-pub struct Noise2d<Noise, const NUM_SHAPES: usize>
+pub struct Noise2d<Noise>
 where
     Noise: NoiseFn<f64, 3>,
 {
     noise: Noise,
     params: NoiseParams,
-    layout: Layout2d<NUM_SHAPES>,
 }
 
-impl<Noise, const NUM_SHAPES: usize, const NUM_PIXELS: usize> Pattern<NUM_PIXELS>
-    for Noise2d<Noise, NUM_SHAPES>
+impl<Layout, Noise> Pattern2d<Layout> for Noise2d<Noise>
 where
+    Layout: Layout2d,
     Noise: NoiseFn<f64, 3> + Default,
 {
     type Params = NoiseParams;
-    type Layout = Layout2d<NUM_SHAPES>;
     type Color = Hsv;
 
-    fn new(params: Self::Params, layout: Self::Layout) -> Self {
+    fn new(params: Self::Params) -> Self {
         Self {
             noise: Noise::default(),
             params,
-            layout,
         }
     }
 
-    fn tick(&self, time_in_ms: u64) -> [Self::Color; NUM_PIXELS] {
-        let Self {
-            noise,
-            params,
-            layout,
-        } = self;
+    fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
+        let Self { noise, params } = self;
         let NoiseParams {
             time_scalar,
             position_scalar,
@@ -111,7 +104,7 @@ where
 
         let noise_time = time_in_ms as f64 * time_scalar;
 
-        layout.map_points(|point| {
+        Layout::points().map(move |point| {
             let noise = noise.get([
                 position_scalar * point.x as f64,
                 position_scalar * point.y as f64,

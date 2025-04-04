@@ -32,13 +32,16 @@ impl ClockedLed for Apa102 {
         color: Self::Color,
         brightness: f32,
     ) -> Result<(), Writer::Error> {
-        let color: LinSrgb<f32> = Srgb::from_color(color).into_linear();
-        let color: LinSrgb<u16> = color.into_format();
+        // Convert sRGB to linear space.
+        let color_linear: LinSrgb<f32> = Srgb::from_color(color).into_linear();
+        // Convert linear f32 values to u16.
+        let color_u16: LinSrgb<u16> = color_linear.into_format();
         let brightness: u8 = map_f32_to_u8_range(brightness, 255);
+        // Process the color using the APA102HD bitshift algorithm.
         let ((red, green, blue), brightness) =
-            five_bit_bitshift(color.red, color.green, color.blue, brightness);
+            five_bit_bitshift(color_u16.red, color_u16.green, color_u16.blue, brightness);
         let led_frame = RgbOrder::BGR.reorder(red, green, blue);
-        writer.write(&[0b11100000 | brightness & 0b00011111]);
+        writer.write(&[0b11100000 | (brightness & 0b00011111)])?;
         writer.write(&led_frame)?;
         Ok(())
     }
@@ -82,7 +85,7 @@ fn five_bit_bitshift(
     }
 
     // Step 1: Initialize brightness
-    const K5_INITIAL: u8 = 0b00010000; // starting value: 16
+    static K5_INITIAL: u8 = 0b00010000; // starting value: 16
     let mut v5: u8 = K5_INITIAL;
 
     // Step 2: Boost brightness by swapping power with the driver brightness.
@@ -199,26 +202,22 @@ fn brightness_bitshifter16(
     shifts
 }
 
-// Convert an 8-bit value to 16-bit by replicating the value (x << 8) | x.
-#[inline]
-fn map8_to_16(x: u8) -> u16 {
-    (x as u16) * 257
-}
-
 // Multiply a 16-bit value by an 8-bit scale (with an extra factor of 1) and shift right by 8.
 #[inline]
 fn scale16_by_8(val: u16, scale: u8) -> u16 {
     (((val as u32) * ((scale as u32) + 1)) >> 8) as u16
 }
 
-// Clamp a 16-bit value down to 8-bit.
+// Map a 16-bit value down to 8-bit.
 #[inline]
 fn map16_to_8(x: u16) -> u8 {
-    if x > 255 {
-        255
-    } else {
-        x as u8
+    if x == 0 {
+        return 0;
     }
+    if x >= 0xff00 {
+        return 0xff;
+    }
+    ((x + 128) >> 8) as u8
 }
 
 // Return the maximum of three 16-bit values.
@@ -226,6 +225,7 @@ fn map16_to_8(x: u16) -> u8 {
 fn max3(a: u16, b: u16, c: u16) -> u16 {
     a.max(b).max(c)
 }
+
 #[derive(Debug)]
 pub struct Apa102Delay<Data, Clock, Delay>
 where

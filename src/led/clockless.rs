@@ -88,11 +88,12 @@ where
     type Error = Pin::Error;
     type Color = Srgb;
 
-    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
+        // TODO use brightness
         for color in pixels {
             let color: LinSrgb<u8> = Srgb::from_color(color).into_linear().into_format();
             let buffer = self.rgb_order.reorder(color.red, color.green, color.blue);

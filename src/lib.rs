@@ -45,9 +45,9 @@ where
         }
     }
 
-    pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
+    pub fn tick(&mut self, time_in_ms: u64, brightness: f32) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
-        self.driver.write(pixels)
+        self.driver.write(pixels, brightness)
     }
 }
 
@@ -77,9 +77,9 @@ where
         }
     }
 
-    pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
+    pub fn tick(&mut self, time_in_ms: u64, brightness: f32) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
-        self.driver.write(pixels)
+        self.driver.write(pixels, brightness)
     }
 }
 

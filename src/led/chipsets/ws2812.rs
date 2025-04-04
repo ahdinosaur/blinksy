@@ -43,12 +43,12 @@ where
     type Error = Pin::Error;
     type Color = <ClocklessDelayDriver<Ws2812, Pin, Delay> as LedDriver>::Color;
 
-    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        self.driver.write(pixels)
+        self.driver.write(pixels, brightness)
     }
 }
 
@@ -97,12 +97,12 @@ mod esp {
         type Error = <ClocklessRmtDriver<Ws2812, Tx, BUFFER_SIZE> as LedDriver>::Error;
         type Color = <ClocklessRmtDriver<Ws2812, Tx, BUFFER_SIZE> as LedDriver>::Color;
 
-        fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
+        fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
         where
             I: IntoIterator<Item = C>,
             Self::Color: FromColor<C>,
         {
-            self.driver.write(pixels)
+            self.driver.write(pixels, brightness)
         }
     }
 }

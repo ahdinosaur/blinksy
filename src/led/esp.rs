@@ -142,11 +142,17 @@ where
     /// Convert all pixels to the RMT format and
     /// add them to internal buffer, then start a singular RMT operation
     /// based on that buffer.
-    pub fn write_pixels<I, C>(&mut self, pixels: I) -> Result<(), ClocklessRmtDriverError>
+    pub fn write_pixels<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+    ) -> Result<(), ClocklessRmtDriverError>
     where
         I: IntoIterator<Item = C>,
         C: IntoColor<Srgb>,
     {
+        // TODO use brightness
+
         // We always start from the beginning of the buffer
         let mut rmt_iter = self.rmt_buffer.iter_mut();
 
@@ -185,11 +191,11 @@ where
     type Error = ClocklessRmtDriverError;
     type Color = Srgb;
 
-    fn write<I, C>(&mut self, pixels: I) -> Result<(), Self::Error>
+    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        self.write_pixels(pixels)
+        self.write_pixels(pixels, brightness)
     }
 }

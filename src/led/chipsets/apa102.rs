@@ -1,6 +1,7 @@
+use embedded_hal::spi::SpiBus;
 use palette::{FromColor, LinSrgb, Srgb};
 
-use crate::led::clocked::{ClockedDriver, ClockedLed, ClockedWriter};
+use crate::led::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter};
 use crate::util::map_f32_to_u8_range;
 use crate::{ClockedDelayWriter, RgbOrder};
 
@@ -8,7 +9,8 @@ use crate::{ClockedDelayWriter, RgbOrder};
 // - https://hackaday.com/2014/12/09/digging-into-the-apa102-serial-led-protocol/
 // - https://www.pololu.com/product/2554
 
-type Apa102<Data, Clock, Delay> = ClockedDriver<Apa102Led, ClockedDelayWriter<Data, Clock, Delay>>;
+type Apa102Delay<Data, Clock, Delay> = ClockedDelayDriver<Apa102Led, Data, Clock, Delay>;
+type Apa102Spi<Spi: SpiBus<u8>> = ClockedSpiDriver<Apa102Led, Spi>;
 
 #[derive(Debug)]
 pub struct Apa102Led;
@@ -18,14 +20,12 @@ impl ClockedLed for Apa102Led {
     type Color = Srgb;
 
     fn start<Writer: ClockedWriter<Word = Self::Word>>(
-        &self,
         writer: &mut Writer,
     ) -> Result<(), Writer::Error> {
         writer.write(&[0x00, 0x00, 0x00, 0x00])
     }
 
     fn color<Writer: ClockedWriter<Word = Self::Word>>(
-        &self,
         writer: &mut Writer,
         color: Self::Color,
         brightness: f32,
@@ -45,13 +45,11 @@ impl ClockedLed for Apa102Led {
     }
 
     fn reset<Writer: ClockedWriter<Word = Self::Word>>(
-        &self,
         _writer: &mut Writer,
     ) -> Result<(), Writer::Error> {
         Ok(())
     }
     fn end<Writer: ClockedWriter<Word = Self::Word>>(
-        &self,
         writer: &mut Writer,
         length: usize,
     ) -> Result<(), Writer::Error> {

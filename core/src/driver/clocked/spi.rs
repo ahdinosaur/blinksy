@@ -3,9 +3,8 @@ use core::marker::PhantomData;
 use embedded_hal::spi::SpiBus;
 use palette::FromColor;
 
-use crate::LedDriver;
-
 use super::{ClockedLed, ClockedWriter};
+use crate::driver::LedDriver;
 
 #[derive(Debug)]
 pub struct ClockedSpiDriver<Led, Spi>

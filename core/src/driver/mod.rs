@@ -1,14 +1,11 @@
 use palette::{FromColor, LinSrgb, Srgb};
-
-mod chipsets;
-mod clocked;
-mod clockless;
-#[cfg(feature = "esp")]
-mod esp;
-
-pub use chipsets::*;
-pub use clocked::ClockedDelayWriter;
 use smart_leds_trait::SmartLedsWrite;
+
+pub mod clocked;
+pub mod clockless;
+
+pub use clocked::*;
+pub use clockless::*;
 
 pub trait LedDriver {
     type Error;
@@ -53,14 +50,14 @@ pub enum RgbOrder {
 }
 
 impl RgbOrder {
-    pub fn reorder<Word>(&self, red: Word, green: Word, blue: Word) -> [Word; 3] {
+    pub fn reorder<Word: Copy>(&self, rgb: [Word; 3]) -> [Word; 3] {
         match self {
-            RgbOrder::RGB => [red, green, blue],
-            RgbOrder::RBG => [red, blue, green],
-            RgbOrder::GRB => [green, red, blue],
-            RgbOrder::GBR => [green, blue, red],
-            RgbOrder::BRG => [blue, red, green],
-            RgbOrder::BGR => [blue, green, red],
+            RgbOrder::RGB => [rgb[0], rgb[1], rgb[2]],
+            RgbOrder::RBG => [rgb[0], rgb[2], rgb[1]],
+            RgbOrder::GRB => [rgb[1], rgb[0], rgb[2]],
+            RgbOrder::GBR => [rgb[1], rgb[2], rgb[0]],
+            RgbOrder::BRG => [rgb[2], rgb[0], rgb[1]],
+            RgbOrder::BGR => [rgb[2], rgb[1], rgb[0]],
         }
     }
 }

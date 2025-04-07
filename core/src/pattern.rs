@@ -1,4 +1,4 @@
-use crate::{Layout1d, Layout2d};
+use crate::layout::{Layout1d, Layout2d};
 
 pub trait Pattern1d<Layout: Layout1d> {
     type Params;

@@ -1,9 +1,11 @@
 use embedded_hal::spi::SpiBus;
 use palette::{FromColor, LinSrgb, Srgb};
 
-use crate::led::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter};
+use crate::driver::{
+    clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
+    RgbOrder,
+};
 use crate::util::map_f32_to_u8_range;
-use crate::{ClockedDelayWriter, RgbOrder};
 
 // Apa102 docs:
 // - https://hackaday.com/2014/12/09/digging-into-the-apa102-serial-led-protocol/
@@ -38,7 +40,7 @@ impl ClockedLed for Apa102Led {
         // Process the color using the APA102HD bitshift algorithm.
         let ((red, green, blue), brightness) =
             five_bit_bitshift(color_u16.red, color_u16.green, color_u16.blue, brightness);
-        let led_frame = RgbOrder::BGR.reorder(red, green, blue);
+        let led_frame = RgbOrder::BGR.reorder([red, green, blue]);
         writer.write(&[0b11100000 | (brightness & 0b00011111)])?;
         writer.write(&led_frame)?;
         Ok(())

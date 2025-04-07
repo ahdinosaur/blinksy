@@ -1,0 +1,11 @@
+[package]
+name = "blinksy-esp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blinksy = { path = "../core" }
+esp-hal = { version = "1.0.0-beta.0" }
+
+[features]
+esp32 = ["esp-hal/esp32"]

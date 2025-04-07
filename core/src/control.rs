@@ -1,23 +1,11 @@
-#![no_std]
-
-mod layout;
-mod led;
-mod pattern;
-pub mod patterns;
-pub mod time;
-mod util;
-
 use core::marker::PhantomData;
-
 use palette::FromColor;
 
-pub mod color {
-    pub use palette::{FromColor, Hsl, Hsv, IntoColor, LinSrgb, RgbHue, Srgb};
-}
-
-pub use crate::layout::*;
-pub use crate::led::*;
-pub use crate::pattern::*;
+use crate::{
+    driver::LedDriver,
+    layout::{Layout1d, Layout2d},
+    pattern::{Pattern1d, Pattern2d},
+};
 
 pub struct Control1d<Layout, Pattern, Driver>
 where
@@ -114,7 +102,7 @@ impl<Layout, Driver> ControlBuilder<Layout, (), Driver>
 where
     Layout: Layout1d,
 {
-    pub fn with_pattern1d<Pattern>(
+    pub fn with_pattern<Pattern>(
         self,
         params: Pattern::Params,
     ) -> ControlBuilder<Layout, Pattern, Driver>

@@ -1,6 +1,6 @@
 // Credit: https://github.com/DaveRichmond/esp-hal-smartled
 
-use super::{clockless::LedClockless, LedDriver, RgbOrder};
+use blinksy::{clockless::LedClockless, colo, LedDriver, RgbOrder};
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
 use esp_hal::{
     clock::Clocks,

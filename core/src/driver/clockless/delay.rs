@@ -1,23 +1,9 @@
 use core::marker::PhantomData;
-
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
-use fugit::NanosDurationU32 as Nanoseconds;
-use palette::{FromColor, LinSrgb, Srgb};
+use palette::{cast::into_array, FromColor, LinSrgb, Srgb};
 
-use super::{LedDriver, RgbOrder};
-
-pub trait ClocklessLed {
-    const T_0H: Nanoseconds;
-    const T_0L: Nanoseconds;
-    const T_1H: Nanoseconds;
-    const T_1L: Nanoseconds;
-    const T_RESET: Nanoseconds;
-    const RGB_ORDER: RgbOrder;
-
-    fn t_cycle() -> Nanoseconds {
-        (Self::T_0H + Self::T_0L).max(Self::T_1H + Self::T_1L)
-    }
-}
+use super::ClocklessLed;
+use crate::driver::LedDriver;
 
 pub struct ClocklessDelayDriver<Led: ClocklessLed, Pin: OutputPin, Delay: DelayNs> {
     led: PhantomData<Led>,
@@ -80,7 +66,8 @@ where
 
 impl<Led, Pin, Delay> LedDriver for ClocklessDelayDriver<Led, Pin, Delay>
 where
-    Led: ClocklessLed,
+    // TODO Handle any ColorBytes
+    Led: ClocklessLed<ColorBytes = [u8; 3]>,
     Pin: OutputPin,
     Delay: DelayNs,
 {
@@ -95,7 +82,7 @@ where
         // TODO use brightness
         for color in pixels {
             let color: LinSrgb<u8> = Srgb::from_color(color).into_linear().into_format();
-            let buffer = Led::RGB_ORDER.reorder(color.red, color.green, color.blue);
+            let buffer = Led::reorder_color_bytes(into_array(color));
             self.write_buffer(&buffer)?;
         }
         self.delay_for_reset();

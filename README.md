@@ -7,7 +7,7 @@ Rust `no_std` 1D, 2D, or 3D audio-reactive LED control library.
 ## Supported chips
 
 - [x] APA102
-  - [ ] SPI
+  - [x] SPI
   - [x] GPIO using delay ("Bit banging")
 - [ ] WS2812B
   - [x] GPIO using delay (Not tested)

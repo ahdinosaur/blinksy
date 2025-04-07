@@ -5,8 +5,8 @@ use super::LedDriver;
 mod delay;
 mod spi;
 
-pub use self::delay::ClockedDelayDriver;
-pub use self::spi::ClockedSpiDriver;
+pub use self::delay::*;
+pub use self::spi::*;
 
 pub trait ClockedWriter {
     type Word: Copy + 'static;

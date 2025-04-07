@@ -15,7 +15,7 @@ pub trait Layout1d {
 macro_rules! layout1d {
     ( $name:ident, $pixel_count:expr ) => {
         struct $name;
-        impl $crate::Layout1d for $name {
+        impl $crate::layout::Layout1d for $name {
             const PIXEL_COUNT: usize = $pixel_count;
         }
     };
@@ -260,7 +260,7 @@ pub trait Layout2d {
 macro_rules! layout2d {
     ( $name:ident, [ $( $shape:expr ),* $(,)? ] ) => {
         struct $name;
-        impl $crate::Layout2d for $name {
+        impl $crate::layout::Layout2d for $name {
             const PIXEL_COUNT: usize = 0 $(+ $shape.pixel_count())*;
 
             fn shapes() -> impl Iterator<Item = $crate::Shape2d> {

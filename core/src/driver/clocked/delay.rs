@@ -34,7 +34,7 @@ where
 
 impl<Led, Data, Clock, Delay> LedDriver for ClockedDelayDriver<Led, Data, Clock, Delay>
 where
-    Led: ClockedLed,
+    Led: ClockedLed<Word = u8>,
     Data: OutputPin,
     Clock: OutputPin,
     Delay: DelayNs,
@@ -47,7 +47,7 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Led::write(self.writer, pixels, brightness)
+        Led::clocked_write(&mut self.writer, pixels, brightness)
     }
 }
 

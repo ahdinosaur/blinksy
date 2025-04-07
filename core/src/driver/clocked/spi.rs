@@ -9,7 +9,7 @@ use crate::driver::LedDriver;
 #[derive(Debug)]
 pub struct ClockedSpiDriver<Led, Spi>
 where
-    Led: ClockedLed,
+    Led: ClockedLed<Word = u8>,
     Spi: SpiBus<u8>,
 {
     led: PhantomData<Led>,
@@ -18,7 +18,7 @@ where
 
 impl<Led, Spi> ClockedSpiDriver<Led, Spi>
 where
-    Led: ClockedLed,
+    Led: ClockedLed<Word = u8>,
     Spi: SpiBus<u8>,
 {
     pub fn new(spi: Spi) -> Self {
@@ -31,7 +31,7 @@ where
 
 impl<Led, Spi> LedDriver for ClockedSpiDriver<Led, Spi>
 where
-    Led: ClockedLed,
+    Led: ClockedLed<Word = u8>,
     Spi: SpiBus<u8>,
 {
     type Error = <Spi as ClockedWriter>::Error;
@@ -42,7 +42,7 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Led::write(self.writer, pixels, brightness)
+        Led::clocked_write(&mut self.writer, pixels, brightness)
     }
 }
 

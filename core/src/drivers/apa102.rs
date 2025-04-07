@@ -1,4 +1,3 @@
-use embedded_hal::spi::SpiBus;
 use palette::{FromColor, LinSrgb, Srgb};
 
 use crate::driver::{
@@ -11,8 +10,8 @@ use crate::util::map_f32_to_u8_range;
 // - https://hackaday.com/2014/12/09/digging-into-the-apa102-serial-led-protocol/
 // - https://www.pololu.com/product/2554
 
-type Apa102Delay<Data, Clock, Delay> = ClockedDelayDriver<Apa102Led, Data, Clock, Delay>;
-type Apa102Spi<Spi: SpiBus<u8>> = ClockedSpiDriver<Apa102Led, Spi>;
+pub type Apa102Delay<Data, Clock, Delay> = ClockedDelayDriver<Apa102Led, Data, Clock, Delay>;
+pub type Apa102Spi<Spi> = ClockedSpiDriver<Apa102Led, Spi>;
 
 #[derive(Debug)]
 pub struct Apa102Led;

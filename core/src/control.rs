@@ -102,7 +102,7 @@ impl<Layout, Driver> ControlBuilder<Layout, (), Driver>
 where
     Layout: Layout1d,
 {
-    pub fn with_pattern<Pattern>(
+    pub fn with_pattern1d<Pattern>(
         self,
         params: Pattern::Params,
     ) -> ControlBuilder<Layout, Pattern, Driver>

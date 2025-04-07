@@ -5,7 +5,37 @@ edition = "2021"
 
 [dependencies]
 blinksy = { path = "../core" }
-esp-hal = { version = "1.0.0-beta.0" }
+esp-hal = { version = "1.0.0-beta.0", default-features = false }
+defmt = "0.3.10"
 
 [features]
-esp32 = ["esp-hal/esp32"]
+
+# Chip Support Feature Flags
+# Target the ESP32-C2.
+esp32c2 = [
+  "esp-hal/esp32c2",
+]
+# Target the ESP32-C3.
+esp32c3 = [
+  "esp-hal/esp32c3",
+]
+# Target the ESP32-C6.
+esp32c6 = [
+  "esp-hal/esp32c6",
+]
+# Target the ESP32-H2.
+esp32h2 = [
+  "esp-hal/esp32h2",
+]
+# Target the ESP32.
+esp32 = [
+  "esp-hal/esp32",
+]
+# Target the ESP32-S2.
+esp32s2 = [
+  "esp-hal/esp32s2",
+]
+# Target the ESP32-S3.
+esp32s3 = [
+  "esp-hal/esp32s3",
+]

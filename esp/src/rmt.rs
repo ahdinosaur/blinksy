@@ -1,6 +1,9 @@
 // Credit: https://github.com/DaveRichmond/esp-hal-smartled
 
-use blinksy::{clockless::LedClockless, colo, LedDriver, RgbOrder};
+use blinksy::{
+    color::{FromColor, IntoColor, LinSrgb, Srgb},
+    driver::{clockless::ClocklessLed, LedDriver, RgbOrder},
+};
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
 use esp_hal::{
     clock::Clocks,
@@ -8,7 +11,6 @@ use esp_hal::{
     peripheral::Peripheral,
     rmt::{Error as RmtError, PulseCode, TxChannel, TxChannelConfig, TxChannelCreator},
 };
-use palette::{FromColor, IntoColor, LinSrgb, Srgb};
 
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands
@@ -40,7 +42,7 @@ macro_rules! create_rmt_buffer {
 
 pub struct ClocklessRmtDriver<Led, Tx, const BUFFER_SIZE: usize>
 where
-    Led: LedClockless,
+    Led: ClocklessLed,
     Tx: TxChannel,
 {
     led: PhantomData<Led>,
@@ -52,7 +54,7 @@ where
 
 impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
-    Led: LedClockless,
+    Led: ClocklessLed,
     Tx: TxChannel,
 {
     /// Create a new adapter object that drives the pin using the RMT channel.
@@ -185,7 +187,7 @@ where
 
 impl<Led, Tx, const BUFFER_SIZE: usize> LedDriver for ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
-    Led: LedClockless,
+    Led: ClocklessLed,
     Tx: TxChannel,
 {
     type Error = ClocklessRmtDriverError;

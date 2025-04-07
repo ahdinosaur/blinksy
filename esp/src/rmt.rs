@@ -2,7 +2,7 @@
 
 use blinksy::{
     color::{FromColor, IntoColor, LinSrgb, Srgb},
-    driver::{clockless::ClocklessLed, LedDriver, RgbOrder},
+    driver::{clockless::ClocklessLed, LedDriver},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
 use esp_hal::{
@@ -47,7 +47,6 @@ where
 {
     led: PhantomData<Led>,
     channel: Option<Tx>,
-    rgb_order: RgbOrder,
     rmt_buffer: [u32; BUFFER_SIZE],
     pulses: (u32, u32, u32),
 }
@@ -62,7 +61,6 @@ where
         channel: C,
         pin: impl Peripheral<P = P> + 'd,
         rmt_buffer: [u32; BUFFER_SIZE],
-        rgb_order: RgbOrder,
     ) -> Self
     where
         C: TxChannelCreator<'d, Tx, P>,
@@ -90,7 +88,6 @@ where
 
         Self {
             led: PhantomData,
-            rgb_order,
             channel: Some(channel),
             rmt_buffer,
             pulses: (
@@ -121,23 +118,16 @@ where
     fn write_color_to_rmt<C: IntoColor<Srgb>>(
         color: C,
         rmt_iter: &mut IterMut<u32>,
-        rgb_order: &RgbOrder,
         pulses: &(u32, u32, u32),
     ) -> Result<(), ClocklessRmtDriverError> {
         let color: Srgb = color.into_color();
         let color: LinSrgb = color.into_color();
         let color: LinSrgb<u8> = color.into_format();
-        let (a, b, c) = match rgb_order {
-            RgbOrder::RGB => (color.red, color.green, color.blue),
-            RgbOrder::RBG => (color.red, color.blue, color.green),
-            RgbOrder::GRB => (color.green, color.red, color.blue),
-            RgbOrder::GBR => (color.green, color.blue, color.red),
-            RgbOrder::BRG => (color.blue, color.red, color.green),
-            RgbOrder::BGR => (color.blue, color.green, color.red),
-        };
-        Self::write_color_byte_to_rmt(&a, rmt_iter, pulses)?;
-        Self::write_color_byte_to_rmt(&b, rmt_iter, pulses)?;
-        Self::write_color_byte_to_rmt(&c, rmt_iter, pulses)?;
+
+        let bytes = Led::reorder_color_bytes(into_array(color));
+        Self::write_color_byte_to_rmt(&bytes.as_ref()[0], rmt_iter, pulses)?;
+        Self::write_color_byte_to_rmt(&bytes.as_ref()[1], rmt_iter, pulses)?;
+        Self::write_color_byte_to_rmt(&bytes.as_ref()[2], rmt_iter, pulses)?;
         Ok(())
     }
 

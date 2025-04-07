@@ -263,7 +263,7 @@ macro_rules! layout2d {
         impl $crate::layout::Layout2d for $name {
             const PIXEL_COUNT: usize = 0 $(+ $shape.pixel_count())*;
 
-            fn shapes() -> impl Iterator<Item = $crate::Shape2d> {
+            fn shapes() -> impl Iterator<Item = $crate::layout::Shape2d> {
                 [$($shape),*].into_iter()
             }
         }

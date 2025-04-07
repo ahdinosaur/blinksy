@@ -11,7 +11,6 @@ pub trait ClocklessLed {
     const T_1L: Nanoseconds;
     const T_RESET: Nanoseconds;
 
-    // TODO Update so can handle RGBW too.
     type Word: Copy + Default;
     type ColorBytes: AsRef<[Self::Word]> + Copy;
     fn reorder_color_bytes(bytes: Self::ColorBytes) -> Self::ColorBytes;

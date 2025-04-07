@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::time::{Megahertz, Nanoseconds};
 use embedded_hal::{delay::DelayNs, digital::OutputPin, spi::SpiBus};
 use palette::FromColor;
@@ -36,22 +38,35 @@ pub trait ClockedLed {
 }
 
 #[derive(Debug)]
-pub struct ClockedDriver<Led, Writer>
-where
-    Led: ClockedLed,
-    Writer: ClockedWriter,
-{
-    led: Led,
+pub struct ClockedDriver<Led: ClockedLed, Writer> {
+    led: PhantomData<Led>,
     writer: Writer,
 }
 
-impl<Led, Writer> ClockedDriver<Led, Writer>
-where
-    Led: ClockedLed,
-    Writer: ClockedWriter,
-{
-    pub fn new(led: Led, writer: Writer) -> Self {
-        Self { led, writer }
+impl<Led: ClockedLed, W> ClockedDriver<Led, W> {
+    pub fn new_spi<Spi: SpiBus<u8>>(spi: Spi) -> ClockedDriver<Led, Spi> {
+        Self::new(spi)
+    }
+
+    pub fn new_delay<Data, Clock, Delay>(
+        data: Data,
+        clock: Clock,
+        delay: Delay,
+        data_rate: Megahertz,
+    ) -> ClockedDriver<Led, ClockedDelayWriter<Data, Clock, Delay>>
+    where
+        Data: OutputPin,
+        Clock: OutputPin,
+        Delay: DelayNs,
+    {
+        Self::new(ClockedDelayWriter::new(data, clock, delay, data_rate))
+    }
+
+    pub fn new<Writer: ClockedWriter>(writer: Writer) -> ClockedDriver<Led, Writer> {
+        ClockedDriver {
+            led: PhantomData,
+            writer,
+        }
     }
 }
 

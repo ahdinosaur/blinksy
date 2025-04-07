@@ -1,21 +1,19 @@
-use embedded_hal::delay::DelayNs;
-use embedded_hal::digital::OutputPin;
-use embedded_hal::spi::SpiBus;
 use palette::{FromColor, LinSrgb, Srgb};
 
 use crate::led::clocked::{ClockedDriver, ClockedLed, ClockedWriter};
-use crate::time::Megahertz;
 use crate::util::map_f32_to_u8_range;
-use crate::{ClockedDelayWriter, LedDriver, RgbOrder};
+use crate::{ClockedDelayWriter, RgbOrder};
 
 // Apa102 docs:
 // - https://hackaday.com/2014/12/09/digging-into-the-apa102-serial-led-protocol/
 // - https://www.pololu.com/product/2554
 
-#[derive(Debug)]
-pub struct Apa102;
+type Apa102<Data, Clock, Delay> = ClockedDriver<Apa102Led, ClockedDelayWriter<Data, Clock, Delay>>;
 
-impl ClockedLed for Apa102 {
+#[derive(Debug)]
+pub struct Apa102Led;
+
+impl ClockedLed for Apa102Led {
     type Word = u8;
     type Color = Srgb;
 
@@ -224,83 +222,4 @@ fn map16_to_8(x: u16) -> u8 {
 #[inline]
 fn max3(a: u16, b: u16, c: u16) -> u16 {
     a.max(b).max(c)
-}
-
-#[derive(Debug)]
-pub struct Apa102Delay<Data, Clock, Delay>
-where
-    Data: OutputPin,
-    Clock: OutputPin,
-    Delay: DelayNs,
-{
-    driver: ClockedDriver<Apa102, ClockedDelayWriter<Data, Clock, Delay>>,
-}
-
-impl<Data, Clock, Delay> Apa102Delay<Data, Clock, Delay>
-where
-    Data: OutputPin,
-    Clock: OutputPin,
-    Delay: DelayNs,
-{
-    pub fn new(data: Data, clock: Clock, delay: Delay, data_rate: Megahertz) -> Self {
-        let led = Apa102;
-        let writer = ClockedDelayWriter::new(data, clock, delay, data_rate);
-        let driver = ClockedDriver::new(led, writer);
-        Self { driver }
-    }
-}
-
-impl<Data, Clock, Delay> LedDriver for Apa102Delay<Data, Clock, Delay>
-where
-    Data: OutputPin,
-    Clock: OutputPin,
-    Delay: DelayNs,
-{
-    type Error =
-        <ClockedDriver<Apa102, ClockedDelayWriter<Data, Clock, Delay>> as LedDriver>::Error;
-    type Color =
-        <ClockedDriver<Apa102, ClockedDelayWriter<Data, Clock, Delay>> as LedDriver>::Color;
-
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
-        self.driver.write(pixels, brightness)
-    }
-}
-
-#[derive(Debug)]
-pub struct Apa102Spi<Spi>
-where
-    Spi: SpiBus,
-{
-    driver: ClockedDriver<Apa102, Spi>,
-}
-
-impl<Spi> Apa102Spi<Spi>
-where
-    Spi: SpiBus,
-{
-    pub fn new(spi: Spi) -> Self {
-        let led = Apa102;
-        let driver = ClockedDriver::new(led, spi);
-        Self { driver }
-    }
-}
-
-impl<Spi> LedDriver for Apa102Spi<Spi>
-where
-    Spi: SpiBus,
-{
-    type Error = <ClockedDriver<Apa102, Spi> as LedDriver>::Error;
-    type Color = <ClockedDriver<Apa102, Spi> as LedDriver>::Color;
-
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
-        self.driver.write(pixels, brightness)
-    }
 }

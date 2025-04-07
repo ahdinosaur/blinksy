@@ -6,39 +6,38 @@ use palette::{FromColor, LinSrgb, Srgb};
 
 use super::{LedDriver, RgbOrder};
 
-pub trait LedClockless {
+pub trait ClocklessLed {
     const T_0H: Nanoseconds;
     const T_0L: Nanoseconds;
     const T_1H: Nanoseconds;
     const T_1L: Nanoseconds;
     const T_RESET: Nanoseconds;
+    const RGB_ORDER: RgbOrder;
 
     fn t_cycle() -> Nanoseconds {
         (Self::T_0H + Self::T_0L).max(Self::T_1H + Self::T_1L)
     }
 }
 
-pub struct ClocklessDelayDriver<Led: LedClockless, Pin: OutputPin, Delay: DelayNs> {
+pub struct ClocklessDelayDriver<Led: ClocklessLed, Pin: OutputPin, Delay: DelayNs> {
     led: PhantomData<Led>,
     pin: Pin,
     delay: Delay,
-    rgb_order: RgbOrder,
 }
 
 impl<Led, Pin, Delay> ClocklessDelayDriver<Led, Pin, Delay>
 where
-    Led: LedClockless,
+    Led: ClocklessLed,
     Pin: OutputPin,
     Delay: DelayNs,
 {
-    pub fn new(mut pin: Pin, delay: Delay, rgb_order: RgbOrder) -> Result<Self, Pin::Error> {
+    pub fn new(mut pin: Pin, delay: Delay) -> Result<Self, Pin::Error> {
         pin.set_low()?;
 
         Ok(Self {
             led: PhantomData,
             delay,
             pin,
-            rgb_order,
         })
     }
 
@@ -81,7 +80,7 @@ where
 
 impl<Led, Pin, Delay> LedDriver for ClocklessDelayDriver<Led, Pin, Delay>
 where
-    Led: LedClockless,
+    Led: ClocklessLed,
     Pin: OutputPin,
     Delay: DelayNs,
 {
@@ -96,7 +95,7 @@ where
         // TODO use brightness
         for color in pixels {
             let color: LinSrgb<u8> = Srgb::from_color(color).into_linear().into_format();
-            let buffer = self.rgb_order.reorder(color.red, color.green, color.blue);
+            let buffer = Led::RGB_ORDER.reorder(color.red, color.green, color.blue);
             self.write_buffer(&buffer)?;
         }
         self.delay_for_reset();

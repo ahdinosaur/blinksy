@@ -2,13 +2,11 @@ use core::marker::PhantomData;
 use palette::FromColor;
 
 use crate::{
+    dimension::{Dim1d, Dim2d},
     driver::LedDriver,
     layout::{Layout1d, Layout2d},
-    pattern::{Pattern1d, Pattern2d},
+    pattern::Pattern as PatternTrait,
 };
-
-pub struct Dim1d;
-pub struct Dim2d;
 
 pub struct Control<Dim, Layout, Pattern, Driver> {
     dim: PhantomData<Dim>,
@@ -37,7 +35,7 @@ impl<Dim, Layout, Pattern, Driver> Control<Dim, Layout, Pattern, Driver> {
 impl<Layout, Pattern, Driver> Control<Dim1d, Layout, Pattern, Driver>
 where
     Layout: Layout1d,
-    Pattern: Pattern1d<Layout>,
+    Pattern: PatternTrait<Dim1d, Layout>,
     Driver: LedDriver,
     Driver::Color: FromColor<Pattern::Color>,
 {
@@ -50,7 +48,7 @@ where
 impl<Layout, Pattern, Driver> Control<Dim2d, Layout, Pattern, Driver>
 where
     Layout: Layout2d,
-    Pattern: Pattern2d<Layout>,
+    Pattern: PatternTrait<Dim2d, Layout>,
     Driver: LedDriver,
     Driver::Color: FromColor<Pattern::Color>,
 {
@@ -126,7 +124,7 @@ where
         params: Pattern::Params,
     ) -> ControlBuilder<Dim1d, Layout, Pattern, Driver>
     where
-        Pattern: Pattern1d<Layout>,
+        Pattern: PatternTrait<Dim1d, Layout>,
     {
         let pattern = Pattern::new(params);
         ControlBuilder {
@@ -147,7 +145,7 @@ where
         params: Pattern::Params,
     ) -> ControlBuilder<Dim2d, Layout, Pattern, Driver>
     where
-        Pattern: Pattern2d<Layout>,
+        Pattern: PatternTrait<Dim2d, Layout>,
     {
         let pattern = Pattern::new(params);
         ControlBuilder {
@@ -176,7 +174,7 @@ impl<Dim, Layout, Pattern> ControlBuilder<Dim, Layout, Pattern, ()> {
 impl<Layout, Pattern, Driver> ControlBuilder<Dim1d, Layout, Pattern, Driver>
 where
     Layout: Layout1d,
-    Pattern: Pattern1d<Layout>,
+    Pattern: PatternTrait<Dim1d, Layout>,
     Driver: LedDriver,
     Driver::Color: FromColor<Pattern::Color>,
 {
@@ -188,7 +186,7 @@ where
 impl<Layout, Pattern, Driver> ControlBuilder<Dim2d, Layout, Pattern, Driver>
 where
     Layout: Layout2d,
-    Pattern: Pattern2d<Layout>,
+    Pattern: PatternTrait<Dim2d, Layout>,
     Driver: LedDriver,
     Driver::Color: FromColor<Pattern::Color>,
 {

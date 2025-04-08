@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
-use palette::{cast::into_array, FromColor, LinSrgb, Srgb};
+use palette::{FromColor, Srgb};
 
 use super::ClocklessLed;
 use crate::driver::LedDriver;
@@ -66,8 +66,7 @@ where
 
 impl<Led, Pin, Delay> LedDriver for ClocklessDelayDriver<Led, Pin, Delay>
 where
-    // TODO Handle any ColorBytes
-    Led: ClocklessLed<ColorBytes = [u8; 3]>,
+    Led: ClocklessLed,
     Pin: OutputPin,
     Delay: DelayNs,
 {
@@ -81,9 +80,8 @@ where
     {
         // TODO use brightness
         for color in pixels {
-            let color: LinSrgb<u8> = Srgb::from_color(color).into_linear().into_format();
-            let buffer = Led::reorder_color_bytes(into_array(color));
-            self.write_buffer(&buffer)?;
+            let array = Led::COLOR_CHANNELS.to_array(Srgb::from_color(color));
+            self.write_buffer(array.as_ref())?;
         }
         self.delay_for_reset();
         Ok(())

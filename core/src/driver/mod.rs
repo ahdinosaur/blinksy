@@ -1,7 +1,5 @@
-use core::ops::{Add, Div};
-
-use num_traits::FromPrimitive;
-use palette::{stimulus::IntoStimulus, FromColor, LinSrgb, Srgb};
+use core::ops::Sub;
+use palette::{cast::into_array, stimulus::IntoStimulus, FromColor, LinSrgb, Srgb};
 use smart_leds_trait::SmartLedsWrite;
 
 pub mod clocked;
@@ -46,6 +44,15 @@ where
 pub enum ColorChannels {
     Rgb(RgbChannels),
     Rgbw(RgbwChannels),
+}
+
+impl ColorChannels {
+    pub const fn channel_count(&self) -> usize {
+        match self {
+            ColorChannels::Rgb(_) => 3,
+            ColorChannels::Rgbw(_) => 4,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -95,12 +102,6 @@ pub enum RgbwChannels {
     BWGR,
     BGWR,
     BGRW,
-}
-
-#[derive(Debug)]
-pub enum ColorArray<Word> {
-    Rgb([Word; 3]),
-    Rgbw([Word; 4]),
 }
 
 impl RgbChannels {
@@ -172,29 +173,55 @@ impl ColorChannels {
             _ => panic!("Mismatched color array type and color channel type"),
         }
     }
+}
 
+#[derive(Debug)]
+pub enum ColorArray<Word> {
+    Rgb([Word; 3]),
+    Rgbw([Word; 4]),
+}
+
+impl<Word> AsRef<[Word]> for ColorArray<Word> {
+    fn as_ref(&self) -> &[Word] {
+        match self {
+            ColorArray::Rgb(rgb) => rgb,
+            ColorArray::Rgbw(rgbw) => rgbw,
+        }
+    }
+}
+
+impl ColorChannels {
     pub fn to_array<Word>(&self, color: Srgb<f32>) -> ColorArray<Word>
     where
         f32: IntoStimulus<Word>,
-        Word: Copy + FromPrimitive + Add<Output = Word> + Div<Output = Word> + From<u8>,
+        Word: Copy + PartialOrd + Sub<Output = Word>,
     {
         let color: LinSrgb<Word> = Srgb::from_color(color).into_linear().into_format();
-        let rgb = color.into_components();
+        let rgb = into_array(color);
         match self {
-            ColorChannels::Rgb(rgb_order) => ColorArray::Rgb(rgb_order.reorder(rgb.into())),
+            ColorChannels::Rgb(rgb_order) => ColorArray::Rgb(rgb_order.reorder(rgb)),
             ColorChannels::Rgbw(rgbw_order) => {
-                let w = compute_white_channel(rgb.into());
-                let rgbw = [rgb.0, rgb.1, rgb.2, w];
+                let rgbw = rgb_to_rgbw(rgb);
                 ColorArray::Rgbw(rgbw_order.reorder(rgbw))
             }
         }
     }
 }
 
-fn compute_white_channel<Word>(rgb: [Word; 3]) -> Word
+/// Extracts the white component from the RGB values by taking the minimum of R, G, and B.
+/// Then subtracts that white component from each channel so the remaining RGB is "color only."
+fn rgb_to_rgbw<Word>(rgb: [Word; 3]) -> [Word; 4]
 where
-    Word: Copy + FromPrimitive + Add<Output = Word> + Div<Output = Word> + From<u8>,
+    Word: Copy + PartialOrd + Sub<Output = Word>,
 {
-    let sum = rgb[0] + rgb[1] + rgb[2];
-    sum / Word::from_u8(3_u8).unwrap()
+    // Determine the white component as the minimum value of the three channels.
+    let w = if rgb[0] <= rgb[1] && rgb[0] <= rgb[2] {
+        rgb[0]
+    } else if rgb[1] <= rgb[0] && rgb[1] <= rgb[2] {
+        rgb[1]
+    } else {
+        rgb[2]
+    };
+
+    [rgb[0] - w, rgb[1] - w, rgb[2] - w, w]
 }

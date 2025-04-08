@@ -2,7 +2,7 @@ use palette::{FromColor, LinSrgb, Srgb};
 
 use crate::driver::{
     clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
-    RgbOrder,
+    RgbChannels,
 };
 use crate::util::map_f32_to_u8_range;
 
@@ -39,7 +39,7 @@ impl ClockedLed for Apa102Led {
         // Process the color using the APA102HD bitshift algorithm.
         let ((red, green, blue), brightness) =
             five_bit_bitshift(color_u16.red, color_u16.green, color_u16.blue, brightness);
-        let led_frame = RgbOrder::BGR.reorder([red, green, blue]);
+        let led_frame = RgbChannels::BGR.reorder([red, green, blue]);
         writer.write(&[0b11100000 | (brightness & 0b00011111)])?;
         writer.write(&led_frame)?;
         Ok(())

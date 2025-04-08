@@ -2,7 +2,7 @@
 
 use blinksy::{
     color::{FromColor, IntoColor, LinSrgb, Srgb},
-    driver::{clockless::ClocklessLed, LedDriver},
+    driver::{clockless::ClocklessLed, ColorArray, LedDriver},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
 use esp_hal::{
@@ -29,14 +29,14 @@ pub enum ClocklessRmtDriverError {
 /// an `LedAdapterError:BufferSizeExceeded` error.
 #[macro_export]
 macro_rules! create_rmt_buffer {
-    ($led_count:expr) => {
+    ($led_count:expr, $channel_count:expr) => {
         // The size we're assigning here is calculated as following
         //  (
         //   Nr. of LEDs
         //   * channels (r,g,b -> 3)
-        //   * pulses per channel 8)
+        //   * pulses per channel 8
         //  ) + 1 additional pulse for the end delimiter
-        [0u32; $led_count * 24 + 1]
+        [0u32; $led_count * $channel_count * 8 + 1]
     };
 }
 
@@ -121,13 +121,20 @@ where
         pulses: &(u32, u32, u32),
     ) -> Result<(), ClocklessRmtDriverError> {
         let color: Srgb = color.into_color();
-        let color: LinSrgb = color.into_color();
-        let color: LinSrgb<u8> = color.into_format();
-
-        let bytes = Led::reorder_color_bytes(into_array(color));
-        Self::write_color_byte_to_rmt(&bytes.as_ref()[0], rmt_iter, pulses)?;
-        Self::write_color_byte_to_rmt(&bytes.as_ref()[1], rmt_iter, pulses)?;
-        Self::write_color_byte_to_rmt(&bytes.as_ref()[2], rmt_iter, pulses)?;
+        let array = Led::COLOR_CHANNELS.to_array(color);
+        match array {
+            ColorArray::Rgb(rgb) => {
+                Self::write_color_byte_to_rmt(&rgb[0], rmt_iter, pulses)?;
+                Self::write_color_byte_to_rmt(&rgb[1], rmt_iter, pulses)?;
+                Self::write_color_byte_to_rmt(&rgb[2], rmt_iter, pulses)?;
+            }
+            ColorArray::Rgbw(rgbw) => {
+                Self::write_color_byte_to_rmt(&rgbw[0], rmt_iter, pulses)?;
+                Self::write_color_byte_to_rmt(&rgbw[1], rmt_iter, pulses)?;
+                Self::write_color_byte_to_rmt(&rgbw[2], rmt_iter, pulses)?;
+                Self::write_color_byte_to_rmt(&rgbw[3], rmt_iter, pulses)?;
+            }
+        }
         Ok(())
     }
 
@@ -152,7 +159,7 @@ where
         // This will result in an `BufferSizeExceeded` error in case
         // the iterator provides more elements than the buffer can take.
         for color in pixels {
-            Self::write_color_to_rmt(color, &mut rmt_iter, &self.rgb_order, &self.pulses)?;
+            Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses)?;
         }
 
         // Finally, add the end element.

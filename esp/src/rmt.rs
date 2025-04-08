@@ -34,7 +34,7 @@ macro_rules! create_rmt_buffer {
         //  (
         //   Nr. of LEDs
         //   * channels (r,g,b -> 3)
-        //   * pulses per channel 8
+        //   * pulses per channel (8)
         //  ) + 1 additional pulse for the end delimiter
         [0u32; $led_count * $channel_count * 8 + 1]
     };

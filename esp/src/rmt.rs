@@ -1,7 +1,7 @@
 // Credit: https://github.com/DaveRichmond/esp-hal-smartled
 
 use blinksy::{
-    color::{FromColor, IntoColor, LinSrgb, Srgb},
+    color::{FromColor, Srgb},
     driver::{clockless::ClocklessLed, ColorArray, LedDriver},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
@@ -115,12 +115,11 @@ where
         Ok(())
     }
 
-    fn write_color_to_rmt<C: IntoColor<Srgb>>(
-        color: C,
+    fn write_color_to_rmt(
+        color: Srgb,
         rmt_iter: &mut IterMut<u32>,
         pulses: &(u32, u32, u32),
     ) -> Result<(), ClocklessRmtDriverError> {
-        let color: Srgb = color.into_color();
         let array = Led::COLOR_CHANNELS.to_array(color);
         match array {
             ColorArray::Rgb(rgb) => {
@@ -148,10 +147,8 @@ where
     ) -> Result<(), ClocklessRmtDriverError>
     where
         I: IntoIterator<Item = C>,
-        C: IntoColor<Srgb>,
+        Srgb: FromColor<C>,
     {
-        // TODO use brightness
-
         // We always start from the beginning of the buffer
         let mut rmt_iter = self.rmt_buffer.iter_mut();
 
@@ -159,6 +156,7 @@ where
         // This will result in an `BufferSizeExceeded` error in case
         // the iterator provides more elements than the buffer can take.
         for color in pixels {
+            let color = Srgb::from_color(color) * brightness;
             Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses)?;
         }
 

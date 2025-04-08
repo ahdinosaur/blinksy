@@ -78,9 +78,9 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        // TODO use brightness
         for color in pixels {
-            let array = Led::COLOR_CHANNELS.to_array(Srgb::from_color(color));
+            let color = Srgb::from_color(color) * brightness;
+            let array = Led::COLOR_CHANNELS.to_array(color);
             self.write_buffer(array.as_ref())?;
         }
         self.delay_for_reset();

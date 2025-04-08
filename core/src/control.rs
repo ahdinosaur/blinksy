@@ -16,6 +16,7 @@ where
     layout: PhantomData<Layout>,
     pattern: Pattern,
     driver: Driver,
+    brightness: f32,
 }
 
 impl<Layout, Pattern, Driver> Control1d<Layout, Pattern, Driver>
@@ -30,12 +31,17 @@ where
             layout: PhantomData,
             pattern,
             driver,
+            brightness: 1.,
         }
     }
 
-    pub fn tick(&mut self, time_in_ms: u64, brightness: f32) -> Result<(), Driver::Error> {
+    pub fn set_brightness(&mut self, brightness: f32) {
+        self.brightness = brightness;
+    }
+
+    pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
-        self.driver.write(pixels, brightness)
+        self.driver.write(pixels, self.brightness)
     }
 }
 
@@ -48,6 +54,7 @@ where
     layout: PhantomData<Layout>,
     pattern: Pattern,
     driver: Driver,
+    brightness: f32,
 }
 
 impl<Layout, Pattern, Driver> Control2d<Layout, Pattern, Driver>
@@ -62,12 +69,17 @@ where
             layout: PhantomData,
             pattern,
             driver,
+            brightness: 1.,
         }
     }
 
-    pub fn tick(&mut self, time_in_ms: u64, brightness: f32) -> Result<(), Driver::Error> {
+    pub fn set_brightness(&mut self, brightness: f32) {
+        self.brightness = brightness;
+    }
+
+    pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
-        self.driver.write(pixels, brightness)
+        self.driver.write(pixels, self.brightness)
     }
 }
 

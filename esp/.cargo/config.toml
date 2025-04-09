@@ -1,0 +1,20 @@
+[target.xtensa-esp32-none-elf]
+runner = "espflash flash --monitor --chip esp32 --log-format defmt"
+
+[env]
+DEFMT_LOG="info"
+
+[build]
+rustflags = [
+    # Required by esp-backtrace, but may negatively impact code performance
+    "-C", "force-frame-pointers",
+    # Required by defmt
+    "-C", "link-arg=-Tdefmt.x",
+    # Required by esp-hal
+    "-C", "link-arg=-Tlinkall.x",
+]
+
+target = "xtensa-esp32-none-elf"
+
+[unstable]
+build-std = ["core", "alloc"]

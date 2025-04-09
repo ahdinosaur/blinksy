@@ -1,0 +1,16 @@
+[package]
+edition = "2021"
+name    = "gledopto"
+version = "0.1.0"
+
+[dependencies]
+critical-section = "1.2.0"
+blinksy = { path = "../../blinksy" }
+blinksy-esp = { path = "../blinksy-esp", features = ["esp32"] }
+button-driver = { version = "0.2.2", features = ["embedded_hal"] }
+defmt = "0.3.10"
+esp-hal = { version = "1.0.0-beta.0", features = ["defmt", "esp32", "unstable"] }
+esp-println = { version = "0.13.0", features = ["defmt-espflash", "esp32"] }
+esp-alloc = { version = "0.7.0", features = ["defmt"] }
+esp-backtrace = { version = "0.15.1", features = ["defmt", "esp32", "panic-handler"] }
+fugit = "0.3.7"

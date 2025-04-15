@@ -38,6 +38,47 @@ blinksy = "0.1"
 https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
 
 ```rust
+#![no_std]
+#![no_main]
+
+use blinksy::{
+    layout::{Shape2d, Vec2},
+    layout2d,
+    patterns::{noise_fns, Noise2d, NoiseParams},
+    ControlBuilder,
+};
+use gledopto::{apa102, board, elapsed, main};
+
+#[main]
+fn main() -> ! {
+    let p = board!();
+
+    layout2d!(
+        Layout,
+        [Shape2d::Grid {
+            start: Vec2::new(-1., -1.),
+            row_end: Vec2::new(1., -1.),
+            col_end: Vec2::new(-1., 1.),
+            row_pixel_count: 16,
+            col_pixel_count: 16,
+            serpentine: true,
+        }]
+    );
+    let mut control = ControlBuilder::new_2d()
+        .with_layout::<Layout>()
+        .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
+            ..Default::default()
+        })
+        .with_driver(apa102!(p))
+        .build();
+
+    control.set_brightness(0.02);
+
+    loop {
+        let elapsed_in_ms = elapsed().as_millis();
+        control.tick(elapsed_in_ms).unwrap();
+    }
+}
 ```
 
 ### 1D WS2812 Strip with Rainbow Pattern
@@ -45,6 +86,39 @@ https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
 https://github.com/user-attachments/assets/703fe31d-e7ca-4e08-ae2b-7829c0d4d52e
 
 ```rust
+#![no_std]
+#![no_main]
+
+use blinksy::{
+    layout::Layout1d,
+    layout1d,
+    patterns::{Rainbow, RainbowParams},
+    ControlBuilder,
+};
+use gledopto::{board, elapsed, main, ws2812};
+
+#[main]
+fn main() -> ! {
+    let p = board!();
+
+    layout1d!(Layout, 60 * 5);
+
+    let mut control = ControlBuilder::new_1d()
+        .with_layout::<Layout>()
+        .with_pattern::<Rainbow>(RainbowParams {
+            position_scalar: 1.,
+            ..Default::default()
+        })
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .build();
+
+    control.set_brightness(0.2);
+
+    loop {
+        let elapsed_in_ms = elapsed().as_millis();
+        control.tick(elapsed_in_ms).unwrap();
+    }
+}
 ```
 
 ## Contributing
@@ -54,14 +128,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for det
 ## License
 
 <sup>
-Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
-2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+Licensed under <a href="LICENSE">European Union Public License 1.1</a>
 </sup>
 
-<br>
-
-<sub>
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in Rimu by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
-</sub>
+TODO: Summarize https://github.com/wled/WLED/pull/4194 and why / how EUPL.

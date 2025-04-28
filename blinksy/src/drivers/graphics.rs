@@ -1,23 +1,13 @@
 use crate::{
-    color::{FromColor, Hsv, LinSrgb, Srgb},
+    color::{FromColor, LinSrgb, Srgb},
     dimension::{Dim1d, Dim2d, LayoutForDim},
     driver::LedDriver,
     layout::{Layout1d, Layout2d},
 };
-use core::marker::PhantomData;
+use core::{fmt, marker::PhantomData};
 use glam::{vec3, Mat4, Vec3, Vec4};
 use miniquad::*;
-use std::sync::mpsc::{channel, Receiver, Sender};
-
-#[derive(Debug, Clone)]
-pub struct MiniquadError;
-
-// Messages to communicate with the rendering thread
-enum LedMessage {
-    UpdateColors(Vec<Vec4>),
-    UpdateBrightness(f32),
-    Quit,
-}
+use std::sync::mpsc::{channel, Receiver, SendError, Sender};
 
 pub struct Graphics<Dim, Layout> {
     dim: PhantomData<Dim>,
@@ -53,7 +43,7 @@ impl Graphics<Dim1d, ()> {
 
         // Start rendering thread
         std::thread::spawn(move || {
-            MiniquadStage::start(positions, colors, receiver);
+            GraphicsStage::new(positions, colors, receiver).start();
         });
 
         Graphics {
@@ -85,7 +75,7 @@ impl Graphics<Dim2d, ()> {
 
         // Start rendering thread
         std::thread::spawn(move || {
-            MiniquadStage::start(positions, colors, receiver);
+            GraphicsStage::new(positions, colors, receiver).start();
         });
 
         Graphics {
@@ -97,12 +87,41 @@ impl Graphics<Dim2d, ()> {
     }
 }
 
+#[derive(Debug)]
+pub enum GraphicsError {
+    /// Sending to the render thread failed because it has already hung up.
+    ChannelSend,
+}
+
+impl fmt::Display for GraphicsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GraphicsError::ChannelSend => write!(f, "render thread channel disconnected"),
+        }
+    }
+}
+
+impl core::error::Error for GraphicsError {}
+
+impl From<SendError<LedMessage>> for GraphicsError {
+    fn from(_: SendError<LedMessage>) -> Self {
+        GraphicsError::ChannelSend
+    }
+}
+
+// Messages to communicate with the rendering thread
+enum LedMessage {
+    UpdateColors(Vec<Vec4>),
+    UpdateBrightness(f32),
+    Quit,
+}
+
 // Implement LedDriver trait for the miniquad driver
 impl<Dim, Layout> LedDriver for Graphics<Dim, Layout>
 where
     Layout: LayoutForDim<Dim>,
 {
-    type Error = MiniquadError;
+    type Error = GraphicsError;
     type Color = Srgb;
 
     fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
@@ -113,9 +132,7 @@ where
         // Update brightness if it changed
         if self.brightness != brightness {
             self.brightness = brightness;
-            self.sender
-                .send(LedMessage::UpdateBrightness(brightness))
-                .unwrap();
+            self.sender.send(LedMessage::UpdateBrightness(brightness))?;
         }
 
         // Convert input colors to Vec4 for rendering
@@ -128,7 +145,7 @@ where
             .collect();
 
         // Send colors to the rendering thread
-        self.sender.send(LedMessage::UpdateColors(colors)).unwrap();
+        self.sender.send(LedMessage::UpdateColors(colors))?;
 
         Ok(())
     }
@@ -136,12 +153,11 @@ where
 
 impl<Dim, Layout> Drop for Graphics<Dim, Layout> {
     fn drop(&mut self) {
-        let _ = self.sender.send(LedMessage::Quit);
+        self.sender.send(LedMessage::Quit).unwrap();
     }
 }
 
-// The miniquad rendering stage - handles all rendering logic
-struct MiniquadStage {
+struct GraphicsStage {
     ctx: Box<dyn RenderingBackend>,
     pipeline: Pipeline,
     bindings: Bindings,
@@ -151,19 +167,17 @@ struct MiniquadStage {
     receiver: Receiver<LedMessage>,
 }
 
-impl MiniquadStage {
-    pub fn start(positions: Vec<Vec3>, colors: Vec<Vec4>, receiver: Receiver<LedMessage>) {
+impl GraphicsStage {
+    pub fn start(self) {
         let conf = conf::Conf {
-            window_title: "Blinksy LED Simulator".to_string(),
-            window_width: 800,
-            window_height: 600,
+            window_title: "Blinksy".to_string(),
+            window_width: 512,
+            window_height: 512,
             high_dpi: true,
             ..Default::default()
         };
 
-        miniquad::start(conf, move || {
-            Box::new(Self::new(positions, colors, receiver))
-        });
+        miniquad::start(conf, move || Box::new(self));
     }
 
     pub fn new(positions: Vec<Vec3>, colors: Vec<Vec4>, receiver: Receiver<LedMessage>) -> Self {
@@ -285,7 +299,7 @@ impl MiniquadStage {
     }
 }
 
-impl EventHandler for MiniquadStage {
+impl EventHandler for GraphicsStage {
     fn update(&mut self) {
         self.process_messages();
     }

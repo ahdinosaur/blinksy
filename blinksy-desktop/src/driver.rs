@@ -1,4 +1,58 @@
-use crate::{
+//! # Desktop Desktop Simulation
+//!
+//! This module provides a graphical simulation of LED layouts and patterns for desktop development
+//! and debugging. It implements the `LedDriver` trait, allowing it to be used as a drop-in
+//! replacement for physical LED hardware.
+//!
+//! The simulator creates a 3D visualization window where:
+//! - LEDs are represented as small 3D objects
+//! - LED positions match the layout's physical arrangement
+//! - Colors and brightness updates are displayed in real-time
+//!
+//! ## Usage
+//!
+//! ```rust
+//! use blinksy::{
+//!     ControlBuilder,
+//!     layout2d,
+//!     layout::{Shape2d, Vec2},
+//!     patterns::{Rainbow, RainbowParams}
+//! };
+//! use blinksy_desktop::drivers::Desktop,
+//!
+//! // Define your layout
+//! layout2d!(
+//!     Layout,
+//!     [Shape2d::Grid {
+//!         start: Vec2::new(-1., -1.),
+//!         row_end: Vec2::new(1., -1.),
+//!         col_end: Vec2::new(-1., 1.),
+//!         row_pixel_count: 16,
+//!         col_pixel_count: 16,
+//!         serpentine: true,
+//!     }]
+//! );
+//!
+//! // Create a control using the Desktop driver instead of physical hardware
+//! let mut control = ControlBuilder::new_2d()
+//!     .with_layout::<Layout>()
+//!     .with_pattern::<Rainbow>(RainbowParams::default())
+//!     .with_driver(Desktop::new_2d::<Layout>())
+//!     .build();
+//!
+//! // Run your normal animation loop
+//! loop {
+//!     let time = std::time::SystemTime::now()
+//!         .duration_since(std::time::UNIX_EPOCH)
+//!         .unwrap()
+//!         .as_millis() as u64;
+//!
+//!     control.tick(time).unwrap();
+//!     std::thread::sleep(std::time::Duration::from_millis(16));
+//! }
+//! ```
+
+use blinksy::{
     color::{FromColor, LinSrgb, Srgb},
     dimension::{Dim1d, Dim2d, LayoutForDim},
     driver::LedDriver,
@@ -9,15 +63,35 @@ use glam::{vec3, Mat4, Vec3, Vec4};
 use miniquad::*;
 use std::sync::mpsc::{channel, Receiver, SendError, Sender};
 
-pub struct Graphics<Dim, Layout> {
+/// Desktop driver for simulating LED layouts in a desktop window.
+///
+/// This struct implements the `LedDriver` trait and renders a visual
+/// representation of your LED layout using miniquad.
+///
+/// # Type Parameters
+///
+/// * `Dim` - The dimension marker (Dim1d or Dim2d)
+/// * `Layout` - The specific layout type
+pub struct Desktop<Dim, Layout> {
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,
     sender: Sender<LedMessage>,
     brightness: f32,
 }
 
-impl Graphics<Dim1d, ()> {
-    pub fn new_1d<Layout>() -> Graphics<Dim1d, Layout>
+impl Desktop<Dim1d, ()> {
+    /// Creates a new graphics driver for 1D layouts.
+    ///
+    /// This method initializes a rendering window showing a linear strip of LEDs.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `Layout` - The layout type implementing Layout1d
+    ///
+    /// # Returns
+    ///
+    /// A Desktop driver configured for the specified 1D layout
+    pub fn new_1d<Layout>() -> Desktop<Dim1d, Layout>
     where
         Layout: Layout1d,
     {
@@ -43,10 +117,10 @@ impl Graphics<Dim1d, ()> {
 
         // Start rendering thread
         std::thread::spawn(move || {
-            GraphicsStage::new(positions, colors, receiver).start();
+            DesktopStage::start(positions, colors, receiver);
         });
 
-        Graphics {
+        Desktop {
             dim: PhantomData,
             layout: PhantomData,
             sender,
@@ -55,8 +129,20 @@ impl Graphics<Dim1d, ()> {
     }
 }
 
-impl Graphics<Dim2d, ()> {
-    pub fn new_2d<Layout>() -> Graphics<Dim2d, Layout>
+impl Desktop<Dim2d, ()> {
+    /// Creates a new graphics driver for 2D layouts.
+    ///
+    /// This method initializes a rendering window showing a 2D arrangement of LEDs
+    /// based on the layout's coordinates.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `Layout` - The layout type implementing Layout2d
+    ///
+    /// # Returns
+    ///
+    /// A Desktop driver configured for the specified 2D layout
+    pub fn new_2d<Layout>() -> Desktop<Dim2d, Layout>
     where
         Layout: Layout2d,
     {
@@ -75,10 +161,10 @@ impl Graphics<Dim2d, ()> {
 
         // Start rendering thread
         std::thread::spawn(move || {
-            GraphicsStage::new(positions, colors, receiver).start();
+            DesktopStage::start(positions, colors, receiver);
         });
 
-        Graphics {
+        Desktop {
             dim: PhantomData,
             layout: PhantomData,
             sender,
@@ -87,41 +173,45 @@ impl Graphics<Dim2d, ()> {
     }
 }
 
+/// Errors that can occur when using the Desktop driver.
 #[derive(Debug)]
-pub enum GraphicsError {
+pub enum DesktopError {
     /// Sending to the render thread failed because it has already hung up.
     ChannelSend,
 }
 
-impl fmt::Display for GraphicsError {
+impl fmt::Display for DesktopError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GraphicsError::ChannelSend => write!(f, "render thread channel disconnected"),
+            DesktopError::ChannelSend => write!(f, "render thread channel disconnected"),
         }
     }
 }
 
-impl core::error::Error for GraphicsError {}
+impl core::error::Error for DesktopError {}
 
-impl From<SendError<LedMessage>> for GraphicsError {
+impl From<SendError<LedMessage>> for DesktopError {
     fn from(_: SendError<LedMessage>) -> Self {
-        GraphicsError::ChannelSend
+        DesktopError::ChannelSend
     }
 }
 
-// Messages to communicate with the rendering thread
+/// Messages for communication with the rendering thread.
 enum LedMessage {
+    /// Update the colors of all LEDs
     UpdateColors(Vec<Vec4>),
+    /// Update the global brightness
     UpdateBrightness(f32),
+    /// Terminate the rendering thread
     Quit,
 }
 
-// Implement LedDriver trait for the miniquad driver
-impl<Dim, Layout> LedDriver for Graphics<Dim, Layout>
+// Implementation of the LedDriver trait for the Desktop driver
+impl<Dim, Layout> LedDriver for Desktop<Dim, Layout>
 where
     Layout: LayoutForDim<Dim>,
 {
-    type Error = GraphicsError;
+    type Error = DesktopError;
     type Color = Srgb;
 
     fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
@@ -151,13 +241,15 @@ where
     }
 }
 
-impl<Dim, Layout> Drop for Graphics<Dim, Layout> {
+impl<Dim, Layout> Drop for Desktop<Dim, Layout> {
     fn drop(&mut self) {
-        self.sender.send(LedMessage::Quit).unwrap();
+        // Attempt to cleanly shut down the rendering thread
+        let _ = self.sender.send(LedMessage::Quit);
     }
 }
 
-struct GraphicsStage {
+/// The rendering stage that handles the miniquad window and OpenGL drawing.
+struct DesktopStage {
     ctx: Box<dyn RenderingBackend>,
     pipeline: Pipeline,
     bindings: Bindings,
@@ -167,8 +259,9 @@ struct GraphicsStage {
     receiver: Receiver<LedMessage>,
 }
 
-impl GraphicsStage {
-    pub fn start(self) {
+impl DesktopStage {
+    /// Start the rendering loop.
+    pub fn start(positions: Vec<Vec3>, colors: Vec<Vec4>, receiver: Receiver<LedMessage>) {
         let conf = conf::Conf {
             window_title: "Blinksy".to_string(),
             window_width: 512,
@@ -177,13 +270,17 @@ impl GraphicsStage {
             ..Default::default()
         };
 
-        miniquad::start(conf, move || Box::new(self));
+        miniquad::start(conf, move || {
+            Box::new(Self::new(positions, colors, receiver))
+        });
     }
 
+    /// Create a new DesktopStage with the given LED positions and colors.
     pub fn new(positions: Vec<Vec3>, colors: Vec<Vec4>, receiver: Receiver<LedMessage>) -> Self {
         let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
 
-        let r = 0.05;
+        // Define a simple LED shape (a bipyramid)
+        let r = 0.05; // Radius of LED
         #[rustfmt::skip]
         let vertices: &[f32] = &[
             // positions          colors
@@ -231,6 +328,7 @@ impl GraphicsStage {
             images: vec![],
         };
 
+        // Create shader for rendering LEDs
         let shader = ctx
             .new_shader(
                 ShaderSource::Glsl {
@@ -241,6 +339,7 @@ impl GraphicsStage {
             )
             .unwrap();
 
+        // Set up pipeline with instancing
         let pipeline = ctx.new_pipeline(
             &[
                 BufferLayout::default(),
@@ -278,6 +377,7 @@ impl GraphicsStage {
         }
     }
 
+    /// Process any pending messages from the main thread.
     fn process_messages(&mut self) {
         while let Ok(message) = self.receiver.try_recv() {
             match message {
@@ -299,7 +399,7 @@ impl GraphicsStage {
     }
 }
 
-impl EventHandler for GraphicsStage {
+impl EventHandler for DesktopStage {
     fn update(&mut self) {
         self.process_messages();
     }
@@ -346,9 +446,11 @@ impl EventHandler for GraphicsStage {
     }
 }
 
+/// Shader definitions for rendering LEDs
 mod shader {
     use miniquad::*;
 
+    /// Vertex shader for LED rendering
     pub const VERTEX: &str = r#"#version 100
     attribute vec3 in_pos;
     attribute vec4 in_color;
@@ -366,6 +468,7 @@ mod shader {
     }
     "#;
 
+    /// Fragment shader for LED rendering
     pub const FRAGMENT: &str = r#"#version 100
     varying lowp vec4 color;
 
@@ -374,6 +477,7 @@ mod shader {
     }
     "#;
 
+    /// Shader metadata describing uniforms
     pub fn meta() -> ShaderMeta {
         ShaderMeta {
             images: vec![],
@@ -383,6 +487,7 @@ mod shader {
         }
     }
 
+    /// Uniform structure for shader
     #[repr(C)]
     pub struct Uniforms {
         pub mvp: glam::Mat4,

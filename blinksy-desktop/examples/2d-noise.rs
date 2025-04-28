@@ -1,11 +1,10 @@
 use blinksy::{
-    drivers::Graphics,
     layout::{Shape2d, Vec2},
     layout2d,
     patterns::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use std::time::Instant;
+use blinksy_desktop::{drivers::Desktop, time::elapsed_in_ms};
 
 fn main() -> ! {
     layout2d!(
@@ -24,12 +23,12 @@ fn main() -> ! {
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
-        .with_driver(Graphics::new_2d::<Layout>())
+        .with_driver(Desktop::new_2d::<Layout>())
         .build();
 
-    let now = Instant::now();
     loop {
-        let elapsed_in_ms: u64 = now.elapsed().as_millis().try_into().unwrap();
-        control.tick(elapsed_in_ms).unwrap();
+        control.tick(elapsed_in_ms()).unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(16));
     }
 }

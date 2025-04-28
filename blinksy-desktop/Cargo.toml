@@ -1,0 +1,9 @@
+[package]
+name = "blinksy-desktop"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blinksy = { path = "../blinksy" }
+glam = { version = "0.30.1" }
+miniquad = "0.4"

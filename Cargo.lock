@@ -23,11 +23,19 @@ dependencies = [
  "fugit",
  "glam",
  "heapless",
- "miniquad",
  "noise",
  "num-traits",
  "palette",
  "smart-leds-trait",
+]
+
+[[package]]
+name = "blinksy-desktop"
+version = "0.1.0"
+dependencies = [
+ "blinksy",
+ "glam",
+ "miniquad",
 ]
 
 [[package]]

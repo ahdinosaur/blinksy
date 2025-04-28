@@ -117,7 +117,7 @@ impl Desktop<Dim1d, ()> {
 
         // Start rendering thread
         std::thread::spawn(move || {
-            DesktopStage::start(positions, colors, receiver);
+            DesktopStage::start(|| DesktopStage::new(positions, colors, receiver));
         });
 
         Desktop {
@@ -161,7 +161,7 @@ impl Desktop<Dim2d, ()> {
 
         // Start rendering thread
         std::thread::spawn(move || {
-            DesktopStage::start(positions, colors, receiver);
+            DesktopStage::start(move || DesktopStage::new(positions, colors, receiver));
         });
 
         Desktop {
@@ -261,7 +261,11 @@ struct DesktopStage {
 
 impl DesktopStage {
     /// Start the rendering loop.
-    pub fn start(positions: Vec<Vec3>, colors: Vec<Vec4>, receiver: Receiver<LedMessage>) {
+    pub fn start<F, H>(f: F)
+    where
+        F: 'static + FnOnce() -> H,
+        H: EventHandler + 'static,
+    {
         let conf = conf::Conf {
             window_title: "Blinksy".to_string(),
             window_width: 512,
@@ -270,9 +274,7 @@ impl DesktopStage {
             ..Default::default()
         };
 
-        miniquad::start(conf, move || {
-            Box::new(Self::new(positions, colors, receiver))
-        });
+        miniquad::start(conf, move || Box::new(f()));
     }
 
     /// Create a new DesktopStage with the given LED positions and colors.

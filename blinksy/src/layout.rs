@@ -329,8 +329,8 @@ impl Shape2d {
                 col_pixel_count,
                 serpentine,
             } => {
-                let row_step = (start - row_end) / row_pixel_count as f32;
-                let col_step = (start - col_end) / col_pixel_count as f32;
+                let row_step = (row_end - start) / (row_pixel_count as f32 - 1.).max(1.);
+                let col_step = (col_end - start) / (col_pixel_count as f32 - 1.).max(1.);
                 GridStepIterator::new(
                     start,
                     row_step,
@@ -342,10 +342,10 @@ impl Shape2d {
                 .into()
             }
             Shape2d::Arc {
-                center,
-                radius,
-                angle_in_radians,
-                pixel_count,
+                center: _,
+                radius: _,
+                angle_in_radians: _,
+                pixel_count: _,
             } => todo!(),
         }
     }

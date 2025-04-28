@@ -1,62 +1,56 @@
-#![no_std]
-
-//! # Blinksy Core Library
+//! # Blinksy
 //!
-//! Blinksy is the core no-std, no-alloc (audio-reactive) LED control library. It provides the building
-//! blocks for defining LED layouts (1D, 2D, 3D), creating visual patterns, driving LED chipsets, and handling
-//! timing for animations.
+//! Blinksy is a no-std, no-alloc LED control library designed for 1D, 2D, and 3D (audio-reactive)
+//! LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 //!
-//! The crate is organized into several modules:
+//! - Define LED layouts in 1D, 2D, or 3D space
+//! - Choose visual patterns (effects)
+//! - Compute colors for each LED based on its position
+//! - Drive various LED chipsets with the calculated colors
 //!
-//! - **color:** Types and conversions for color representations using the [palette] crate.
+//! ## Core Features
 //!
-//! - **control:** The `Control` structure and `ControlBuilder` facilitate orchestrating LED updates.
+//! - **No-std, No-alloc:** Designed to run on embedded targets with minimal resources
+//! - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points)
+//! - **Pattern Library:** Visual effects like Rainbow, Noise, and more
+//! - **Multi-Chipset Support:** Works with APA102, WS2812B, and others
+//! - **Board Support Packages:** Ready-to-use configurations for popular LED controllers
 //!
-//! - **dimension:** Dimension markers and traits used to abstract over 1D and 2D layouts.
+//! ## Architecture
 //!
-//! - **driver:** Abstractions for LED drivers, including clocked and clockless methods.
+//! The library is organized into several modules:
 //!
-//! - **drivers:** Concrete implementations for LED chipsets (e.g., APA102, WS2812B).
+//! - [`color`]: Color representations and utilities
+//! - [`control`]: Orchestration of LED updates
+//! - [`dimension`]: Type-level markers for dimensionality
+//! - [`driver`]: LED driver abstractions
+//! - [`drivers`]: Concrete implementations for specific LED chipsets
+//! - [`layout`]: Definitions for LED arrangements
+//! - [`pattern`]: Pattern trait definition
+//! - [`patterns`]: Collection of visual effects
+//! - [`time`]: Timing utilities
 //!
-//! - **layout:** Traits and macros for defining LED layouts such as lines, grids, arcs, etc.
+//! ## Quick Start
 //!
-//! - **pattern:** The `Pattern` trait that governs the behavior of visual effects.
-//!
-//! - **patterns:** Built-in visual effects such as Rainbow and Noise.
-//!
-//! - **time:** Timing utilities to facilitate animation updates.
-//!
-//! ## Example Usage
-//!
-//! Here is a brief example that demonstrates defining a 1D LED layout and driving it with a Rainbow pattern:
-//!
-//! ```rust
+//! ```rust,ignore
 //! use blinksy::{ControlBuilder, layout1d, patterns::{Rainbow, RainbowParams}};
 //!
-//! // Define a 1D layout with 60 pixels
+//! // Define a 1D layout with 60 LEDs
 //! layout1d!(MyStrip, 60);
 //!
-//! // Build the control for your LED strip
 //! let mut control = ControlBuilder::new_1d()
 //!     .with_layout::<MyStrip>()
-//!     .with_pattern::<Rainbow>(RainbowParams {
-//!         position_scalar: 1.0,
-//!         ..Default::default()
-//!     })
+//!     .with_pattern::<Rainbow>(RainbowParams::default())
 //!     .with_driver(/* insert your LED driver here */)
 //!     .build();
 //!
-//! // Set brightness and update LED state in your main loop
 //! control.set_brightness(0.2);
+//!
 //! loop {
-//!     let time = /* obtain current time in ms */;
+//!     let time = /* obtain current time in milliseconds */;
 //!     control.tick(time).unwrap();
 //! }
 //! ```
-//!
-//! For more detailed examples, please refer to the example files in the `gledopto/examples` directory.
-//!
-//! [palette]: https://crates.io/crates/palette
 
 pub mod color;
 pub mod control;

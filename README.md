@@ -2,20 +2,23 @@
 
 Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 1D, 2D, and 3D (audio-reactive) LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 
-- Specify your LED layout in 1D, 2D, or 3D. Choose a visual pattern (effect). The pattern will compute a color for each LED given the position in 1D, 2D, or 3D space.
+- Specify your LED layout in 1D, 2D, or 3D.
+- Choose a visual pattern (effect).
+- The pattern will compute a color for each LED given the position in 1D, 2D, or 3D space.
+- The LED driver will output these colors to the LEDs, based on the chipset.
 
 ## Features
 
 - **No-std, No-alloc:** Designed to run on embedded targets.
 - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
-- **Multi‑Chipset Support:**
-  - **APA102**
-  - **WS2812B**
-  - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
 - **Pattern (Effect) Library:**
   - **Rainbow**: Gradual, colorful gradient transition across your layout.
   - **Noise**: Dynamic noise‑based visuals using noise functions (Perlin, Simplex, OpenSimplex, etc).
   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
+- **Multi‑Chipset Support:**
+  - **APA102**
+  - **WS2812B**
+  - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
 - **Board Support Packages**:
   - **Gledopto**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
   - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards

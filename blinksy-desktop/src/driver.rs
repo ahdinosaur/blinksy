@@ -257,9 +257,32 @@ struct DesktopStage {
     colors: Vec<Vec4>,
     brightness: f32,
     receiver: Receiver<LedMessage>,
+
+    // Camera state
+    camera_distance: f32,
+    camera_target: Vec3,
+    camera_yaw: f32,
+    camera_pitch: f32,
+    aspect_ratio: f32,
+
+    // Mouse interaction state
+    mouse_down: bool,
+    last_mouse_x: f32,
+    last_mouse_y: f32,
+
+    // Flag to toggle between orthographic and perspective view
+    use_orthographic: bool,
+
+    // Calculated defaults
+    default_fov: f32,
 }
 
 impl DesktopStage {
+    const DEFAULT_DISTANCE: f32 = 2.;
+    const DEFAULT_CAMERA_TARGET: Vec3 = Vec3::ZERO;
+    const DEFAULT_CAMERA_YAW: f32 = core::f32::consts::PI * 0.5;
+    const DEFAULT_CAMERA_PITCH: f32 = 0.;
+
     /// Start the rendering loop.
     pub fn start<F, H>(f: F)
     where
@@ -268,8 +291,8 @@ impl DesktopStage {
     {
         let conf = conf::Conf {
             window_title: "Blinksy".to_string(),
-            window_width: 512,
-            window_height: 512,
+            window_width: 800,
+            window_height: 600,
             high_dpi: true,
             ..Default::default()
         };
@@ -281,7 +304,7 @@ impl DesktopStage {
     pub fn new(positions: Vec<Vec3>, colors: Vec<Vec4>, receiver: Receiver<LedMessage>) -> Self {
         let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
 
-        // Define a simple LED shape (a bipyramid)
+        // Use a bipyramid as the shape for each LED.
         let r = 0.05; // Radius of LED
         #[rustfmt::skip]
         let vertices: &[f32] = &[
@@ -368,6 +391,11 @@ impl DesktopStage {
             },
         );
 
+        // Initialize camera and aspect ratio
+        let (width, height) = window::screen_size();
+
+        let default_fov = 2. * ((1. / Self::DEFAULT_DISTANCE).atan());
+
         Self {
             ctx,
             pipeline,
@@ -376,6 +404,16 @@ impl DesktopStage {
             colors,
             brightness: 1.0,
             receiver,
+            camera_distance: Self::DEFAULT_DISTANCE,
+            camera_target: Self::DEFAULT_CAMERA_TARGET,
+            camera_yaw: Self::DEFAULT_CAMERA_YAW,
+            camera_pitch: Self::DEFAULT_CAMERA_PITCH,
+            aspect_ratio: width / height,
+            mouse_down: false,
+            last_mouse_x: 0.0,
+            last_mouse_y: 0.0,
+            use_orthographic: true,
+            default_fov,
         }
     }
 
@@ -398,6 +436,53 @@ impl DesktopStage {
                 }
             }
         }
+    }
+
+    /// Calculate camera position from spherical coordinates
+    fn camera_position(&self) -> Vec3 {
+        let x = self.camera_distance * self.camera_pitch.cos() * self.camera_yaw.cos();
+        let y = self.camera_distance * self.camera_pitch.sin();
+        let z = self.camera_distance * self.camera_pitch.cos() * self.camera_yaw.sin();
+        self.camera_target + vec3(x, y, z)
+    }
+
+    /// Calculate view matrix for the current camera state
+    fn view_matrix(&self) -> Mat4 {
+        let eye = self.camera_position();
+        let up = if self.camera_pitch.abs() > std::f32::consts::PI * 0.49 {
+            // When looking straight up/down, use a different up vector to avoid gimbal lock
+            Vec3::new(self.camera_yaw.sin(), 0.0, -self.camera_yaw.cos())
+        } else {
+            Vec3::Y
+        };
+
+        Mat4::look_at_rh(eye, self.camera_target, up)
+    }
+
+    /// Calculate projection matrix based on current aspect ratio
+    fn projection_matrix(&self) -> Mat4 {
+        if self.use_orthographic {
+            let vertical_size = 1.0 * (self.camera_distance / 2.0);
+
+            Mat4::orthographic_rh_gl(
+                -vertical_size * self.aspect_ratio,
+                vertical_size * self.aspect_ratio,
+                -vertical_size,
+                vertical_size,
+                -100.0,
+                100.0,
+            )
+        } else {
+            Mat4::perspective_rh_gl(self.default_fov, self.aspect_ratio, 0.1, 100.0)
+        }
+    }
+
+    /// Reset camera to default position
+    fn reset_camera(&mut self) {
+        self.camera_distance = Self::DEFAULT_DISTANCE;
+        self.camera_target = Self::DEFAULT_CAMERA_TARGET;
+        self.camera_yaw = Self::DEFAULT_CAMERA_YAW;
+        self.camera_pitch = Self::DEFAULT_CAMERA_PITCH;
     }
 }
 
@@ -427,16 +512,14 @@ impl EventHandler for DesktopStage {
             BufferSource::slice(&bright_colors),
         );
 
-        // Set up camera/view
-        let (width, height) = window::screen_size();
-        let aspect = width / height;
-
-        let proj = Mat4::orthographic_rh_gl(-aspect, aspect, -1.0, 1.0, -10.0, 10.0);
-        let view = Mat4::IDENTITY;
-
+        // Use orbit camera for view matrix
+        let view = self.view_matrix();
+        let proj = self.projection_matrix();
         let view_proj = proj * view;
 
-        self.ctx.begin_default_pass(Default::default());
+        // Clear the frame
+        self.ctx
+            .begin_default_pass(PassAction::clear_color(0.1, 0.1, 0.1, 1.0));
         self.ctx.apply_pipeline(&self.pipeline);
         self.ctx.apply_bindings(&self.bindings);
         self.ctx
@@ -445,6 +528,72 @@ impl EventHandler for DesktopStage {
         self.ctx.draw(0, 24, self.positions.len() as i32);
         self.ctx.end_render_pass();
         self.ctx.commit_frame();
+    }
+
+    // Handle window resizing
+    fn resize_event(&mut self, width: f32, height: f32) {
+        self.aspect_ratio = width / height;
+    }
+
+    // Handle mouse movement for camera rotation
+    fn mouse_motion_event(&mut self, x: f32, y: f32) {
+        if self.mouse_down {
+            let dx = x - self.last_mouse_x;
+            let dy = y - self.last_mouse_y;
+
+            // Rotate camera - left/right adjusts yaw
+            self.camera_yaw -= dx * 0.01;
+
+            // Up/down adjusts pitch
+            self.camera_pitch += dy * 0.01;
+
+            // Clamp pitch to avoid gimbal lock
+            self.camera_pitch = self.camera_pitch.clamp(
+                -std::f32::consts::PI / 2. + 0.1,
+                std::f32::consts::PI / 2. - 0.1,
+            );
+        }
+
+        self.last_mouse_x = x;
+        self.last_mouse_y = y;
+    }
+
+    // Handle mouse wheel for zoom
+    fn mouse_wheel_event(&mut self, _x: f32, y: f32) {
+        // Zoom in/out with mouse wheel
+        self.camera_distance -= y * 0.2;
+        // Limit zoom range
+        self.camera_distance = self.camera_distance.clamp(0.5, 10.);
+    }
+
+    // Handle mouse button press
+    fn mouse_button_down_event(&mut self, button: MouseButton, x: f32, y: f32) {
+        if button == MouseButton::Left {
+            self.mouse_down = true;
+            self.last_mouse_x = x;
+            self.last_mouse_y = y;
+        }
+    }
+
+    // Handle mouse button release
+    fn mouse_button_up_event(&mut self, button: MouseButton, _x: f32, _y: f32) {
+        if button == MouseButton::Left {
+            self.mouse_down = false;
+        }
+    }
+
+    // Add keyboard controls
+    fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
+        match keycode {
+            KeyCode::R => {
+                self.reset_camera();
+            }
+            KeyCode::O => {
+                // Toggle between orthographic and perspective projection
+                self.use_orthographic = !self.use_orthographic;
+            }
+            _ => {}
+        }
     }
 }
 

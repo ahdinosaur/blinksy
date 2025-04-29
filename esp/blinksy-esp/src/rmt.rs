@@ -1,4 +1,21 @@
-// Credit: https://github.com/DaveRichmond/esp-hal-smartled
+//! # RMT-based LED Driver
+//!
+//! This module provides a driver for clockless LED protocols (like WS2812) using the
+//! ESP32's RMT (Remote Control Module) peripheral. The RMT peripheral provides hardware
+//! acceleration for generating precisely timed signals, which is ideal for LED protocols.
+//!
+//! ## Features
+//!
+//! - Hardware-accelerated LED control
+//! - Precise timing for WS2812 and similar protocols
+//! - Compatible with the Blinksy LedDriver trait
+//! - Configurable buffer size for different LED strip lengths
+//!
+//! ## Technical Details
+//!
+//! The RMT peripheral translates LED color data into a sequence of timed pulses that
+//! match the protocol requirements. This implementation converts each bit of color data
+//! into the corresponding high/low pulse durations required by the specific LED protocol.
 
 use blinksy::{
     color::{FromColor, Srgb},
@@ -18,28 +35,41 @@ use esp_hal::{
 pub enum ClocklessRmtDriverError {
     /// Raised in the event that the provided data container is not large enough
     BufferSizeExceeded,
-    /// Raised if something goes wrong in the transmission,
+    /// Raised if something goes wrong in the transmission
     TransmissionError(RmtError),
 }
 
 /// Macro to allocate a buffer sized for a specific number of LEDs to be
 /// addressed.
 ///
-/// Attempting to use more LEDs that the buffer is configured for will result in
-/// an `LedAdapterError:BufferSizeExceeded` error.
+/// Attempting to use more LEDs than the buffer is configured for will result in
+/// an `ClocklessRmtDriverError::BufferSizeExceeded` error.
+///
+/// # Arguments
+///
+/// * `$led_count` - Number of LEDs to be controlled
+/// * `$channel_count` - Number of color channels per LED (3 for RGB, 4 for RGBW)
+///
+/// # Returns
+///
+/// An array of u32 values sized appropriately for the RMT buffer
 #[macro_export]
 macro_rules! create_rmt_buffer {
     ($led_count:expr, $channel_count:expr) => {
-        // The size we're assigning here is calculated as following
-        //  (
-        //   Nr. of LEDs
-        //   * channels (r,g,b -> 3)
-        //   * pulses per channel (8)
-        //  ) + 1 additional pulse for the end delimiter
         [0u32; $led_count * $channel_count * 8 + 1]
     };
 }
 
+/// RMT-based driver for clockless LED protocols.
+///
+/// This driver uses the ESP32's RMT peripheral to generate precisely timed signals
+/// required by protocols like WS2812.
+///
+/// # Type Parameters
+///
+/// * `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// * `Tx` - The RMT transmit channel type
+/// * `BUFFER_SIZE` - Size of the RMT buffer
 pub struct ClocklessRmtDriver<Led, Tx, const BUFFER_SIZE: usize>
 where
     Led: ClocklessLed,
@@ -57,6 +87,16 @@ where
     Tx: TxChannel,
 {
     /// Create a new adapter object that drives the pin using the RMT channel.
+    ///
+    /// # Arguments
+    ///
+    /// * `channel` - RMT transmit channel
+    /// * `pin` - GPIO pin connected to the LED data line
+    /// * `rmt_buffer` - Buffer for RMT data
+    ///
+    /// # Returns
+    ///
+    /// A configured ClocklessRmtDriver instance
     pub fn new<C, P>(
         channel: C,
         pin: impl Peripheral<P = P> + 'd,
@@ -75,7 +115,6 @@ where
 
         let channel = channel.configure(pin, config).unwrap();
 
-        // Assume the RMT peripheral is set up to use the APB clock
         let clocks = Clocks::get();
         let freq_hz = clocks.apb_clock.as_hz() / clock_divider as u32;
         let freq_mhz = freq_hz / 1_000_000;
@@ -98,6 +137,17 @@ where
         }
     }
 
+    /// Writes a single byte of color data to the RMT buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `byte` - The color byte to write
+    /// * `rmt_iter` - Iterator over the RMT buffer
+    /// * `pulses` - Tuple of pulse codes for 0-bit, 1-bit, and reset
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or a buffer size exceeded error
     fn write_color_byte_to_rmt(
         byte: &u8,
         rmt_iter: &mut IterMut<u32>,
@@ -111,16 +161,27 @@ where
                 _ => pulses.1,
             }
         }
-
         Ok(())
     }
 
+    /// Writes a complete color to the RMT buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `color` - The color to write
+    /// * `rmt_iter` - Iterator over the RMT buffer
+    /// * `pulses` - Tuple of pulse codes for 0-bit, 1-bit, and reset
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
     fn write_color_to_rmt(
         color: Srgb,
         rmt_iter: &mut IterMut<u32>,
         pulses: &(u32, u32, u32),
     ) -> Result<(), ClocklessRmtDriverError> {
         let array = Led::COLOR_CHANNELS.to_array(color);
+
         match array {
             ColorArray::Rgb(rgb) => {
                 Self::write_color_byte_to_rmt(&rgb[0], rmt_iter, pulses)?;
@@ -140,6 +201,15 @@ where
     /// Convert all pixels to the RMT format and
     /// add them to internal buffer, then start a singular RMT operation
     /// based on that buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `pixels` - Iterator over the pixel colors
+    /// * `brightness` - Global brightness factor
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
     pub fn write_pixels<I, C>(
         &mut self,
         pixels: I,
@@ -149,23 +219,17 @@ where
         I: IntoIterator<Item = C>,
         Srgb: FromColor<C>,
     {
-        // We always start from the beginning of the buffer
         let mut rmt_iter = self.rmt_buffer.iter_mut();
 
-        // Add all converted iterator items to the buffer.
-        // This will result in an `BufferSizeExceeded` error in case
-        // the iterator provides more elements than the buffer can take.
         for color in pixels {
             let color = Srgb::from_color(color) * brightness;
             Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses)?;
         }
 
-        // Finally, add the end element.
         *rmt_iter
             .next()
             .ok_or(ClocklessRmtDriverError::BufferSizeExceeded)? = self.pulses.2;
 
-        // Perform the actual RMT operation. We use the u32 values here right away.
         let channel = self.channel.take().unwrap();
         match channel.transmit(&self.rmt_buffer).unwrap().wait() {
             Ok(chan) => {
@@ -180,6 +244,9 @@ where
     }
 }
 
+/// Implementation of LedDriver trait for ClocklessRmtDriver.
+///
+/// This allows the RMT driver to be used with the Blinksy control system.
 impl<Led, Tx, const BUFFER_SIZE: usize> LedDriver for ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,

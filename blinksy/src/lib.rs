@@ -1,3 +1,5 @@
+#![no_std]
+
 //! # Blinksy
 //!
 //! Blinksy is a no-std, no-alloc LED control library designed for 1D, 2D, and 3D (audio-reactive)

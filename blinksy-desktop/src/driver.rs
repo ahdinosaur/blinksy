@@ -112,8 +112,9 @@ impl Default for DesktopConfig {
 pub struct Desktop<Dim, Layout> {
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,
-    sender: Sender<LedMessage>,
     brightness: f32,
+    sender: Sender<LedMessage>,
+    is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Desktop<Dim1d, ()> {
@@ -152,18 +153,13 @@ impl Desktop<Dim1d, ()> {
     where
         Layout: Layout1d,
     {
-        let (sender, receiver) = channel();
-
-        // Calculate all LED positions for a 1D layout
-        let mut positions = Vec::with_capacity(Layout::PIXEL_COUNT);
-
         // Create a horizontal strip of LEDs from -1.0 to 1.0
+        let mut positions = Vec::with_capacity(Layout::PIXEL_COUNT);
         let spacing = if Layout::PIXEL_COUNT > 1 {
             2.0 / (Layout::PIXEL_COUNT as f32 - 1.0)
         } else {
             0.0
         };
-
         for i in 0..Layout::PIXEL_COUNT {
             let x = -1.0 + (i as f32 * spacing);
             positions.push(vec3(x, 0.0, 0.0));
@@ -172,16 +168,22 @@ impl Desktop<Dim1d, ()> {
         // Create initial black colors
         let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
 
-        // Start rendering thread
+        // Setup rendering thread
+        let (sender, receiver) = channel();
+        let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let is_window_closed_2 = is_window_closed.clone();
         std::thread::spawn(move || {
-            DesktopStage::start(|| DesktopStage::new(positions, colors, receiver, config));
+            DesktopStage::start(|| {
+                DesktopStage::new(positions, colors, receiver, config, is_window_closed_2)
+            });
         });
 
         Desktop {
             dim: PhantomData,
             layout: PhantomData,
-            sender,
             brightness: 1.0,
+            sender,
+            is_window_closed: is_window_closed.clone(),
         }
     }
 }
@@ -223,12 +225,8 @@ impl Desktop<Dim2d, ()> {
     where
         Layout: Layout2d,
     {
-        let (sender, receiver) = channel();
-
-        // Calculate all LED positions for a 2D layout
+        // Setup LEDs for a 2D layout
         let mut positions = Vec::with_capacity(Layout::PIXEL_COUNT);
-
-        // Convert layout points to 3D positions
         for point in Layout::points() {
             positions.push(vec3(point.x, point.y, 0.0));
         }
@@ -236,17 +234,40 @@ impl Desktop<Dim2d, ()> {
         // Create initial black colors
         let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
 
-        // Start rendering thread
+        // Setup rendering thread
+        let (sender, receiver) = channel();
+        let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let is_window_closed_2 = is_window_closed.clone();
         std::thread::spawn(move || {
-            DesktopStage::start(move || DesktopStage::new(positions, colors, receiver, config));
+            DesktopStage::start(move || {
+                DesktopStage::new(positions, colors, receiver, config, is_window_closed_2)
+            });
         });
 
         Desktop {
             dim: PhantomData,
             layout: PhantomData,
-            sender,
             brightness: 1.0,
+            sender,
+            is_window_closed,
         }
+    }
+}
+
+impl<Dim, Layout> Desktop<Dim, Layout> {
+    fn send(&self, message: LedMessage) -> Result<(), DesktopError> {
+        // Check if window is already closed
+        if self
+            .is_window_closed
+            .load(std::sync::atomic::Ordering::Relaxed)
+        {
+            // Window is closed
+            return Err(DesktopError::WindowClosed);
+        }
+
+        self.sender.send(message)?;
+
+        Ok(())
     }
 }
 
@@ -255,12 +276,15 @@ impl Desktop<Dim2d, ()> {
 pub enum DesktopError {
     /// Sending to the render thread failed because it has already hung up.
     ChannelSend,
+    /// Window has been closed.
+    WindowClosed,
 }
 
 impl fmt::Display for DesktopError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DesktopError::ChannelSend => write!(f, "render thread channel disconnected"),
+            DesktopError::WindowClosed => write!(f, "window closed"),
         }
     }
 }
@@ -299,7 +323,7 @@ where
         // Update brightness if it changed
         if self.brightness != brightness {
             self.brightness = brightness;
-            self.sender.send(LedMessage::UpdateBrightness(brightness))?;
+            self.send(LedMessage::UpdateBrightness(brightness))?;
         }
 
         // Convert input colors to Vec4 for rendering
@@ -312,7 +336,7 @@ where
             .collect();
 
         // Send colors to the rendering thread
-        self.sender.send(LedMessage::UpdateColors(colors))?;
+        self.send(LedMessage::UpdateColors(colors))?;
 
         Ok(())
     }
@@ -320,10 +344,7 @@ where
 
 impl<Dim, Layout> Drop for Desktop<Dim, Layout> {
     fn drop(&mut self) {
-        let _ = self
-            .sender
-            .send(LedMessage::Quit)
-            .expect("Failed to send quit message to render thread");
+        let _ = self.send(LedMessage::Quit);
     }
 }
 
@@ -462,6 +483,7 @@ struct DesktopStage {
     receiver: Receiver<LedMessage>,
     camera: Camera,
     config: DesktopConfig,
+    is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 
     // Mouse interaction state
     mouse_down: bool,
@@ -493,6 +515,7 @@ impl DesktopStage {
         colors: Vec<Vec4>,
         receiver: Receiver<LedMessage>,
         config: DesktopConfig,
+        is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
     ) -> Self {
         let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
 
@@ -597,6 +620,7 @@ impl DesktopStage {
             receiver,
             camera,
             config,
+            is_window_closed,
             mouse_down: false,
             last_mouse_x: 0.0,
             last_mouse_y: 0.0,
@@ -669,7 +693,6 @@ impl EventHandler for DesktopStage {
         self.ctx.commit_frame();
     }
 
-    // Handle window resizing
     fn resize_event(&mut self, width: f32, height: f32) {
         self.camera.set_aspect_ratio(width / height);
     }
@@ -691,7 +714,6 @@ impl EventHandler for DesktopStage {
         self.camera.zoom(y);
     }
 
-    // Handle mouse button press
     fn mouse_button_down_event(&mut self, button: MouseButton, x: f32, y: f32) {
         if button == MouseButton::Left {
             self.mouse_down = true;
@@ -700,14 +722,12 @@ impl EventHandler for DesktopStage {
         }
     }
 
-    // Handle mouse button release
     fn mouse_button_up_event(&mut self, button: MouseButton, _x: f32, _y: f32) {
         if button == MouseButton::Left {
             self.mouse_down = false;
         }
     }
 
-    // Add keyboard controls
     fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
         match keycode {
             KeyCode::R => {
@@ -718,6 +738,11 @@ impl EventHandler for DesktopStage {
             }
             _ => {}
         }
+    }
+
+    fn quit_requested_event(&mut self) {
+        self.is_window_closed
+            .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }
 

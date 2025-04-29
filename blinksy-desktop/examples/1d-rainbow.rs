@@ -3,9 +3,13 @@ use blinksy::{
     patterns::{Rainbow, RainbowParams},
     ControlBuilder,
 };
-use blinksy_desktop::{drivers::Desktop, time::elapsed_in_ms};
+use blinksy_desktop::{
+    drivers::{Desktop, DesktopError},
+    time::elapsed_in_ms,
+};
+use std::{thread::sleep, time::Duration};
 
-fn main() -> ! {
+fn main() {
     layout1d!(Layout, 30);
 
     let mut control = ControlBuilder::new_1d()
@@ -17,8 +21,10 @@ fn main() -> ! {
         .build();
 
     loop {
-        control.tick(elapsed_in_ms()).unwrap();
+        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+            break;
+        }
 
-        std::thread::sleep(std::time::Duration::from_millis(16));
+        sleep(Duration::from_millis(16));
     }
 }

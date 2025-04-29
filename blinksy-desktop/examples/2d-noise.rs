@@ -4,9 +4,13 @@ use blinksy::{
     patterns::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use blinksy_desktop::{drivers::Desktop, time::elapsed_in_ms};
+use blinksy_desktop::{
+    drivers::{Desktop, DesktopError},
+    time::elapsed_in_ms,
+};
+use std::{thread::sleep, time::Duration};
 
-fn main() -> ! {
+fn main() {
     layout2d!(
         Layout,
         [Shape2d::Grid {
@@ -27,8 +31,10 @@ fn main() -> ! {
         .build();
 
     loop {
-        control.tick(elapsed_in_ms()).unwrap();
+        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+            break;
+        }
 
-        std::thread::sleep(std::time::Duration::from_millis(16));
+        sleep(Duration::from_millis(16));
     }
 }

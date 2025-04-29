@@ -99,11 +99,11 @@ where
             brightness,
         } = params;
 
-        let noise_time = time_in_ms as f32 * time_scalar;
+        let time = time_in_ms as f32 * time_scalar;
         let step = (1. / Layout::PIXEL_COUNT as f32) * 360. * position_scalar;
 
         (0..Layout::PIXEL_COUNT).map(move |index| {
-            let hue = index as f32 * step + noise_time;
+            let hue = index as f32 * step + time;
             let saturation = 1.;
             Hsv::new_srgb(hue, saturation, *brightness)
         })
@@ -134,11 +134,11 @@ where
             brightness,
         } = params;
 
-        let noise_time = time_in_ms as f32 * time_scalar;
+        let time = time_in_ms as f32 * time_scalar;
         let step = (1. / Layout::PIXEL_COUNT as f32) * 360. * position_scalar;
 
         Layout::points().map(move |point| {
-            let hue = point.x + noise_time * step;
+            let hue = point.x * step + time;
             let saturation = 1.;
             Hsv::new_srgb(hue, saturation, *brightness)
         })

@@ -9,6 +9,13 @@
 //! - LED positions match the layout's physical arrangement
 //! - Colors and brightness updates are displayed in real-time
 //!
+//! ## Controls
+//!
+//! - **Mouse drag**: Rotate the camera around the LEDs
+//! - **Mouse wheel**: Zoom in/out
+//! - **R key**: Reset camera to default position
+//! - **O key**: Toggle between orthographic and perspective projection
+//!
 //! ## Usage
 //!
 //! ```rust
@@ -18,7 +25,7 @@
 //!     layout::{Shape2d, Vec2},
 //!     patterns::{Rainbow, RainbowParams}
 //! };
-//! use blinksy_desktop::drivers::Desktop,
+//! use blinksy_desktop::{drivers::Desktop, time::elapsed},
 //!
 //! // Define your layout
 //! layout2d!(
@@ -42,12 +49,7 @@
 //!
 //! // Run your normal animation loop
 //! loop {
-//!     let time = std::time::SystemTime::now()
-//!         .duration_since(std::time::UNIX_EPOCH)
-//!         .unwrap()
-//!         .as_millis() as u64;
-//!
-//!     control.tick(time).unwrap();
+//!     control.tick(elapsed()).unwrap();
 //!     std::thread::sleep(std::time::Duration::from_millis(16));
 //! }
 //! ```
@@ -62,6 +64,41 @@ use core::{fmt, marker::PhantomData};
 use glam::{vec3, Mat4, Vec3, Vec4};
 use miniquad::*;
 use std::sync::mpsc::{channel, Receiver, SendError, Sender};
+
+/// Configuration options for the desktop simulator.
+///
+/// Allows customizing the appearance and behavior of the LED simulator window.
+#[derive(Clone, Debug)]
+pub struct DesktopConfig {
+    /// Window title
+    pub window_title: String,
+    /// Window width in pixels
+    pub window_width: i32,
+    /// Window height in pixels
+    pub window_height: i32,
+    /// Size of the LED representations
+    pub led_radius: f32,
+    /// Whether to use high DPI mode
+    pub high_dpi: bool,
+    /// Initial camera view mode (true for orthographic, false for perspective)
+    pub orthographic_view: bool,
+    /// Background color (R, G, B, A) where each component is 0.0 - 1.0
+    pub background_color: (f32, f32, f32, f32),
+}
+
+impl Default for DesktopConfig {
+    fn default() -> Self {
+        Self {
+            window_title: "Blinksy".to_string(),
+            window_width: 540,
+            window_height: 540,
+            led_radius: 0.05,
+            high_dpi: true,
+            orthographic_view: true,
+            background_color: (0.1, 0.1, 0.1, 1.0),
+        }
+    }
+}
 
 /// Desktop driver for simulating LED layouts in a desktop window.
 ///
@@ -95,6 +132,26 @@ impl Desktop<Dim1d, ()> {
     where
         Layout: Layout1d,
     {
+        Self::new_1d_with_config::<Layout>(DesktopConfig::default())
+    }
+
+    /// Creates a new graphics driver for 1D layouts with custom configuration.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `Layout` - The layout type implementing Layout1d
+    ///
+    /// # Parameters
+    ///
+    /// * `config` - Configuration options for the simulator window
+    ///
+    /// # Returns
+    ///
+    /// A Desktop driver configured for the specified 1D layout
+    pub fn new_1d_with_config<Layout>(config: DesktopConfig) -> Desktop<Dim1d, Layout>
+    where
+        Layout: Layout1d,
+    {
         let (sender, receiver) = channel();
 
         // Calculate all LED positions for a 1D layout
@@ -117,7 +174,7 @@ impl Desktop<Dim1d, ()> {
 
         // Start rendering thread
         std::thread::spawn(move || {
-            DesktopStage::start(|| DesktopStage::new(positions, colors, receiver));
+            DesktopStage::start(|| DesktopStage::new(positions, colors, receiver, config));
         });
 
         Desktop {
@@ -146,6 +203,26 @@ impl Desktop<Dim2d, ()> {
     where
         Layout: Layout2d,
     {
+        Self::new_2d_with_config::<Layout>(DesktopConfig::default())
+    }
+
+    /// Creates a new graphics driver for 2D layouts with custom configuration.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `Layout` - The layout type implementing Layout2d
+    ///
+    /// # Parameters
+    ///
+    /// * `config` - Configuration options for the simulator window
+    ///
+    /// # Returns
+    ///
+    /// A Desktop driver configured for the specified 2D layout
+    pub fn new_2d_with_config<Layout>(config: DesktopConfig) -> Desktop<Dim2d, Layout>
+    where
+        Layout: Layout2d,
+    {
         let (sender, receiver) = channel();
 
         // Calculate all LED positions for a 2D layout
@@ -161,7 +238,7 @@ impl Desktop<Dim2d, ()> {
 
         // Start rendering thread
         std::thread::spawn(move || {
-            DesktopStage::start(move || DesktopStage::new(positions, colors, receiver));
+            DesktopStage::start(move || DesktopStage::new(positions, colors, receiver, config));
         });
 
         Desktop {
@@ -243,8 +320,134 @@ where
 
 impl<Dim, Layout> Drop for Desktop<Dim, Layout> {
     fn drop(&mut self) {
-        // Attempt to cleanly shut down the rendering thread
-        let _ = self.sender.send(LedMessage::Quit);
+        let _ = self
+            .sender
+            .send(LedMessage::Quit)
+            .expect("Failed to send quit message to render thread");
+    }
+}
+
+/// Camera controller for the 3D LED visualization.
+///
+/// Handles camera movement, rotation, and projection calculations.
+struct Camera {
+    /// Distance from camera to target
+    distance: f32,
+    /// Position camera is looking at
+    target: Vec3,
+    /// Horizontal rotation angle in radians
+    yaw: f32,
+    /// Vertical rotation angle in radians
+    pitch: f32,
+    /// Width/height ratio of the viewport
+    aspect_ratio: f32,
+    /// Use orthographic (true) or perspective (false) projection
+    use_orthographic: bool,
+    /// Field of view in radians (used for perspective projection)
+    fov: f32,
+}
+
+impl Camera {
+    const DEFAULT_DISTANCE: f32 = 2.0;
+    const DEFAULT_TARGET: Vec3 = Vec3::ZERO;
+    const DEFAULT_YAW: f32 = core::f32::consts::PI * 0.5;
+    const DEFAULT_PITCH: f32 = 0.0;
+    const MIN_DISTANCE: f32 = 0.5;
+    const MAX_DISTANCE: f32 = 10.0;
+    const MAX_PITCH: f32 = core::f32::consts::PI / 2.0 - 0.1;
+    const MIN_PITCH: f32 = -core::f32::consts::PI / 2.0 + 0.1;
+
+    /// Create a new camera with default settings
+    fn new(aspect_ratio: f32, use_orthographic: bool) -> Self {
+        let default_fov = 2.0 * ((1.0 / Self::DEFAULT_DISTANCE).atan());
+
+        Self {
+            distance: Self::DEFAULT_DISTANCE,
+            target: Self::DEFAULT_TARGET,
+            yaw: Self::DEFAULT_YAW,
+            pitch: Self::DEFAULT_PITCH,
+            aspect_ratio,
+            use_orthographic,
+            fov: default_fov,
+        }
+    }
+
+    /// Reset camera to default position and orientation
+    fn reset(&mut self) {
+        self.distance = Self::DEFAULT_DISTANCE;
+        self.target = Self::DEFAULT_TARGET;
+        self.yaw = Self::DEFAULT_YAW;
+        self.pitch = Self::DEFAULT_PITCH;
+    }
+
+    /// Update camera aspect ratio when window is resized
+    fn set_aspect_ratio(&mut self, aspect_ratio: f32) {
+        self.aspect_ratio = aspect_ratio;
+    }
+
+    /// Toggle between orthographic and perspective projection
+    fn toggle_projection_mode(&mut self) {
+        self.use_orthographic = !self.use_orthographic;
+    }
+
+    /// Update camera rotation based on mouse movement
+    fn rotate(&mut self, delta_x: f32, delta_y: f32) {
+        // Rotate camera - left/right adjusts yaw, up/down adjusts pitch
+        self.yaw -= delta_x * 0.01;
+        self.pitch += delta_y * 0.01;
+
+        // Clamp pitch to avoid gimbal lock
+        self.pitch = self.pitch.clamp(Self::MIN_PITCH, Self::MAX_PITCH);
+    }
+
+    /// Update camera zoom based on mouse wheel movement
+    fn zoom(&mut self, delta: f32) {
+        self.distance -= delta * 0.2;
+        self.distance = self.distance.clamp(Self::MIN_DISTANCE, Self::MAX_DISTANCE);
+    }
+
+    /// Calculate the current camera position based on spherical coordinates
+    fn position(&self) -> Vec3 {
+        let x = self.distance * self.pitch.cos() * self.yaw.cos();
+        let y = self.distance * self.pitch.sin();
+        let z = self.distance * self.pitch.cos() * self.yaw.sin();
+        self.target + vec3(x, y, z)
+    }
+
+    /// Calculate view matrix for the current camera state
+    fn view_matrix(&self) -> Mat4 {
+        let eye = self.position();
+        let up = if self.pitch.abs() > std::f32::consts::PI * 0.49 {
+            // When looking straight up/down, use a different up vector to avoid gimbal lock
+            Vec3::new(self.yaw.sin(), 0.0, -self.yaw.cos())
+        } else {
+            Vec3::Y
+        };
+
+        Mat4::look_at_rh(eye, self.target, up)
+    }
+
+    /// Calculate projection matrix based on current settings
+    fn projection_matrix(&self) -> Mat4 {
+        if self.use_orthographic {
+            let vertical_size = 1.0 * (self.distance / 2.0);
+
+            Mat4::orthographic_rh_gl(
+                -vertical_size * self.aspect_ratio,
+                vertical_size * self.aspect_ratio,
+                -vertical_size,
+                vertical_size,
+                -100.0,
+                100.0,
+            )
+        } else {
+            Mat4::perspective_rh_gl(self.fov, self.aspect_ratio, 0.1, 100.0)
+        }
+    }
+
+    /// Get the combined view-projection matrix
+    fn view_projection_matrix(&self) -> Mat4 {
+        self.projection_matrix() * self.view_matrix()
     }
 }
 
@@ -257,32 +460,16 @@ struct DesktopStage {
     colors: Vec<Vec4>,
     brightness: f32,
     receiver: Receiver<LedMessage>,
-
-    // Camera state
-    camera_distance: f32,
-    camera_target: Vec3,
-    camera_yaw: f32,
-    camera_pitch: f32,
-    aspect_ratio: f32,
+    camera: Camera,
+    config: DesktopConfig,
 
     // Mouse interaction state
     mouse_down: bool,
     last_mouse_x: f32,
     last_mouse_y: f32,
-
-    // Flag to toggle between orthographic and perspective view
-    use_orthographic: bool,
-
-    // Calculated defaults
-    default_fov: f32,
 }
 
 impl DesktopStage {
-    const DEFAULT_DISTANCE: f32 = 2.;
-    const DEFAULT_CAMERA_TARGET: Vec3 = Vec3::ZERO;
-    const DEFAULT_CAMERA_YAW: f32 = core::f32::consts::PI * 0.5;
-    const DEFAULT_CAMERA_PITCH: f32 = 0.;
-
     /// Start the rendering loop.
     pub fn start<F, H>(f: F)
     where
@@ -300,12 +487,17 @@ impl DesktopStage {
         miniquad::start(conf, move || Box::new(f()));
     }
 
-    /// Create a new DesktopStage with the given LED positions and colors.
-    pub fn new(positions: Vec<Vec3>, colors: Vec<Vec4>, receiver: Receiver<LedMessage>) -> Self {
+    /// Create a new DesktopStage with the given LED positions, colors, and configuration.
+    pub fn new(
+        positions: Vec<Vec3>,
+        colors: Vec<Vec4>,
+        receiver: Receiver<LedMessage>,
+        config: DesktopConfig,
+    ) -> Self {
         let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
 
         // Use a bipyramid as the shape for each LED.
-        let r = 0.05; // Radius of LED
+        let r = config.led_radius;
         #[rustfmt::skip]
         let vertices: &[f32] = &[
             // positions          colors
@@ -393,8 +585,7 @@ impl DesktopStage {
 
         // Initialize camera and aspect ratio
         let (width, height) = window::screen_size();
-
-        let default_fov = 2. * ((1. / Self::DEFAULT_DISTANCE).atan());
+        let camera = Camera::new(width / height, config.orthographic_view);
 
         Self {
             ctx,
@@ -404,16 +595,11 @@ impl DesktopStage {
             colors,
             brightness: 1.0,
             receiver,
-            camera_distance: Self::DEFAULT_DISTANCE,
-            camera_target: Self::DEFAULT_CAMERA_TARGET,
-            camera_yaw: Self::DEFAULT_CAMERA_YAW,
-            camera_pitch: Self::DEFAULT_CAMERA_PITCH,
-            aspect_ratio: width / height,
+            camera,
+            config,
             mouse_down: false,
             last_mouse_x: 0.0,
             last_mouse_y: 0.0,
-            use_orthographic: true,
-            default_fov,
         }
     }
 
@@ -436,53 +622,6 @@ impl DesktopStage {
                 }
             }
         }
-    }
-
-    /// Calculate camera position from spherical coordinates
-    fn camera_position(&self) -> Vec3 {
-        let x = self.camera_distance * self.camera_pitch.cos() * self.camera_yaw.cos();
-        let y = self.camera_distance * self.camera_pitch.sin();
-        let z = self.camera_distance * self.camera_pitch.cos() * self.camera_yaw.sin();
-        self.camera_target + vec3(x, y, z)
-    }
-
-    /// Calculate view matrix for the current camera state
-    fn view_matrix(&self) -> Mat4 {
-        let eye = self.camera_position();
-        let up = if self.camera_pitch.abs() > std::f32::consts::PI * 0.49 {
-            // When looking straight up/down, use a different up vector to avoid gimbal lock
-            Vec3::new(self.camera_yaw.sin(), 0.0, -self.camera_yaw.cos())
-        } else {
-            Vec3::Y
-        };
-
-        Mat4::look_at_rh(eye, self.camera_target, up)
-    }
-
-    /// Calculate projection matrix based on current aspect ratio
-    fn projection_matrix(&self) -> Mat4 {
-        if self.use_orthographic {
-            let vertical_size = 1.0 * (self.camera_distance / 2.0);
-
-            Mat4::orthographic_rh_gl(
-                -vertical_size * self.aspect_ratio,
-                vertical_size * self.aspect_ratio,
-                -vertical_size,
-                vertical_size,
-                -100.0,
-                100.0,
-            )
-        } else {
-            Mat4::perspective_rh_gl(self.default_fov, self.aspect_ratio, 0.1, 100.0)
-        }
-    }
-
-    /// Reset camera to default position
-    fn reset_camera(&mut self) {
-        self.camera_distance = Self::DEFAULT_DISTANCE;
-        self.camera_target = Self::DEFAULT_CAMERA_TARGET;
-        self.camera_yaw = Self::DEFAULT_CAMERA_YAW;
-        self.camera_pitch = Self::DEFAULT_CAMERA_PITCH;
     }
 }
 
@@ -512,14 +651,14 @@ impl EventHandler for DesktopStage {
             BufferSource::slice(&bright_colors),
         );
 
-        // Use orbit camera for view matrix
-        let view = self.view_matrix();
-        let proj = self.projection_matrix();
-        let view_proj = proj * view;
+        // Get the view-projection matrix from the camera
+        let view_proj = self.camera.view_projection_matrix();
 
-        // Clear the frame
+        // Clear the frame with configured background color
+        let (r, g, b, a) = self.config.background_color;
         self.ctx
-            .begin_default_pass(PassAction::clear_color(0.1, 0.1, 0.1, 1.0));
+            .begin_default_pass(PassAction::clear_color(r, g, b, a));
+
         self.ctx.apply_pipeline(&self.pipeline);
         self.ctx.apply_bindings(&self.bindings);
         self.ctx
@@ -532,7 +671,7 @@ impl EventHandler for DesktopStage {
 
     // Handle window resizing
     fn resize_event(&mut self, width: f32, height: f32) {
-        self.aspect_ratio = width / height;
+        self.camera.set_aspect_ratio(width / height);
     }
 
     // Handle mouse movement for camera rotation
@@ -540,18 +679,7 @@ impl EventHandler for DesktopStage {
         if self.mouse_down {
             let dx = x - self.last_mouse_x;
             let dy = y - self.last_mouse_y;
-
-            // Rotate camera - left/right adjusts yaw
-            self.camera_yaw -= dx * 0.01;
-
-            // Up/down adjusts pitch
-            self.camera_pitch += dy * 0.01;
-
-            // Clamp pitch to avoid gimbal lock
-            self.camera_pitch = self.camera_pitch.clamp(
-                -std::f32::consts::PI / 2. + 0.1,
-                std::f32::consts::PI / 2. - 0.1,
-            );
+            self.camera.rotate(dx, dy);
         }
 
         self.last_mouse_x = x;
@@ -560,10 +688,7 @@ impl EventHandler for DesktopStage {
 
     // Handle mouse wheel for zoom
     fn mouse_wheel_event(&mut self, _x: f32, y: f32) {
-        // Zoom in/out with mouse wheel
-        self.camera_distance -= y * 0.2;
-        // Limit zoom range
-        self.camera_distance = self.camera_distance.clamp(0.5, 10.);
+        self.camera.zoom(y);
     }
 
     // Handle mouse button press
@@ -586,11 +711,10 @@ impl EventHandler for DesktopStage {
     fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
         match keycode {
             KeyCode::R => {
-                self.reset_camera();
+                self.camera.reset();
             }
             KeyCode::O => {
-                // Toggle between orthographic and perspective projection
-                self.use_orthographic = !self.use_orthographic;
+                self.camera.toggle_projection_mode();
             }
             _ => {}
         }

@@ -15,6 +15,7 @@
 //! - **Pattern Library:** Visual effects like Rainbow, Noise, and more
 //! - **Multi-Chipset Support:** Works with APA102, WS2812B, and others
 //! - **Board Support Packages:** Ready-to-use configurations for popular LED controllers
+//! - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
 //!
 //! ## Architecture
 //!
@@ -36,15 +37,15 @@
 //! use blinksy::{ControlBuilder, layout1d, patterns::{Rainbow, RainbowParams}};
 //!
 //! // Define a 1D layout with 60 LEDs
-//! layout1d!(MyStrip, 60);
+//! layout1d!(Layout, 60);
 //!
 //! let mut control = ControlBuilder::new_1d()
-//!     .with_layout::<MyStrip>()
+//!     .with_layout::<Layout>()
 //!     .with_pattern::<Rainbow>(RainbowParams::default())
 //!     .with_driver(/* insert your LED driver here */)
 //!     .build();
 //!
-//! control.set_brightness(0.2);
+//! control.set_brightness(0.5);
 //!
 //! loop {
 //!     let time = /* obtain current time in milliseconds */;

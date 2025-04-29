@@ -18,14 +18,14 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use blinksy::{
 //!     ControlBuilder,
 //!     layout2d,
 //!     layout::{Shape2d, Vec2},
 //!     patterns::{Rainbow, RainbowParams}
 //! };
-//! use blinksy_desktop::{drivers::Desktop, time::elapsed},
+//! use blinksy_desktop::{drivers::Desktop, time::elapsed_in_ms};
 //!
 //! // Define your layout
 //! layout2d!(
@@ -49,7 +49,7 @@
 //!
 //! // Run your normal animation loop
 //! loop {
-//!     control.tick(elapsed()).unwrap();
+//!     control.tick(elapsed_in_ms()).unwrap();
 //!     std::thread::sleep(std::time::Duration::from_millis(16));
 //! }
 //! ```

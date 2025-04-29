@@ -22,8 +22,8 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 
 - **Board Support Packages**:
   - **Gledopto**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
   - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
+- **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
 - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns.
-- (TODO) **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
 
 ## Getting Started
 

@@ -13,3 +13,6 @@ noise = { git = "https://github.com/ahdinosaur/noise-rs", branch = "no-std", def
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 palette = { version = "0.7.6", default-features = false, features = ["libm", "bytemuck"] }
 smart-leds-trait = "0.3.1"
+
+[dev-dependencies]
+blinksy-desktop = { path = "../blinksy-desktop/" }

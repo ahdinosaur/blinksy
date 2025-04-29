@@ -13,7 +13,7 @@
 //!
 //! ## Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use blinksy::{
 //!     ControlBuilder,
 //!     layout2d,
@@ -23,7 +23,7 @@
 //!
 //! // Define a 2D layout
 //! layout2d!(
-//!     MyGrid,
+//!     Layout,
 //!     [Shape2d::Grid {
 //!         start: Vec2::new(-1., -1.),
 //!         row_end: Vec2::new(1., -1.),
@@ -36,11 +36,10 @@
 //!
 //! // Create a 2D noise pattern with Perlin noise
 //! let control = ControlBuilder::new_2d()
-//!     .with_layout::<MyGrid>()
+//!     .with_layout::<Layout>()
 //!     .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
 //!         time_scalar: 0.001,
 //!         position_scalar: 0.1,
-//!         brightness: 1.0,
 //!     })
 //!     .with_driver(/* your driver */)
 //!     .build();
@@ -68,9 +67,6 @@ pub struct NoiseParams {
 
     /// Controls the spatial scale of the noise (higher = more compressed)
     pub position_scalar: f64,
-
-    /// Base brightness before global brightness scaling
-    pub brightness: f32,
 }
 
 impl Default for NoiseParams {
@@ -79,7 +75,6 @@ impl Default for NoiseParams {
         Self {
             time_scalar: 0.75 / MILLISECONDS_PER_SECOND,
             position_scalar: 0.5,
-            brightness: 1.,
         }
     }
 }
@@ -125,7 +120,6 @@ where
         let NoiseParams {
             time_scalar,
             position_scalar,
-            brightness,
         } = params;
 
         let noise_time = time_in_ms as f64 * time_scalar;
@@ -134,7 +128,8 @@ where
             let noise = noise.get([position_scalar * index as f64, noise_time]);
             let hue = 360. * noise as f32;
             let saturation = 1.;
-            Hsv::new_srgb(hue, saturation, *brightness)
+            let value = 1.;
+            Hsv::new_srgb(hue, saturation, value)
         })
     }
 }
@@ -180,7 +175,6 @@ where
         let NoiseParams {
             time_scalar,
             position_scalar,
-            brightness,
         } = params;
 
         let noise_time = time_in_ms as f64 * time_scalar;
@@ -193,7 +187,8 @@ where
             ]);
             let hue = 360. * noise as f32;
             let saturation = 1.;
-            Hsv::new_srgb(hue, saturation, *brightness)
+            let value = 1.;
+            Hsv::new_srgb(hue, saturation, value)
         })
     }
 }

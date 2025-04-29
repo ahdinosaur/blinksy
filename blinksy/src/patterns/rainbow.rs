@@ -13,7 +13,7 @@
 //!
 //! ## Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use blinksy::{
 //!     ControlBuilder,
 //!     layout1d,
@@ -21,11 +21,11 @@
 //! };
 //!
 //! // Define a 1D layout
-//! layout1d!(MyStrip, 60);
+//! layout1d!(Layout, 60);
 //!
 //! // Create a Rainbow pattern with custom parameters
 //! let control = ControlBuilder::new_1d()
-//!     .with_layout::<MyStrip>()
+//!     .with_layout::<Layout>()
 //!     .with_pattern::<Rainbow>(RainbowParams {
 //!         time_scalar: 0.1,
 //!         position_scalar: 1.0,
@@ -135,7 +135,7 @@ where
         } = params;
 
         let time = time_in_ms as f32 * time_scalar;
-        let step = (1. / Layout::PIXEL_COUNT as f32) * 360. * position_scalar;
+        let step = 0.5 * 360. * position_scalar;
 
         Layout::points().map(move |point| {
             let hue = point.x * step + time;

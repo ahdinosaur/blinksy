@@ -35,7 +35,7 @@ use crate::{
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,ignore
 /// use blinksy::{
 ///     ControlBuilder,
 ///     layout1d,
@@ -43,11 +43,11 @@ use crate::{
 /// };
 ///
 /// // Define a layout
-/// layout1d!(MyStrip, 60);
+/// layout1d!(Layout, 60);
 ///
 /// // Create a control system
 /// let mut control = ControlBuilder::new_1d()
-///     .with_layout::<MyStrip>()
+///     .with_layout::<Layout>()
 ///     .with_pattern::<Rainbow>(RainbowParams {
 ///         position_scalar: 1.0,
 ///         ..Default::default()

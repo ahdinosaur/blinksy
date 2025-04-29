@@ -1,4 +1,4 @@
-//! # Pattern Trait
+//! # Pattern Interface
 //!
 //! This module defines the [`Pattern`] trait, which is the core abstraction for
 //! visual effects in Blinksy. Patterns generate colors for LEDs based on time and position.

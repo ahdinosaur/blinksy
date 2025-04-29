@@ -6,29 +6,38 @@
 //! - Define LED layouts in 1D, 2D, or 3D space
 //! - Choose visual patterns (effects)
 //! - Compute colors for each LED based on its position
-//! - Drive various LED chipsets with the calculated colors
+//! - Drive various LED chipsets with each frame of colors
 //!
 //! ## Core Features
 //!
-//! - **No-std, No-alloc:** Designed to run on embedded targets with minimal resources
-//! - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points)
-//! - **Pattern Library:** Visual effects like Rainbow, Noise, and more
-//! - **Multi-Chipset Support:** Works with APA102, WS2812B, and others
-//! - **Board Support Packages:** Ready-to-use configurations for popular LED controllers
+//! - **No-std, No-alloc:** Designed to run on embedded targets.
+//! - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
+//! - **Pattern (Effect) Library:**
+//!   - **Rainbow**: Gradual, colorful gradient transition across your layout.
+//!   - **Noise**: Dynamic noise‑based visuals using noise functions (Perlin, Simplex, OpenSimplex, etc).
+//!   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
+//! - **Multi‑Chipset Support:**
+//!   - **APA102**
+//!   - **WS2812B**
+//!   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
+//! - **Board Support Packages**:
+//!   - **Gledopto**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
+//!   - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
 //! - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
+//! - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns.
 //!
 //! ## Architecture
 //!
 //! The library is organized into several modules:
 //!
-//! - [`color`]: Color representations and utilities
-//! - [`control`]: Orchestration of LED updates
-//! - [`dimension`]: Type-level markers for dimensionality
-//! - [`driver`]: LED driver abstractions
-//! - [`drivers`]: Concrete implementations for specific LED chipsets
-//! - [`layout`]: Definitions for LED arrangements
-//! - [`pattern`]: Pattern trait definition
-//! - [`patterns`]: Collection of visual effects
+//! - [`color`]: Color types and utilities
+//! - [`control`]: Control system
+//! - [`dimension`]: Dimension type-level markers
+//! - [`driver`]: LED driver interface
+//! - [`drivers`]: LED driver implementations
+//! - [`layout`]: LED layout abstractions
+//! - [`pattern`]: Pattern abstraction
+//! - [`patterns`]: Pattern implementations
 //! - [`time`]: Timing utilities
 //!
 //! ## Quick Start

@@ -1,3 +1,5 @@
+//! # Pattern Implementations
+
 mod noise;
 mod rainbow;
 

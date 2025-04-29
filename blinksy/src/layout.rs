@@ -11,25 +11,25 @@
 //!
 //! ## 1D Layouts
 //!
-//! For simple linear arrangements, use the [`layout1d!`] macro:
+//! For simple linear arrangements, use the [`layout1d!`](crate::layout1d!) macro:
 //!
 //! ```rust
 //! use blinksy::layout1d;
 //!
 //! // Define a strip with 60 LEDs
-//! layout1d!(MyStrip, 60);
+//! layout1d!(Layout, 60);
 //! ```
 //!
 //! ## 2D Layouts
 //!
-//! For 2D layouts, use the [`layout2d!`] macro with one or more [`Shape2d`] definitions:
+//! For 2D layouts, use the [`layout2d!`](crate::layout2d!) macro with one or more [`Shape2d`] definitions:
 //!
 //! ```rust
 //! use blinksy::{layout2d, layout::Shape2d, layout::Vec2};
 //!
 //! // Define a 16x16 LED grid
 //! layout2d!(
-//!     MyGrid,
+//!     Layout,
 //!     [Shape2d::Grid {
 //!         start: Vec2::new(-1., -1.),
 //!         row_end: Vec2::new(1., -1.),
@@ -70,7 +70,7 @@ pub trait Layout1d {
 /// use blinksy::layout1d;
 ///
 /// // Define a strip with 60 LEDs
-/// layout1d!(MyStrip, 60);
+/// layout1d!(Layout, 60);
 /// ```
 #[macro_export]
 macro_rules! layout1d {
@@ -380,7 +380,7 @@ pub trait Layout2d {
 /// use blinksy::{layout2d, layout::Shape2d, layout::Vec2};
 ///
 /// layout2d!(
-///     MyGrid,
+///     Layout,
 ///     [Shape2d::Grid {
 ///         start: Vec2::new(-1., -1.),
 ///         row_end: Vec2::new(1., -1.),

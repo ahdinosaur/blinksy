@@ -2,10 +2,10 @@
 
 Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 1D, 2D, and 3D (audio-reactive) LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 
-- Specify your LED layout in 1D, 2D, or 3D.
-- Choose a visual pattern (effect).
-- The pattern will compute a color for each LED given the position in 1D, 2D, or 3D space.
-- The LED driver will output these colors to the LEDs, based on the chipset.
+- Define LED layouts in 1D, 2D, or 3D space
+- Choose visual patterns (effects)
+- Compute colors for each LED based on its position
+- Drive various LED chipsets with each frame of colors
 
 ## Features
 
@@ -75,7 +75,7 @@ fn main() -> ! {
         .with_driver(apa102!(p))
         .build();
 
-    control.set_brightness(0.02);
+    control.set_brightness(0.1);
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();
@@ -109,7 +109,6 @@ fn main() -> ! {
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout>()
         .with_pattern::<Rainbow>(RainbowParams {
-            position_scalar: 1.,
             ..Default::default()
         })
         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
@@ -130,8 +129,12 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for det
 
 ## License
 
-<sup>
-Licensed under <a href="LICENSE">European Union Public License 1.1</a>
-</sup>
+Blinksy is licensed under the [**European Union Public License (EUPL)**](./LICENSE).
 
-TODO: Summarize https://github.com/wled/WLED/pull/4194 and why / how EUPL.
+We chose the EUPL, a copyleft license which combines reciprocity and share-alike, to ensure that Blinksy remains free and open.
+
+You are free to use, modify, and share Blinksy freely. Whether for personal projects, art installations, or commercial products.
+
+Only once you start distributing something based on changes to Blinksy, you must share any improvements back with the community by releasing your source code.
+
+Unlike more viral copyleft licenses, you will not be required to release the source code for your entire project, only changes to Blinksy.

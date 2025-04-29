@@ -1,3 +1,5 @@
+//! # LED Driver Implementations
+
 mod apa102;
 mod ws2812;
 

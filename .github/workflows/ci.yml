@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+  merge_group:
+  workflow_dispatch:
+
+env:
+  RUSTFLAGS: -Dwarnings
+  CARGO_TERM_COLOR: always
+  MSRV: "1.85.0"
+  DEFMT_LOG: trace
+
+# Cancel any currently running workflows from the same PR, branch, or
+# tag when a new workflow is triggered.
+#
+# https://stackoverflow.com/a/66336834
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
+jobs:
+  blinksy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - 1.70.0 # msrv
+
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "ci"
+          cache-all-crates: true
+
+      - name: Check
+        shell: bash
+        run: cargo check
+
+      - name: Test
+        shell: bash
+        run: cargo test
+
+  blinksy-esp:
+    name: blinksy-esp (${{ matrix.device.soc }})
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [
+            { soc: "esp32", toolchain: "esp" },
+          ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: esp-rs/xtensa-toolchain@v1.5
+        with:
+          ldproxy: false
+          version: 1.85.0.0
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "ci-${{ matrix.device.soc }}"
+          cache-all-crates: true
+
+      - name: Check blinksy-esp
+        shell: bash
+        working-directory: ./esp
+        run: cargo +${{ matrix.device.toolchain }} check -p blinksy-esp -F ${{ matrix.device.soc }}
+
+  gledopto:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: esp-rs/xtensa-toolchain@v1.5
+        with:
+          ldproxy: false
+          version: 1.85.0.0
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "ci-${{ matrix.device.soc }}"
+          cache-all-crates: true
+
+      - name: Check gledopto
+        shell: bash
+        working-directory: ./esp
+        run: cargo check -p gledopto
+
+  lint:
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "ci"
+          cache-all-crates: true
+
+      - name: Fmt (core)
+        shell: bash
+        run: cargo fmt --all -- --check
+
+      - name: Fmt (esp)
+        shell: bash
+        working-directory: ./esp
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (core)
+        shell: bash
+        run: cargo clippy -- -D warnings
+
+      - name: Clippy (esp)
+        shell: bash
+        working-directory: ./esp
+        run: cargo clippy -- -D warnings

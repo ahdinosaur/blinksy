@@ -1,5 +1,8 @@
 test-core:
-  cargo test -p blinksy
+  cargo test
+
+build-esp:
+  cd esp && cargo build
 
 gledopto-apa102-grid:
   cd esp && cargo run -p gledopto --example apa102-grid

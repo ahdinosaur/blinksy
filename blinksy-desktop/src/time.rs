@@ -4,9 +4,6 @@
 //! It enables consistent time tracking for animation updates, allowing simulations
 //! to run at the correct speed.
 //!
-//! The main function is [`elapsed_in_ms`], which returns the number of milliseconds
-//! that have elapsed since the program started. This is useful to pass into `control.tick`.
-//!
 //! ## Example
 //!
 //! ```rust,no_run
@@ -29,7 +26,8 @@ use std::time::Instant;
 
 static START_TIME: OnceLock<Instant> = OnceLock::new();
 
-/// Returns the number of milliseconds elapsed since the program started.
+/// Returns the number of milliseconds elapsed since the program started. This is useful to pass
+/// into `control.tick`.
 ///
 /// It initializes a static timer on first call and then measures elapsed time
 /// from that point.

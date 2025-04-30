@@ -25,16 +25,19 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 
 - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
 - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns.
 
-## Getting Started
+## Modules
 
-Add Blinksy to your `Cargo.toml` (adjust the version accordingly):
+- [`blinksy`](./blinksy) : [![crates.io version](https://img.shields.io/crates/v/blinksy.svg?style=flat-square)](https://crates.io/crates/blinksy) [![download](https://img.shields.io/crates/d/blinksy.svg?style=flat-square)](https://crates.io/crates/blinksy) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy)
+- [`blinksy-desktop`](./blinksy-desktop) : [![crates.io version](https://img.shields.io/crates/v/blinksy-desktop.svg?style=flat-square)](https://crates.io/crates/blinksy-desktop) [![download](https://img.shields.io/crates/d/blinksy-desktop.svg?style=flat-square)](https://crates.io/crates/blinksy-desktop) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy-desktop)
+- [`blinksy-esp`](./esp/blinksy-esp) : [![crates.io version](https://img.shields.io/crates/v/blinksy-esp.svg?style=flat-square)](https://crates.io/crates/blinksy-esp) [![download](https://img.shields.io/crates/d/blinksy-esp.svg?style=flat-square)](https://crates.io/crates/blinksy-esp) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy-esp)
+- [`gledopto`](./esp/gledopto) : [![crates.io version](https://img.shields.io/crates/v/gledopto.svg?style=flat-square)](https://crates.io/crates/gledopto) [![download](https://img.shields.io/crates/d/gledopto.svg?style=flat-square)](https://crates.io/crates/gledopto) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/gledopto)
 
-```toml
-[dependencies]
-blinksy = "0.1"
-```
+## Examples
 
-## Usage Examples
+For all examples, see:
+
+- [Desktop examples in `./blinksy-desktop/examples`](./blinksy-desktop/examples)
+- [Gledopto examples in `./gledopto/examples`](./gledopto/examples)
 
 ### 2D APA102 Grid with Noise Pattern
 

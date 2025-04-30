@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*/v*'  # Match tags like blinksy/v0.1.0, gledopto/v1.2.3, etc.
+
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Extract crate and version from tag
+        id: tag-info
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          CRATE=$(echo $TAG_NAME | cut -d'/' -f1)
+          VERSION=$(echo $TAG_NAME | sed 's/.*\/v//')
+          echo "crate=$CRATE" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Determine if this is an ESP crate
+          if [[ -d "esp/$CRATE" ]]; then
+            echo "workspace=esp" >> $GITHUB_OUTPUT
+          else
+            echo "workspace=root" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        if: steps.tag-info.outputs.workspace == 'root'
+        with:
+          toolchain: stable
+
+      - name: Set up ESP toolchain
+        uses: esp-rs/xtensa-toolchain@v1.5
+        if: steps.tag-info.outputs.workspace == 'esp'
+        with:
+          ldproxy: false
+          version: 1.85.0.0
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "release-${{ steps.tag-info.outputs.workspace }}"
+          cache-all-crates: true
+
+      - name: Login to crates.io
+        uses: actions-rs/cargo@v1
+        with:
+          command: login
+          args: ${{ secrets.CRATES_TOKEN }}
+
+      - name: Publish crate
+        run: |
+          CRATE=${{ steps.tag-info.outputs.crate }}
+          WORKSPACE=${{ steps.tag-info.outputs.workspace }}
+          if [[ "$WORKSPACE" == "esp" ]]; then
+            cd esp
+            cargo publish --manifest-path $CRATE/Cargo.toml
+          else
+            cargo publish --manifest-path $CRATE/Cargo.toml
+          fi

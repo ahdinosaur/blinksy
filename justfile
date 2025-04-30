@@ -1,8 +1,8 @@
 test-core:
   cargo test
 
-build-esp:
-  cd esp && cargo build
+check-esp:
+  cd esp && cargo check
 
 gledopto-apa102-grid:
   cd esp && cargo run -p gledopto --example apa102-grid

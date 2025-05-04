@@ -124,8 +124,8 @@ where
 
         let noise_time = time_in_ms as f64 * time_scalar;
 
-        (0..Layout::PIXEL_COUNT).map(move |index| {
-            let noise = noise.get([position_scalar * index as f64, noise_time]);
+        Layout::points().map(move |x| {
+            let noise = noise.get([position_scalar * x as f64, noise_time]);
             let hue = 360. * noise as f32;
             let saturation = 1.;
             let value = 1.;

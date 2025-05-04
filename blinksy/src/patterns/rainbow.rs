@@ -100,10 +100,10 @@ where
         } = params;
 
         let time = time_in_ms as f32 * time_scalar;
-        let step = (1. / Layout::PIXEL_COUNT as f32) * 360. * position_scalar;
+        let step = 0.5 * 360. * position_scalar;
 
-        (0..Layout::PIXEL_COUNT).map(move |index| {
-            let hue = index as f32 * step + time;
+        Layout::points().map(move |x| {
+            let hue = x * step + time;
             let saturation = 1.;
             Hsv::new_srgb(hue, saturation, *brightness)
         })

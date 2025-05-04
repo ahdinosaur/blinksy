@@ -160,14 +160,7 @@ impl Desktop<Dim1d, ()> {
         Layout: Layout1d,
     {
         let mut positions = Vec::with_capacity(Layout::PIXEL_COUNT);
-        let spacing = if Layout::PIXEL_COUNT > 1 {
-            2.0 / (Layout::PIXEL_COUNT as f32 - 1.0)
-        } else {
-            0.0
-        };
-
-        for i in 0..Layout::PIXEL_COUNT {
-            let x = -1.0 + (i as f32 * spacing);
+        for x in Layout::points() {
             positions.push(vec3(x, 0.0, 0.0));
         }
 

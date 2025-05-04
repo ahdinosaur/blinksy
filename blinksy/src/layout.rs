@@ -55,6 +55,17 @@ use num_traits::FromPrimitive;
 pub trait Layout1d {
     /// The total number of LEDs in this layout.
     const PIXEL_COUNT: usize;
+
+    /// Returns an iterator over all points (LED positions) in this layout.
+    fn points() -> impl Iterator<Item = f32> {
+        let spacing = if Self::PIXEL_COUNT > 1 {
+            2.0 / (Self::PIXEL_COUNT as f32 - 1.0)
+        } else {
+            0.0
+        };
+
+        (0..Self::PIXEL_COUNT).map(move |index| -1.0 + (index as f32 * spacing))
+    }
 }
 
 /// Creates a one-dimensional LED layout.

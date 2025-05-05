@@ -63,18 +63,19 @@ use blinksy::{
 use core::{fmt, marker::PhantomData};
 use glam::{vec3, Mat4, Vec3, Vec4};
 use std::sync::{
+    atomic::{AtomicBool, Ordering},
     mpsc::{channel, Receiver, SendError, Sender},
     Arc,
 };
 use std::time::{Duration, Instant};
 use wgpu::util::DeviceExt;
 use winit::{
-    dpi::PhysicalPosition,
-    event::{
-        ElementState, Event, KeyEvent, MouseButton, MouseScrollDelta, WindowEvent, WindowEvent,
-    },
-    event_loop::{ControlFlow, EventLoop},
-    window::Window,
+    application::ApplicationHandler,
+    dpi::{PhysicalPosition, PhysicalSize},
+    event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent},
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+    keyboard::{Key, NamedKey},
+    window::{Window, WindowId},
 };
 
 /// Configuration options for the desktop simulator.
@@ -132,7 +133,7 @@ pub struct Desktop<Dim, Layout> {
     layout: PhantomData<Layout>,
     brightness: f32,
     sender: Sender<LedMessage>,
-    is_window_closed: Arc<std::sync::atomic::AtomicBool>,
+    is_window_closed: Arc<AtomicBool>,
 }
 
 impl Desktop<Dim1d, ()> {
@@ -178,13 +179,12 @@ impl Desktop<Dim1d, ()> {
 
         let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
         let (sender, receiver) = channel();
-        let is_window_closed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let is_window_closed = Arc::new(AtomicBool::new(false));
         let is_window_closed_clone = is_window_closed.clone();
 
         std::thread::spawn(move || {
-            let renderer =
-                WgpuRenderer::new(positions, colors, receiver, config, is_window_closed_clone);
-            renderer.run();
+            let app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
+            app.run();
         });
 
         Desktop {
@@ -241,13 +241,12 @@ impl Desktop<Dim2d, ()> {
 
         let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
         let (sender, receiver) = channel();
-        let is_window_closed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let is_window_closed = Arc::new(AtomicBool::new(false));
         let is_window_closed_clone = is_window_closed.clone();
 
         std::thread::spawn(move || {
-            let renderer =
-                WgpuRenderer::new(positions, colors, receiver, config, is_window_closed_clone);
-            renderer.run();
+            let app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
+            app.run();
         });
 
         Desktop {
@@ -262,10 +261,7 @@ impl Desktop<Dim2d, ()> {
 
 impl<Dim, Layout> Desktop<Dim, Layout> {
     fn send(&self, message: LedMessage) -> Result<(), DesktopError> {
-        if self
-            .is_window_closed
-            .load(std::sync::atomic::Ordering::Relaxed)
-        {
+        if self.is_window_closed.load(Ordering::Relaxed) {
             return Err(DesktopError::WindowClosed);
         }
         self.sender.send(message)?;
@@ -535,9 +531,7 @@ struct Uniforms {
     mvp: [[f32; 4]; 4],
 }
 
-struct WgpuRenderer<'window> {
-    event_loop: EventLoop<()>,
-    window: Window,
+struct WgpuCtx<'window> {
     surface: wgpu::Surface<'window>,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -548,44 +542,45 @@ struct WgpuRenderer<'window> {
     instance_buffer: wgpu::Buffer,
     uniform_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
+    depth_texture: wgpu::Texture,
+    depth_view: wgpu::TextureView,
     positions: Vec<Vec3>,
     colors: Vec<Vec4>,
     brightness: f32,
-    receiver: Receiver<LedMessage>,
-    camera: Camera,
-    desktop_config: DesktopConfig,
-    is_window_closed: Arc<std::sync::atomic::AtomicBool>,
-    mouse_down: bool,
-    last_mouse_pos: PhysicalPosition<f64>,
+    size: PhysicalSize<u32>,
     indices: Vec<u16>,
 }
 
-impl<'window> WgpuRenderer<'window> {
-    async fn init_wgpu(
-        window: &'window Window,
-    ) -> (
-        wgpu::Surface<'window>,
-        wgpu::Device,
-        wgpu::Queue,
-        wgpu::SurfaceConfiguration,
-    ) {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
-
-        let surface = instance.create_surface(window).unwrap();
+impl<'window> WgpuCtx<'window> {
+    async fn new_async(
+        window: Arc<Window>,
+        positions: Vec<Vec3>,
+        colors: Vec<Vec4>,
+        config: &DesktopConfig,
+        camera: &Camera,
+    ) -> Self {
+        let instance = wgpu::Instance::default();
+        let surface = instance.create_surface(window.clone()).unwrap();
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
-                compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
+                compatible_surface: Some(&surface),
             })
             .await
-            .unwrap();
+            .expect("Failed to find an appropriate adapter");
 
         let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor::default())
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::default(),
+                memory_hints: wgpu::MemoryHints::Performance,
+                trace: wgpu::Trace::default(),
+            })
             .await
-            .unwrap();
+            .expect("Failed to create device");
 
         let size = window.inner_size();
         let surface_caps = surface.get_capabilities(&adapter);
@@ -596,50 +591,40 @@ impl<'window> WgpuRenderer<'window> {
             .find(|f| f.is_srgb())
             .unwrap_or(surface_caps.formats[0]);
 
-        let config = wgpu::SurfaceConfiguration {
+        let wgpu_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             desired_maximum_frame_latency: 2,
             format: surface_format,
-            width: size.width,
-            height: size.height,
+            width: size.width.max(1),
+            height: size.height.max(1),
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
         };
 
-        surface.configure(&device, &config);
+        surface.configure(&device, &wgpu_config);
 
-        (surface, device, queue, config)
-    }
+        // Create depth texture
+        let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Depth Texture"),
+            size: wgpu::Extent3d {
+                width: wgpu_config.width,
+                height: wgpu_config.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Depth32Float,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
 
-    fn new(
-        positions: Vec<Vec3>,
-        colors: Vec<Vec4>,
-        receiver: Receiver<LedMessage>,
-        config: DesktopConfig,
-        is_window_closed: Arc<std::sync::atomic::AtomicBool>,
-    ) -> Self {
-        let event_loop = EventLoop::new();
+        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let window = WindowBuilder::new()
-            .with_title(&config.window_title)
-            .with_inner_size(winit::dpi::PhysicalSize::new(
-                config.window_width,
-                config.window_height,
-            ))
-            .build(&event_loop)
-            .unwrap();
-
-        // Set up camera
-        let aspect_ratio = config.window_width as f32 / config.window_height as f32;
-        let camera = Camera::new(aspect_ratio, config.orthographic_view);
-
-        // Setup wgpu asynchronously, but block until complete
-        let (surface, device, queue, surface_config) = pollster::block_on(Self::init_wgpu(&window));
-
-        // Create shader module from WGSL
+        // Create shader modules
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Shader"),
+            label: Some("Vertex Shader"),
             source: wgpu::ShaderSource::Wgsl(VERTEX_SHADER.into()),
         });
 
@@ -648,7 +633,7 @@ impl<'window> WgpuRenderer<'window> {
             source: wgpu::ShaderSource::Wgsl(FRAGMENT_SHADER.into()),
         });
 
-        // Create vertex buffer for LED model
+        // Create vertex buffer
         let r = config.led_radius;
         #[rustfmt::skip]
         let vertices = [
@@ -744,7 +729,7 @@ impl<'window> WgpuRenderer<'window> {
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: &[
                     wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
@@ -782,9 +767,9 @@ impl<'window> WgpuRenderer<'window> {
             },
             fragment: Some(wgpu::FragmentState {
                 module: &fragment_shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: surface_config.format,
+                    format: config.format,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
@@ -811,67 +796,50 @@ impl<'window> WgpuRenderer<'window> {
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
+            cache: None,
         });
 
-        WgpuRenderer {
-            event_loop,
-            window,
+        WgpuCtx {
             surface,
             device,
             queue,
-            config: surface_config,
+            config: wgpu_config,
             render_pipeline,
             vertex_buffer,
             index_buffer,
             instance_buffer,
             uniform_buffer,
             uniform_bind_group,
+            depth_texture,
+            depth_view,
             positions,
             colors,
             brightness: 1.0,
-            receiver,
-            camera,
-            desktop_config: config,
-            is_window_closed,
-            mouse_down: false,
-            last_mouse_pos: PhysicalPosition::new(0.0, 0.0),
+            size,
             indices,
         }
     }
 
-    fn process_messages(&mut self) {
-        while let Ok(message) = self.receiver.try_recv() {
-            match message {
-                LedMessage::UpdateColors(colors) => {
-                    assert!(
-                        colors.len() == self.colors.len(),
-                        "Uh oh, number of pixels changed!"
-                    );
-                    self.colors = colors;
-                    self.update_instance_buffer();
-                }
-                LedMessage::UpdateBrightness(brightness) => {
-                    self.brightness = brightness;
-                    self.update_instance_buffer();
-                }
-                LedMessage::Quit => {
-                    self.is_window_closed
-                        .store(true, std::sync::atomic::Ordering::Relaxed);
-                }
-            }
-        }
+    fn new(
+        window: Arc<Window>,
+        positions: Vec<Vec3>,
+        colors: Vec<Vec4>,
+        config: &DesktopConfig,
+        camera: &Camera,
+    ) -> Self {
+        pollster::block_on(Self::new_async(window, positions, colors, config, camera))
     }
 
-    fn update_instance_buffer(&mut self) {
+    fn update_instance_buffer(&mut self, brightness: f32) {
         let mut instances = Vec::with_capacity(self.positions.len());
 
         for (pos, color) in self.positions.iter().zip(self.colors.iter()) {
             instances.push(Instance {
                 position: [pos.x, pos.y, pos.z],
                 color: [
-                    color.x * self.brightness,
-                    color.y * self.brightness,
-                    color.z * self.brightness,
+                    color.x * brightness,
+                    color.y * brightness,
+                    color.z * brightness,
                     color.w,
                 ],
             });
@@ -881,8 +849,17 @@ impl<'window> WgpuRenderer<'window> {
             .write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(&instances));
     }
 
-    fn update_uniform_buffer(&mut self) {
-        let mvp = self.camera.view_projection_matrix();
+    fn update_colors(&mut self, colors: Vec<Vec4>) {
+        self.colors = colors;
+        self.update_instance_buffer(self.brightness);
+    }
+
+    fn update_brightness(&mut self, brightness: f32) {
+        self.brightness = brightness;
+        self.update_instance_buffer(self.brightness);
+    }
+
+    fn update_mvp(&mut self, mvp: Mat4) {
         let uniform_data = Uniforms {
             mvp: mvp.to_cols_array_2d(),
         };
@@ -894,41 +871,40 @@ impl<'window> WgpuRenderer<'window> {
         );
     }
 
-    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+    fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
+            self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
 
-            self.camera
-                .set_aspect_ratio(new_size.width as f32 / new_size.height as f32);
-            self.update_uniform_buffer();
+            // Recreate depth texture with new size
+            self.depth_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("Depth Texture"),
+                size: wgpu::Extent3d {
+                    width: self.config.width,
+                    height: self.config.height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Depth32Float,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[],
+            });
+
+            self.depth_view = self
+                .depth_texture
+                .create_view(&wgpu::TextureViewDescriptor::default());
         }
     }
 
-    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    fn render(&mut self, bg_color: (f32, f32, f32, f32)) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-
-        // Create depth texture
-        let depth_texture = self.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Depth Texture"),
-            size: wgpu::Extent3d {
-                width: self.config.width,
-                height: self.config.height,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Depth32Float,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
-
-        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = self
             .device
@@ -936,7 +912,7 @@ impl<'window> WgpuRenderer<'window> {
                 label: Some("Render Encoder"),
             });
 
-        let (r, g, b, a) = self.desktop_config.background_color;
+        let (r, g, b, a) = bg_color;
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -951,17 +927,19 @@ impl<'window> WgpuRenderer<'window> {
                             b: b as f64,
                             a: a as f64,
                         }),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &depth_view,
+                    view: &self.depth_view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     }),
                     stencil_ops: None,
                 }),
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
@@ -981,103 +959,208 @@ impl<'window> WgpuRenderer<'window> {
 
         Ok(())
     }
+}
+
+struct BlinksyApp<'window> {
+    window: Option<Arc<Window>>,
+    wgpu_ctx: Option<WgpuCtx<'window>>,
+    camera: Camera,
+    positions: Vec<Vec3>,
+    colors: Vec<Vec4>,
+    brightness: f32,
+    receiver: Receiver<LedMessage>,
+    desktop_config: DesktopConfig,
+    is_window_closed: Arc<AtomicBool>,
+    mouse_down: bool,
+    last_mouse_pos: PhysicalPosition<f64>,
+    last_render_time: Instant,
+}
+
+impl<'window> BlinksyApp<'window> {
+    fn new(
+        positions: Vec<Vec3>,
+        colors: Vec<Vec4>,
+        receiver: Receiver<LedMessage>,
+        config: DesktopConfig,
+        is_window_closed: Arc<AtomicBool>,
+    ) -> Self {
+        let aspect_ratio = config.window_width as f32 / config.window_height as f32;
+        let camera = Camera::new(aspect_ratio, config.orthographic_view);
+
+        BlinksyApp {
+            window: None,
+            wgpu_ctx: None,
+            positions,
+            colors,
+            brightness: 1.0,
+            receiver,
+            desktop_config: config,
+            is_window_closed,
+            camera,
+            mouse_down: false,
+            last_mouse_pos: PhysicalPosition::new(0.0, 0.0),
+            last_render_time: Instant::now(),
+        }
+    }
+
+    fn process_messages(&mut self) -> bool {
+        let mut had_updates = false;
+        while let Ok(message) = self.receiver.try_recv() {
+            had_updates = true;
+            match &message {
+                LedMessage::UpdateColors(colors) => {
+                    assert!(
+                        colors.len() == self.colors.len(),
+                        "Uh oh, number of pixels changed!"
+                    );
+                    self.colors = colors.clone();
+                    if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
+                        wgpu_ctx.update_colors(colors.clone());
+                    }
+                }
+                LedMessage::UpdateBrightness(brightness) => {
+                    self.brightness = *brightness;
+                    if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
+                        wgpu_ctx.update_brightness(*brightness);
+                    }
+                }
+                LedMessage::Quit => {
+                    self.is_window_closed.store(true, Ordering::Relaxed);
+                }
+            }
+        }
+        had_updates
+    }
 
     fn run(mut self) {
-        let mut last_render_time = Instant::now();
+        let event_loop = EventLoop::new().unwrap();
+        event_loop.set_control_flow(ControlFlow::Poll);
+        let _ = event_loop.run_app(&mut self);
+    }
+}
 
-        self.event_loop.run(move |event, _, control_flow| {
-            match event {
-                Event::WindowEvent {
-                    ref event,
-                    window_id,
-                } if window_id == self.window.id() => match event {
-                    WindowEvent::CloseRequested => {
-                        self.is_window_closed
-                            .store(true, std::sync::atomic::Ordering::Relaxed);
-                        *control_flow = ControlFlow::Exit;
+impl ApplicationHandler for BlinksyApp<'_> {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.window.is_none() {
+            let window = Arc::new(Window::new(event_loop).unwrap());
+
+            window.set_title(&self.desktop_config.window_title);
+            window.set_inner_size(PhysicalSize::new(
+                self.desktop_config.window_width,
+                self.desktop_config.window_height,
+            ));
+
+            self.window = Some(window.clone());
+
+            let wgpu_ctx = WgpuCtx::new(
+                window,
+                self.positions.clone(),
+                self.colors.clone(),
+                &self.desktop_config,
+                &self.camera,
+            );
+            self.wgpu_ctx = Some(wgpu_ctx);
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        match event {
+            WindowEvent::CloseRequested => {
+                self.is_window_closed.store(true, Ordering::Relaxed);
+                event_loop.exit();
+            }
+            WindowEvent::Resized(new_size) => {
+                if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
+                    wgpu_ctx.resize(new_size);
+                    self.camera
+                        .set_aspect_ratio(new_size.width as f32 / new_size.height as f32);
+                    wgpu_ctx.update_mvp(self.camera.view_projection_matrix());
+                }
+            }
+            WindowEvent::RedrawRequested => {
+                self.process_messages();
+                if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
+                    if let Err(wgpu::SurfaceError::Lost) =
+                        wgpu_ctx.render(self.desktop_config.background_color)
+                    {
+                        if let Some(window) = self.window.as_ref() {
+                            wgpu_ctx.resize(window.inner_size());
+                        }
                     }
-                    WindowEvent::Resized(physical_size) => {
-                        self.resize(*physical_size);
-                    }
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        self.resize(**new_inner_size);
-                    }
-                    WindowEvent::KeyboardInput {
-                        input:
-                            KeyboardInput {
-                                state: ElementState::Pressed,
-                                virtual_keycode: Some(keycode),
-                                ..
-                            },
-                        ..
-                    } => match keycode {
-                        VirtualKeyCode::R => {
+                }
+            }
+            WindowEvent::KeyboardInput { event, .. } => {
+                if event.state == ElementState::Pressed {
+                    match event.logical_key {
+                        Key::Named(NamedKey::Escape) => {
+                            self.is_window_closed.store(true, Ordering::Relaxed);
+                            event_loop.exit();
+                        }
+                        Key::Character(c) if c == "r" => {
                             self.camera.reset();
-                            self.update_uniform_buffer();
+                            if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
+                                wgpu_ctx.update_mvp(self.camera.view_projection_matrix());
+                            }
                         }
-                        VirtualKeyCode::O => {
+                        Key::Character(c) if c == "o" => {
                             self.camera.toggle_projection_mode();
-                            self.update_uniform_buffer();
-                        }
-                        VirtualKeyCode::Escape => {
-                            self.is_window_closed
-                                .store(true, std::sync::atomic::Ordering::Relaxed);
-                            *control_flow = ControlFlow::Exit;
+                            if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
+                                wgpu_ctx.update_mvp(self.camera.view_projection_matrix());
+                            }
                         }
                         _ => {}
-                    },
-                    WindowEvent::MouseInput {
-                        state,
-                        button: MouseButton::Left,
-                        ..
-                    } => {
-                        self.mouse_down = *state == ElementState::Pressed;
-                    }
-                    WindowEvent::CursorMoved { position, .. } => {
-                        if self.mouse_down {
-                            let dx = position.x - self.last_mouse_pos.x;
-                            let dy = position.y - self.last_mouse_pos.y;
-                            self.camera.rotate(dx as f32, dy as f32);
-                            self.update_uniform_buffer();
-                        }
-                        self.last_mouse_pos = *position;
-                    }
-                    WindowEvent::MouseWheel { delta, .. } => {
-                        let scroll_amount = match delta {
-                            MouseScrollDelta::LineDelta(_, y) => *y,
-                            MouseScrollDelta::PixelDelta(PhysicalPosition { y, .. }) => {
-                                *y as f32 / 100.0
-                            }
-                        };
-                        self.camera.zoom(scroll_amount);
-                        self.update_uniform_buffer();
-                    }
-                    _ => {}
-                },
-                Event::MainEventsCleared => {
-                    // Process any incoming LED messages
-                    self.process_messages();
-
-                    // Throttle rendering to ~60 FPS
-                    let now = Instant::now();
-                    let duration = now.duration_since(last_render_time);
-                    if duration >= Duration::from_millis(16) {
-                        self.window.request_redraw();
-                        last_render_time = now;
                     }
                 }
-                Event::RedrawRequested(window_id) if window_id == self.window.id() => {
-                    match self.render() {
-                        Ok(_) => {}
-                        Err(wgpu::SurfaceError::Lost) => self.resize(self.window.inner_size()),
-                        Err(wgpu::SurfaceError::OutOfMemory) => {
-                            *control_flow = ControlFlow::Exit;
-                        }
-                        Err(e) => eprintln!("Render error: {:?}", e),
-                    }
-                }
-                _ => {}
             }
-        });
+            WindowEvent::MouseInput {
+                state,
+                button: MouseButton::Left,
+                ..
+            } => {
+                self.mouse_down = state == ElementState::Pressed;
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                if self.mouse_down {
+                    let dx = position.x - self.last_mouse_pos.x;
+                    let dy = position.y - self.last_mouse_pos.y;
+                    self.camera.rotate(dx as f32, dy as f32);
+                    if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
+                        wgpu_ctx.update_mvp(self.camera.view_projection_matrix());
+                    }
+                }
+                self.last_mouse_pos = position;
+            }
+            WindowEvent::MouseWheel { delta, .. } => {
+                let scroll_amount = match delta {
+                    MouseScrollDelta::LineDelta(_, y) => y,
+                    MouseScrollDelta::PixelDelta(PhysicalPosition { y, .. }) => (y / 100.0) as f32,
+                };
+                self.camera.zoom(scroll_amount);
+                if let Some(wgpu_ctx) = self.wgpu_ctx.as_mut() {
+                    wgpu_ctx.update_mvp(self.camera.view_projection_matrix());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn about_to_wait(&mut self) {
+        // Process messages and request redraw if needed
+        let has_updates = self.process_messages();
+
+        // Throttle rendering to ~60 FPS
+        let now = Instant::now();
+        let duration = now.duration_since(self.last_render_time);
+        if duration >= Duration::from_millis(16) || has_updates {
+            if let Some(window) = &self.window {
+                window.request_redraw();
+                self.last_render_time = now;
+            }
+        }
     }
 }

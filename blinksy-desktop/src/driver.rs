@@ -62,8 +62,20 @@ use blinksy::{
 };
 use core::{fmt, marker::PhantomData};
 use glam::{vec3, Mat4, Vec3, Vec4};
-use miniquad::*;
-use std::sync::mpsc::{channel, Receiver, SendError, Sender};
+use std::sync::{
+    mpsc::{channel, Receiver, SendError, Sender},
+    Arc,
+};
+use std::time::{Duration, Instant};
+use wgpu::util::DeviceExt;
+use winit::{
+    dpi::PhysicalPosition,
+    event::{
+        ElementState, Event, KeyEvent, MouseButton, MouseScrollDelta, WindowEvent, WindowEvent,
+    },
+    event_loop::{ControlFlow, EventLoop},
+    window::Window,
+};
 
 /// Configuration options for the desktop simulator.
 ///
@@ -74,10 +86,10 @@ pub struct DesktopConfig {
     pub window_title: String,
 
     /// Window width in pixels
-    pub window_width: i32,
+    pub window_width: u32,
 
     /// Window height in pixels
-    pub window_height: i32,
+    pub window_height: u32,
 
     /// Size of the LED representations
     pub led_radius: f32,
@@ -109,7 +121,7 @@ impl Default for DesktopConfig {
 /// Desktop driver for simulating LED layouts in a desktop window.
 ///
 /// This struct implements the `LedDriver` trait and renders a visual
-/// representation of your LED layout using miniquad.
+/// representation of your LED layout using wgpu.
 ///
 /// # Type Parameters
 ///
@@ -120,7 +132,7 @@ pub struct Desktop<Dim, Layout> {
     layout: PhantomData<Layout>,
     brightness: f32,
     sender: Sender<LedMessage>,
-    is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    is_window_closed: Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Desktop<Dim1d, ()> {
@@ -166,13 +178,13 @@ impl Desktop<Dim1d, ()> {
 
         let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
         let (sender, receiver) = channel();
-        let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let is_window_closed_2 = is_window_closed.clone();
+        let is_window_closed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let is_window_closed_clone = is_window_closed.clone();
 
         std::thread::spawn(move || {
-            DesktopStage::start(|| {
-                DesktopStage::new(positions, colors, receiver, config, is_window_closed_2)
-            });
+            let renderer =
+                WgpuRenderer::new(positions, colors, receiver, config, is_window_closed_clone);
+            renderer.run();
         });
 
         Desktop {
@@ -180,7 +192,7 @@ impl Desktop<Dim1d, ()> {
             layout: PhantomData,
             brightness: 1.0,
             sender,
-            is_window_closed: is_window_closed.clone(),
+            is_window_closed,
         }
     }
 }
@@ -229,13 +241,13 @@ impl Desktop<Dim2d, ()> {
 
         let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
         let (sender, receiver) = channel();
-        let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let is_window_closed_2 = is_window_closed.clone();
+        let is_window_closed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let is_window_closed_clone = is_window_closed.clone();
 
         std::thread::spawn(move || {
-            DesktopStage::start(move || {
-                DesktopStage::new(positions, colors, receiver, config, is_window_closed_2)
-            });
+            let renderer =
+                WgpuRenderer::new(positions, colors, receiver, config, is_window_closed_clone);
+            renderer.run();
         });
 
         Desktop {
@@ -440,7 +452,7 @@ impl Camera {
     fn projection_matrix(&self) -> Mat4 {
         if self.use_orthographic {
             let vertical_size = 1.0 * (self.distance / 2.0);
-            Mat4::orthographic_rh_gl(
+            Mat4::orthographic_rh(
                 -vertical_size * self.aspect_ratio,
                 vertical_size * self.aspect_ratio,
                 -vertical_size,
@@ -449,7 +461,7 @@ impl Camera {
                 100.0,
             )
         } else {
-            Mat4::perspective_rh_gl(self.fov, self.aspect_ratio, 0.1, 100.0)
+            Mat4::perspective_rh(self.fov, self.aspect_ratio, 0.1, 100.0)
         }
     }
 
@@ -459,154 +471,374 @@ impl Camera {
     }
 }
 
-/// The rendering stage that handles the miniquad window and OpenGL drawing.
-struct DesktopStage {
-    ctx: Box<dyn RenderingBackend>,
-    pipeline: Pipeline,
-    bindings: Bindings,
+// Vertex shader for LED rendering - WGSL version
+const VERTEX_SHADER: &str = r#"
+struct VertexInput {
+    @location(0) position: vec3<f32>,
+    @location(1) color: vec4<f32>,
+    @location(2) instance_position: vec3<f32>,
+    @location(3) instance_color: vec4<f32>,
+};
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+};
+
+struct Uniforms {
+    mvp: mat4x4<f32>,
+};
+
+@group(0) @binding(0)
+var<uniform> uniforms: Uniforms;
+
+@vertex
+fn vs_main(input: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = uniforms.mvp * vec4<f32>(input.position + input.instance_position, 1.0);
+    out.color = input.instance_color;
+    return out;
+}
+"#;
+
+// Fragment shader for LED rendering - WGSL version
+const FRAGMENT_SHADER: &str = r#"
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    return in.color;
+}
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+};
+"#;
+
+// Data structures for wgpu implementation
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct Vertex {
+    position: [f32; 3],
+    color: [f32; 4],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct Instance {
+    position: [f32; 3],
+    color: [f32; 4],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct Uniforms {
+    mvp: [[f32; 4]; 4],
+}
+
+struct WgpuRenderer<'window> {
+    event_loop: EventLoop<()>,
+    window: Window,
+    surface: wgpu::Surface<'window>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    render_pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+    instance_buffer: wgpu::Buffer,
+    uniform_buffer: wgpu::Buffer,
+    uniform_bind_group: wgpu::BindGroup,
     positions: Vec<Vec3>,
     colors: Vec<Vec4>,
     brightness: f32,
     receiver: Receiver<LedMessage>,
     camera: Camera,
-    config: DesktopConfig,
-    is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    desktop_config: DesktopConfig,
+    is_window_closed: Arc<std::sync::atomic::AtomicBool>,
     mouse_down: bool,
-    last_mouse_x: f32,
-    last_mouse_y: f32,
+    last_mouse_pos: PhysicalPosition<f64>,
+    indices: Vec<u16>,
 }
 
-impl DesktopStage {
-    /// Start the rendering loop.
-    pub fn start<F, H>(f: F)
-    where
-        F: 'static + FnOnce() -> H,
-        H: EventHandler + 'static,
-    {
-        let conf = conf::Conf {
-            window_title: "Blinksy".to_string(),
-            window_width: 800,
-            window_height: 600,
-            high_dpi: true,
-            ..Default::default()
+impl<'window> WgpuRenderer<'window> {
+    async fn init_wgpu(
+        window: &'window Window,
+    ) -> (
+        wgpu::Surface<'window>,
+        wgpu::Device,
+        wgpu::Queue,
+        wgpu::SurfaceConfiguration,
+    ) {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
+
+        let surface = instance.create_surface(window).unwrap();
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::default(),
+                compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
+            })
+            .await
+            .unwrap();
+
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor::default())
+            .await
+            .unwrap();
+
+        let size = window.inner_size();
+        let surface_caps = surface.get_capabilities(&adapter);
+        let surface_format = surface_caps
+            .formats
+            .iter()
+            .copied()
+            .find(|f| f.is_srgb())
+            .unwrap_or(surface_caps.formats[0]);
+
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            desired_maximum_frame_latency: 2,
+            format: surface_format,
+            width: size.width,
+            height: size.height,
+            present_mode: wgpu::PresentMode::Fifo,
+            alpha_mode: surface_caps.alpha_modes[0],
+            view_formats: vec![],
         };
-        miniquad::start(conf, move || Box::new(f()));
+
+        surface.configure(&device, &config);
+
+        (surface, device, queue, config)
     }
 
-    /// Create a new DesktopStage with the given LED positions, colors, and configuration.
-    pub fn new(
+    fn new(
         positions: Vec<Vec3>,
         colors: Vec<Vec4>,
         receiver: Receiver<LedMessage>,
         config: DesktopConfig,
-        is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+        is_window_closed: Arc<std::sync::atomic::AtomicBool>,
     ) -> Self {
-        let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
-        let r = config.led_radius;
+        let event_loop = EventLoop::new();
 
+        let window = WindowBuilder::new()
+            .with_title(&config.window_title)
+            .with_inner_size(winit::dpi::PhysicalSize::new(
+                config.window_width,
+                config.window_height,
+            ))
+            .build(&event_loop)
+            .unwrap();
+
+        // Set up camera
+        let aspect_ratio = config.window_width as f32 / config.window_height as f32;
+        let camera = Camera::new(aspect_ratio, config.orthographic_view);
+
+        // Setup wgpu asynchronously, but block until complete
+        let (surface, device, queue, surface_config) = pollster::block_on(Self::init_wgpu(&window));
+
+        // Create shader module from WGSL
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader"),
+            source: wgpu::ShaderSource::Wgsl(VERTEX_SHADER.into()),
+        });
+
+        let fragment_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Fragment Shader"),
+            source: wgpu::ShaderSource::Wgsl(FRAGMENT_SHADER.into()),
+        });
+
+        // Create vertex buffer for LED model
+        let r = config.led_radius;
         #[rustfmt::skip]
-        let vertices: &[f32] = &[
-            0.0, -r, 0.0, 1.0, 0.0, 0.0, 1.0,
-            r, 0.0, r, 0.0, 1.0, 0.0, 1.0,
-            r, 0.0, -r, 0.0, 0.0, 1.0, 1.0,
-            -r, 0.0, -r, 1.0, 1.0, 0.0, 1.0,
-            -r, 0.0, r, 0.0, 1.0, 1.0, 1.0,
-            0.0, r, 0.0, 1.0, 0.0, 1.0, 1.0,
+        let vertices = [
+            Vertex { position: [0.0, -r, 0.0], color: [1.0, 0.0, 0.0, 1.0] },
+            Vertex { position: [r, 0.0, r], color: [0.0, 1.0, 0.0, 1.0] },
+            Vertex { position: [r, 0.0, -r], color: [0.0, 0.0, 1.0, 1.0] },
+            Vertex { position: [-r, 0.0, -r], color: [1.0, 1.0, 0.0, 1.0] },
+            Vertex { position: [-r, 0.0, r], color: [0.0, 1.0, 1.0, 1.0] },
+            Vertex { position: [0.0, r, 0.0], color: [1.0, 0.0, 1.0, 1.0] },
         ];
 
-        let vertex_buffer = ctx.new_buffer(
-            BufferType::VertexBuffer,
-            BufferUsage::Immutable,
-            BufferSource::slice(vertices),
-        );
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
 
+        // Create index buffer
         #[rustfmt::skip]
-        let indices: &[u16] = &[
+        let indices: Vec<u16> = vec![
             0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1,
             5, 1, 2, 5, 2, 3, 5, 3, 4, 5, 4, 1
         ];
 
-        let index_buffer = ctx.new_buffer(
-            BufferType::IndexBuffer,
-            BufferUsage::Immutable,
-            BufferSource::slice(indices),
-        );
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(&indices),
+            usage: wgpu::BufferUsages::INDEX,
+        });
 
-        let positions_buffer = ctx.new_buffer(
-            BufferType::VertexBuffer,
-            BufferUsage::Stream,
-            BufferSource::slice(&positions),
-        );
+        // Create instance buffer with positions and colors
+        let mut instances = Vec::with_capacity(positions.len());
+        for (pos, color) in positions.iter().zip(colors.iter()) {
+            instances.push(Instance {
+                position: [pos.x, pos.y, pos.z],
+                color: [color.x, color.y, color.z, color.w],
+            });
+        }
 
-        let colors_buffer = ctx.new_buffer(
-            BufferType::VertexBuffer,
-            BufferUsage::Stream,
-            BufferSource::slice(&colors),
-        );
+        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Instance Buffer"),
+            contents: bytemuck::cast_slice(&instances),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        });
 
-        let bindings = Bindings {
-            vertex_buffers: vec![vertex_buffer, positions_buffer, colors_buffer],
-            index_buffer,
-            images: vec![],
+        // Create uniform buffer for MVP matrix
+        let mvp = camera.view_projection_matrix();
+        let uniform_data = Uniforms {
+            mvp: mvp.to_cols_array_2d(),
         };
 
-        let shader = ctx
-            .new_shader(
-                ShaderSource::Glsl {
-                    vertex: shader::VERTEX,
-                    fragment: shader::FRAGMENT,
-                },
-                shader::meta(),
-            )
-            .unwrap();
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::cast_slice(&[uniform_data]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
-        let pipeline = ctx.new_pipeline(
-            &[
-                BufferLayout::default(),
-                BufferLayout {
-                    step_func: VertexStep::PerInstance,
-                    ..Default::default()
+        // Create bind group layout for uniforms
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
-                BufferLayout {
-                    step_func: VertexStep::PerInstance,
-                    ..Default::default()
-                },
-            ],
-            &[
-                VertexAttribute::with_buffer("in_pos", VertexFormat::Float3, 0),
-                VertexAttribute::with_buffer("in_color", VertexFormat::Float4, 0),
-                VertexAttribute::with_buffer("in_inst_pos", VertexFormat::Float3, 1),
-                VertexAttribute::with_buffer("in_inst_color", VertexFormat::Float4, 2),
-            ],
-            shader,
-            PipelineParams {
-                depth_test: Comparison::LessOrEqual,
-                depth_write: true,
-                ..Default::default()
+                count: None,
+            }],
+            label: Some("bind_group_layout"),
+        });
+
+        // Create bind group
+        let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
+            label: Some("uniform_bind_group"),
+        });
+
+        // Create pipeline layout
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Render Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        // Create render pipeline
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: "vs_main",
+                buffers: &[
+                    wgpu::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &[
+                            wgpu::VertexAttribute {
+                                offset: 0,
+                                shader_location: 0,
+                                format: wgpu::VertexFormat::Float32x3,
+                            },
+                            wgpu::VertexAttribute {
+                                offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                                shader_location: 1,
+                                format: wgpu::VertexFormat::Float32x4,
+                            },
+                        ],
+                    },
+                    wgpu::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Instance>() as wgpu::BufferAddress,
+                        step_mode: wgpu::VertexStepMode::Instance,
+                        attributes: &[
+                            wgpu::VertexAttribute {
+                                offset: 0,
+                                shader_location: 2,
+                                format: wgpu::VertexFormat::Float32x3,
+                            },
+                            wgpu::VertexAttribute {
+                                offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                                shader_location: 3,
+                                format: wgpu::VertexFormat::Float32x4,
+                            },
+                        ],
+                    },
+                ],
             },
-        );
+            fragment: Some(wgpu::FragmentState {
+                module: &fragment_shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: surface_config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: Some(wgpu::Face::Back),
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+        });
 
-        let (width, height) = window::screen_size();
-        let camera = Camera::new(width / height, config.orthographic_view);
-
-        Self {
-            ctx,
-            pipeline,
-            bindings,
+        WgpuRenderer {
+            event_loop,
+            window,
+            surface,
+            device,
+            queue,
+            config: surface_config,
+            render_pipeline,
+            vertex_buffer,
+            index_buffer,
+            instance_buffer,
+            uniform_buffer,
+            uniform_bind_group,
             positions,
             colors,
             brightness: 1.0,
             receiver,
             camera,
-            config,
+            desktop_config: config,
             is_window_closed,
             mouse_down: false,
-            last_mouse_x: 0.0,
-            last_mouse_y: 0.0,
+            last_mouse_pos: PhysicalPosition::new(0.0, 0.0),
+            indices,
         }
     }
 
-    /// Process any pending messages from the main thread.
     fn process_messages(&mut self) {
         while let Ok(message) = self.receiver.try_recv() {
             match message {
@@ -616,151 +848,236 @@ impl DesktopStage {
                         "Uh oh, number of pixels changed!"
                     );
                     self.colors = colors;
+                    self.update_instance_buffer();
                 }
                 LedMessage::UpdateBrightness(brightness) => {
                     self.brightness = brightness;
+                    self.update_instance_buffer();
                 }
                 LedMessage::Quit => {
-                    window::quit();
+                    self.is_window_closed
+                        .store(true, std::sync::atomic::Ordering::Relaxed);
                 }
             }
         }
     }
-}
 
-impl EventHandler for DesktopStage {
-    fn update(&mut self) {
-        self.process_messages();
+    fn update_instance_buffer(&mut self) {
+        let mut instances = Vec::with_capacity(self.positions.len());
+
+        for (pos, color) in self.positions.iter().zip(self.colors.iter()) {
+            instances.push(Instance {
+                position: [pos.x, pos.y, pos.z],
+                color: [
+                    color.x * self.brightness,
+                    color.y * self.brightness,
+                    color.z * self.brightness,
+                    color.w,
+                ],
+            });
+        }
+
+        self.queue
+            .write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(&instances));
     }
 
-    fn draw(&mut self) {
-        let bright_colors: Vec<Vec4> = self
-            .colors
-            .iter()
-            .map(|c| {
-                Vec4::new(
-                    c.x * self.brightness,
-                    c.y * self.brightness,
-                    c.z * self.brightness,
-                    c.w,
-                )
-            })
-            .collect();
+    fn update_uniform_buffer(&mut self) {
+        let mvp = self.camera.view_projection_matrix();
+        let uniform_data = Uniforms {
+            mvp: mvp.to_cols_array_2d(),
+        };
 
-        self.ctx.buffer_update(
-            self.bindings.vertex_buffers[2],
-            BufferSource::slice(&bright_colors),
+        self.queue.write_buffer(
+            &self.uniform_buffer,
+            0,
+            bytemuck::cast_slice(&[uniform_data]),
         );
-
-        let view_proj = self.camera.view_projection_matrix();
-        let (r, g, b, a) = self.config.background_color;
-
-        self.ctx
-            .begin_default_pass(PassAction::clear_color(r, g, b, a));
-        self.ctx.apply_pipeline(&self.pipeline);
-        self.ctx.apply_bindings(&self.bindings);
-        self.ctx
-            .apply_uniforms(UniformsSource::table(&shader::Uniforms { mvp: view_proj }));
-
-        self.ctx.draw(0, 24, self.positions.len() as i32);
-        self.ctx.end_render_pass();
-        self.ctx.commit_frame();
     }
 
-    fn resize_event(&mut self, width: f32, height: f32) {
-        self.camera.set_aspect_ratio(width / height);
-    }
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        if new_size.width > 0 && new_size.height > 0 {
+            self.config.width = new_size.width;
+            self.config.height = new_size.height;
+            self.surface.configure(&self.device, &self.config);
 
-    fn mouse_motion_event(&mut self, x: f32, y: f32) {
-        if self.mouse_down {
-            let dx = x - self.last_mouse_x;
-            let dy = y - self.last_mouse_y;
-            self.camera.rotate(dx, dy);
-        }
-        self.last_mouse_x = x;
-        self.last_mouse_y = y;
-    }
-
-    fn mouse_wheel_event(&mut self, _x: f32, y: f32) {
-        self.camera.zoom(y);
-    }
-
-    fn mouse_button_down_event(&mut self, button: MouseButton, x: f32, y: f32) {
-        if button == MouseButton::Left {
-            self.mouse_down = true;
-            self.last_mouse_x = x;
-            self.last_mouse_y = y;
+            self.camera
+                .set_aspect_ratio(new_size.width as f32 / new_size.height as f32);
+            self.update_uniform_buffer();
         }
     }
 
-    fn mouse_button_up_event(&mut self, button: MouseButton, _x: f32, _y: f32) {
-        if button == MouseButton::Left {
-            self.mouse_down = false;
-        }
-    }
+    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let output = self.surface.get_current_texture()?;
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
-    fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
-        match keycode {
-            KeyCode::R => {
-                self.camera.reset();
-            }
-            KeyCode::O => {
-                self.camera.toggle_projection_mode();
-            }
-            _ => {}
-        }
-    }
-
-    fn quit_requested_event(&mut self) {
-        self.is_window_closed
-            .store(true, std::sync::atomic::Ordering::Relaxed);
-    }
-}
-
-/// Shader definitions for rendering LEDs
-mod shader {
-    use miniquad::*;
-
-    /// Vertex shader for LED rendering
-    pub const VERTEX: &str = r#"#version 100
-    attribute vec3 in_pos;
-    attribute vec4 in_color;
-    attribute vec3 in_inst_pos;
-    attribute vec4 in_inst_color;
-
-    varying lowp vec4 color;
-
-    uniform mat4 mvp;
-
-    void main() {
-        vec4 pos = vec4(in_pos + in_inst_pos, 1.0);
-        gl_Position = mvp * pos;
-        color = in_inst_color;
-    }
-    "#;
-
-    /// Fragment shader for LED rendering
-    pub const FRAGMENT: &str = r#"#version 100
-    varying lowp vec4 color;
-
-    void main() {
-        gl_FragColor = color;
-    }
-    "#;
-
-    /// Shader metadata describing uniforms
-    pub fn meta() -> ShaderMeta {
-        ShaderMeta {
-            images: vec![],
-            uniforms: UniformBlockLayout {
-                uniforms: vec![UniformDesc::new("mvp", UniformType::Mat4)],
+        // Create depth texture
+        let depth_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Depth Texture"),
+            size: wgpu::Extent3d {
+                width: self.config.width,
+                height: self.config.height,
+                depth_or_array_layers: 1,
             },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Depth32Float,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+
+        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
+
+        let (r, g, b, a) = self.desktop_config.background_color;
+
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: r as f64,
+                            g: g as f64,
+                            b: b as f64,
+                            a: a as f64,
+                        }),
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &depth_view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
+            });
+
+            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.draw_indexed(
+                0..self.indices.len() as u32,
+                0,
+                0..self.positions.len() as u32,
+            );
         }
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        Ok(())
     }
 
-    /// Uniform structure for shader
-    #[repr(C)]
-    pub struct Uniforms {
-        pub mvp: glam::Mat4,
+    fn run(mut self) {
+        let mut last_render_time = Instant::now();
+
+        self.event_loop.run(move |event, _, control_flow| {
+            match event {
+                Event::WindowEvent {
+                    ref event,
+                    window_id,
+                } if window_id == self.window.id() => match event {
+                    WindowEvent::CloseRequested => {
+                        self.is_window_closed
+                            .store(true, std::sync::atomic::Ordering::Relaxed);
+                        *control_flow = ControlFlow::Exit;
+                    }
+                    WindowEvent::Resized(physical_size) => {
+                        self.resize(*physical_size);
+                    }
+                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                        self.resize(**new_inner_size);
+                    }
+                    WindowEvent::KeyboardInput {
+                        input:
+                            KeyboardInput {
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(keycode),
+                                ..
+                            },
+                        ..
+                    } => match keycode {
+                        VirtualKeyCode::R => {
+                            self.camera.reset();
+                            self.update_uniform_buffer();
+                        }
+                        VirtualKeyCode::O => {
+                            self.camera.toggle_projection_mode();
+                            self.update_uniform_buffer();
+                        }
+                        VirtualKeyCode::Escape => {
+                            self.is_window_closed
+                                .store(true, std::sync::atomic::Ordering::Relaxed);
+                            *control_flow = ControlFlow::Exit;
+                        }
+                        _ => {}
+                    },
+                    WindowEvent::MouseInput {
+                        state,
+                        button: MouseButton::Left,
+                        ..
+                    } => {
+                        self.mouse_down = *state == ElementState::Pressed;
+                    }
+                    WindowEvent::CursorMoved { position, .. } => {
+                        if self.mouse_down {
+                            let dx = position.x - self.last_mouse_pos.x;
+                            let dy = position.y - self.last_mouse_pos.y;
+                            self.camera.rotate(dx as f32, dy as f32);
+                            self.update_uniform_buffer();
+                        }
+                        self.last_mouse_pos = *position;
+                    }
+                    WindowEvent::MouseWheel { delta, .. } => {
+                        let scroll_amount = match delta {
+                            MouseScrollDelta::LineDelta(_, y) => *y,
+                            MouseScrollDelta::PixelDelta(PhysicalPosition { y, .. }) => {
+                                *y as f32 / 100.0
+                            }
+                        };
+                        self.camera.zoom(scroll_amount);
+                        self.update_uniform_buffer();
+                    }
+                    _ => {}
+                },
+                Event::MainEventsCleared => {
+                    // Process any incoming LED messages
+                    self.process_messages();
+
+                    // Throttle rendering to ~60 FPS
+                    let now = Instant::now();
+                    let duration = now.duration_since(last_render_time);
+                    if duration >= Duration::from_millis(16) {
+                        self.window.request_redraw();
+                        last_render_time = now;
+                    }
+                }
+                Event::RedrawRequested(window_id) if window_id == self.window.id() => {
+                    match self.render() {
+                        Ok(_) => {}
+                        Err(wgpu::SurfaceError::Lost) => self.resize(self.window.inner_size()),
+                        Err(wgpu::SurfaceError::OutOfMemory) => {
+                            *control_flow = ControlFlow::Exit;
+                        }
+                        Err(e) => eprintln!("Render error: {:?}", e),
+                    }
+                }
+                _ => {}
+            }
+        });
     }
 }

@@ -39,14 +39,13 @@ use crate::dimension::LayoutForDim;
 /// use blinksy::{pattern::Pattern, dimension::Dim1d, layout::Layout1d};
 /// use palette::Hsv;
 ///
-/// struct Rainbow {
+/// struct RainbowParams {
 ///     speed: f32,
 ///     scale: f32,
 /// }
 ///
-/// struct RainbowParams {
-///     speed: f32,
-///     scale: f32,
+/// struct Rainbow {
+///     params: RainbowParams
 /// }
 ///
 /// impl<Layout> Pattern<Dim1d, Layout> for Rainbow
@@ -57,17 +56,15 @@ use crate::dimension::LayoutForDim;
 ///     type Color = Hsv;
 ///
 ///     fn new(params: Self::Params) -> Self {
-///         Self {
-///             speed: params.speed,
-///             scale: params.scale,
-///         }
+///         Self { params }
 ///     }
 ///
 ///     fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
-///         let offset = (time_in_ms as f32 * self.speed) % 360.0;
+///         let offset = (time_in_ms as f32 * self.params.speed) % 360.0;
+///         let step = 0.5 * 360. * self.params.scale;
 ///
-///         (0..Layout::PIXEL_COUNT).map(move |i| {
-///             let hue = (i as f32 * self.scale + offset) % 360.0;
+///         Layout::points().map(move |x| {
+///             let hue = (x * step + offset) % 360.0;
 ///             Hsv::new(hue, 1.0, 1.0)
 ///         })
 ///     }

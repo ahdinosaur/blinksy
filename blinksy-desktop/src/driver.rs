@@ -61,9 +61,12 @@ use blinksy::{
     layout::{Layout1d, Layout2d},
 };
 use core::{fmt, marker::PhantomData};
-use glam::{vec3, Mat4, Vec3, Vec4};
+use glam::{vec3, vec4, Mat4, Vec3, Vec4};
 use miniquad::*;
 use std::sync::mpsc::{channel, Receiver, SendError, Sender};
+use std::time::Instant;
+
+use crate::text::TextLabel;
 
 /// Configuration options for the desktop simulator.
 ///
@@ -469,11 +472,17 @@ struct DesktopStage {
     brightness: f32,
     receiver: Receiver<LedMessage>,
     camera: Camera,
+
     config: DesktopConfig,
+
     is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+
     mouse_down: bool,
     last_mouse_x: f32,
     last_mouse_y: f32,
+
+    text_label: TextLabel,
+    last_update: Instant,
 }
 
 impl DesktopStage {
@@ -589,6 +598,8 @@ impl DesktopStage {
         let (width, height) = window::screen_size();
         let camera = Camera::new(width / height, config.orthographic_view);
 
+        let text_label = TextLabel::new(&mut *ctx);
+
         Self {
             ctx,
             pipeline,
@@ -603,6 +614,8 @@ impl DesktopStage {
             mouse_down: false,
             last_mouse_x: 0.0,
             last_mouse_y: 0.0,
+            text_label,
+            last_update: Instant::now(),
         }
     }
 
@@ -626,11 +639,71 @@ impl DesktopStage {
             }
         }
     }
+
+    fn pick_led(&self, screen_x: f32, screen_y: f32) -> Option<usize> {
+        // Convert screen coords to ray in world space
+        let ray_origin = self.camera.position();
+        let ray_dir = self.screen_to_world_ray(screen_x, screen_y);
+
+        // Find closest LED intersection
+        let mut closest_dist = f32::MAX;
+        let mut closest_led = None;
+
+        for (i, &pos) in self.positions.iter().enumerate() {
+            // Sphere-ray intersection test
+            let to_led = pos - ray_origin;
+            let proj = to_led.dot(ray_dir);
+
+            if proj < 0.0 {
+                continue; // Behind camera
+            }
+
+            let dist_sq = to_led.length_squared() - proj * proj;
+            let radius_sq = self.config.led_radius * self.config.led_radius;
+
+            if dist_sq <= radius_sq && proj < closest_dist {
+                closest_dist = proj;
+                closest_led = Some(i);
+            }
+        }
+
+        closest_led
+    }
+
+    fn screen_to_world_ray(&self, screen_x: f32, screen_y: f32) -> Vec3 {
+        // Convert screen coordinates to normalized device coordinates
+        let (width, height) = window::screen_size();
+        let ndc_x = 2.0 * screen_x / width - 1.0;
+        let ndc_y = 1.0 - 2.0 * screen_y / height;
+
+        // Create ray in clip space
+        let clip_space = vec4(ndc_x, ndc_y, -1.0, 1.0);
+
+        // Transform to view space
+        let inv_proj = self.camera.projection_matrix().inverse();
+        let view_space = inv_proj * clip_space;
+        let view_dir = vec3(view_space.x, view_space.y, -1.0).normalize();
+
+        // Transform to world space
+        let inv_view = self.camera.view_matrix().inverse();
+        let world_dir = inv_view.transform_vector3(view_dir);
+
+        world_dir.normalize()
+    }
 }
 
 impl EventHandler for DesktopStage {
     fn update(&mut self) {
+        // Calculate delta time
+        let now = Instant::now();
+        let dt = now.duration_since(self.last_update).as_secs_f32();
+        self.last_update = now;
+
+        // Process incoming messages
         self.process_messages();
+
+        // Update text label
+        self.text_label.update(dt);
     }
 
     fn draw(&mut self) {
@@ -663,6 +736,10 @@ impl EventHandler for DesktopStage {
             .apply_uniforms(UniformsSource::table(&shader::Uniforms { mvp: view_proj }));
 
         self.ctx.draw(0, 24, self.positions.len() as i32);
+
+        self.text_label
+            .draw(&mut *self.ctx, view_proj, self.camera.position());
+
         self.ctx.end_render_pass();
         self.ctx.commit_frame();
     }
@@ -687,9 +764,29 @@ impl EventHandler for DesktopStage {
 
     fn mouse_button_down_event(&mut self, button: MouseButton, x: f32, y: f32) {
         if button == MouseButton::Left {
+            // Only process as click if not moving much
+            let is_click =
+                (x - self.last_mouse_x).abs() < 3.0 && (y - self.last_mouse_y).abs() < 3.0;
+
             self.mouse_down = true;
             self.last_mouse_x = x;
             self.last_mouse_y = y;
+
+            // Process as click - check for LED hit
+            if is_click {
+                if let Some(led_index) = self.pick_led(x, y) {
+                    let led_pos = self.positions[led_index];
+                    let text = format!(
+                        "LED #{}: ({:.2}, {:.2}, {:.2})",
+                        led_index, led_pos.x, led_pos.y, led_pos.z
+                    );
+
+                    // Position label slightly above the LED
+                    let label_pos = led_pos + Vec3::new(0.0, self.config.led_radius * 2.5, 0.0);
+
+                    self.text_label.set_text(&mut *self.ctx, &text, label_pos);
+                }
+            }
         }
     }
 

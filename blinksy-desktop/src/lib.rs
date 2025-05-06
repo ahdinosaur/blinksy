@@ -60,6 +60,9 @@ mod driver;
 /// Time utilities
 pub mod time;
 
+/// Text rendering
+pub(crate) mod text;
+
 /// Desktop LED simulation
 pub mod drivers {
     pub use crate::driver::*;

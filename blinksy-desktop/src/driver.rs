@@ -72,6 +72,7 @@ use wgpu::util::DeviceExt;
 use winit::{
     application::ApplicationHandler,
     dpi::{PhysicalPosition, PhysicalSize},
+    error::EventLoopError,
     event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     keyboard::{Key, NamedKey},
@@ -182,10 +183,8 @@ impl Desktop<Dim1d, ()> {
         let is_window_closed = Arc::new(AtomicBool::new(false));
         let is_window_closed_clone = is_window_closed.clone();
 
-        std::thread::spawn(move || {
-            let app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
-            app.run();
-        });
+        let app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
+        app.run().expect("Failed to run app");
 
         Desktop {
             dim: PhantomData,
@@ -244,10 +243,8 @@ impl Desktop<Dim2d, ()> {
         let is_window_closed = Arc::new(AtomicBool::new(false));
         let is_window_closed_clone = is_window_closed.clone();
 
-        std::thread::spawn(move || {
-            let app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
-            app.run();
-        });
+        let app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
+        app.run().expect("Failed to run app");
 
         Desktop {
             dim: PhantomData,
@@ -764,15 +761,17 @@ impl<'window> WgpuCtx<'window> {
                         ],
                     },
                 ],
+                compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &fragment_shader,
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
+                    format: wgpu_config.format,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: Default::default(),
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -1032,23 +1031,28 @@ impl<'window> BlinksyApp<'window> {
         had_updates
     }
 
-    fn run(mut self) {
+    fn run(mut self) -> Result<(), EventLoopError> {
         let event_loop = EventLoop::new().unwrap();
         event_loop.set_control_flow(ControlFlow::Poll);
-        let _ = event_loop.run_app(&mut self);
+        event_loop.run_app(&mut self)
     }
 }
 
 impl ApplicationHandler for BlinksyApp<'_> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
-            let window = Arc::new(Window::new(event_loop).unwrap());
+            let win_attrs = Window::default_attributes()
+                .with_title(&self.desktop_config.window_title)
+                .with_inner_size(PhysicalSize::new(
+                    self.desktop_config.window_width,
+                    self.desktop_config.window_height,
+                ));
 
-            window.set_title(&self.desktop_config.window_title);
-            window.set_inner_size(PhysicalSize::new(
-                self.desktop_config.window_width,
-                self.desktop_config.window_height,
-            ));
+            let window = Arc::new(
+                event_loop
+                    .create_window(win_attrs)
+                    .expect("Failed to create window."),
+            );
 
             self.window = Some(window.clone());
 
@@ -1149,7 +1153,7 @@ impl ApplicationHandler for BlinksyApp<'_> {
         }
     }
 
-    fn about_to_wait(&mut self) {
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         // Process messages and request redraw if needed
         let has_updates = self.process_messages();
 

@@ -1,3 +1,43 @@
+//! # Clocked Delay-based LED Driver
+//!
+//! This module provides an implementation of the LedDriver trait for clocked LEDs
+//! using GPIO bit-banging with a delay timer. It handles both data and clock lines
+//! to generate the protocol timing.
+//!
+//! The implementation uses:
+//!
+//! - Separate GPIO pins for data and clock
+//! - A delay provider for timing control
+//! - Parameters defined by a ClockedLed implementation
+//!
+//! ## Usage
+//!
+//! ```rust
+//! use embedded_hal::digital::OutputPin;
+//! use embedded_hal::delay::DelayNs;
+//! use blinksy::driver::{ClockedDelayDriver, Apa102Led};
+//! use blinksy::time::Megahertz;
+//!
+//! fn setup_leds<D, C, Delay>(
+//!     data_pin: D,
+//!     clock_pin: C,
+//!     delay: Delay
+//! ) -> ClockedDelayDriver<Apa102Led, D, C, Delay>
+//! where
+//!     D: OutputPin,
+//!     C: OutputPin,
+//!     Delay: DelayNs,
+//! {
+//!     // Create a new APA102 driver with 2 MHz data rate
+//!     ClockedDelayDriver::<Apa102Led, _, _, _>::new(
+//!         data_pin,
+//!         clock_pin,
+//!         delay,
+//!         Megahertz::MHz(2)
+//!     )
+//! }
+//! ```
+
 use crate::time::{Megahertz, Nanoseconds};
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
@@ -5,6 +45,14 @@ use palette::FromColor;
 
 use super::{ClockedLed, ClockedWriter, LedDriver};
 
+/// Driver for clocked LEDs using GPIO bit-banging with a delay timer.
+///
+/// # Type Parameters
+///
+/// * `Led` - The LED protocol implementation (must implement ClockedLed)
+/// * `Data` - The GPIO pin type for data output
+/// * `Clock` - The GPIO pin type for clock output
+/// * `Delay` - The delay provider
 #[derive(Debug)]
 pub struct ClockedDelayDriver<Led, Data, Clock, Delay>
 where
@@ -13,7 +61,10 @@ where
     Clock: OutputPin,
     Delay: DelayNs,
 {
+    /// Marker for the LED protocol type
     led: PhantomData<Led>,
+
+    /// Writer implementation for the clocked protocol
     writer: ClockedDelayWriter<Data, Clock, Delay>,
 }
 
@@ -24,6 +75,18 @@ where
     Clock: OutputPin,
     Delay: DelayNs,
 {
+    /// Creates a new clocked LED driver.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - The GPIO pin for data output
+    /// * `clock` - The GPIO pin for clock output
+    /// * `delay` - The delay provider for timing control
+    /// * `data_rate` - The clock frequency in MHz
+    ///
+    /// # Returns
+    ///
+    /// A new ClockedDelayDriver instance
     pub fn new(data: Data, clock: Clock, delay: Delay, data_rate: Megahertz) -> Self {
         Self {
             led: PhantomData,
@@ -42,6 +105,18 @@ where
     type Error = <ClockedDelayWriter<Data, Clock, Delay> as ClockedWriter>::Error;
     type Color = Led::Color;
 
+    /// Writes a sequence of colors to the LED chain.
+    ///
+    /// Delegates to the Led::clocked_write method to handle the protocol-specific details.
+    ///
+    /// # Arguments
+    ///
+    /// * `pixels` - Iterator over colors
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if transmission fails
     fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
@@ -51,6 +126,10 @@ where
     }
 }
 
+/// Implementation of ClockedWriter using GPIO bit-banging with delays.
+///
+/// This type handles the low-level bit-banging of data and clock pins
+/// to transmit data using a clocked protocol.
 #[derive(Debug)]
 pub struct ClockedDelayWriter<Data, Clock, Delay>
 where
@@ -58,9 +137,16 @@ where
     Clock: OutputPin,
     Delay: DelayNs,
 {
+    /// GPIO pin for data transmission
     data: Data,
+
+    /// GPIO pin for clock signal
     clock: Clock,
+
+    /// Delay provider for timing control
     delay: Delay,
+
+    /// Half-cycle duration in nanoseconds
     t_half_cycle_ns: u32,
 }
 
@@ -70,6 +156,18 @@ where
     Clock: OutputPin,
     Delay: DelayNs,
 {
+    /// Creates a new ClockedDelayWriter.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - The GPIO pin for data output
+    /// * `clock` - The GPIO pin for clock output
+    /// * `delay` - The delay provider for timing control
+    /// * `data_rate` - The clock frequency in MHz
+    ///
+    /// # Returns
+    ///
+    /// A new ClockedDelayWriter instance
     pub fn new(data: Data, clock: Clock, delay: Delay, data_rate: Megahertz) -> Self {
         let t_cycle: Nanoseconds = data_rate.into_duration();
         let t_half_cycle = t_cycle / 2;
@@ -84,13 +182,20 @@ where
     }
 }
 
+/// Error type for the ClockedDelayWriter.
+///
+/// This enum wraps errors from the data and clock pins to provide
+/// a unified error type for the writer.
 #[derive(Debug)]
 pub enum ClockedDelayError<Data, Clock>
 where
     Data: OutputPin,
     Clock: OutputPin,
 {
+    /// Error from the data pin
     Data(Data::Error),
+
+    /// Error from the clock pin
     Clock(Clock::Error),
 }
 
@@ -103,6 +208,22 @@ where
     type Error = ClockedDelayError<Data, Clock>;
     type Word = u8;
 
+    /// Writes a slice of bytes using the bit-banging technique.
+    ///
+    /// For each bit:
+    /// 1. Sets the data line to the bit value
+    /// 2. Waits for half a clock cycle
+    /// 3. Sets the clock line high
+    /// 4. Waits for half a clock cycle
+    /// 5. Sets the clock line low
+    ///
+    /// # Arguments
+    ///
+    /// * `words` - Slice of bytes to write
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if pin operation fails
     fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
         for byte in words {
             for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
@@ -113,11 +234,8 @@ where
                 .map_err(ClockedDelayError::Data)?;
 
                 self.delay.delay_ns(self.t_half_cycle_ns);
-
                 self.clock.set_high().map_err(ClockedDelayError::Clock)?;
-
                 self.delay.delay_ns(self.t_half_cycle_ns);
-
                 self.clock.set_low().map_err(ClockedDelayError::Clock)?;
             }
         }

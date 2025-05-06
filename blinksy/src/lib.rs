@@ -5,18 +5,20 @@
 //! Blinksy is a no-std, no-alloc LED control library designed for 1D, 2D, and 3D (audio-reactive)
 //! LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 //!
-//! - Define LED layouts in 1D, 2D, or 3D space
-//! - Choose visual patterns (effects)
-//! - Compute colors for each LED based on its position
-//! - Drive various LED chipsets with each frame of colors
+//! ## How Blinksy works
 //!
-//! ## Core Features
+//! - Define your LED [`layout`] in 1D, 2D, or 3D space
+//! - Create your visual [`pattern`] (effect), or choose from our built-in [`patterns`] library
+//!   - The pattern will compute colors for each LED based on its position
+//! - Setup a [`driver`] to send each frame of colors to your LEDs, using our built-in [`drivers`] library.
+//!
+//! ## Features
 //!
 //! - **No-std, No-alloc:** Designed to run on embedded targets.
 //! - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
 //! - **Pattern (Effect) Library:**
-//!   - **Rainbow**: Gradual, colorful gradient transition across your layout.
-//!   - **Noise**: Dynamic noise‑based visuals using noise functions (Perlin, Simplex, OpenSimplex, etc).
+//!   - **Rainbow**
+//!   - **Noise**
 //!   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
 //! - **Multi‑Chipset Support:**
 //!   - **APA102**
@@ -44,6 +46,8 @@
 //!
 //! ## Quick Start
 //!
+//! ### 1D Strip with Rainbow Pattern
+//!
 //! ```rust,ignore
 //! use blinksy::{ControlBuilder, layout1d, patterns::{Rainbow, RainbowParams}};
 //!
@@ -59,8 +63,44 @@
 //! control.set_brightness(0.5);
 //!
 //! loop {
-//!     let time = /* obtain current time in milliseconds */;
-//!     control.tick(time).unwrap();
+//!     control.tick(/* current time in milliseconds */).unwrap();
+//! }
+//! ```
+//!
+//! ### 2D Grid with Noise Pattern
+//!
+//! ```rust,ignore
+//! use blinksy::{
+//!     ControlBuilder,
+//!     layout::{Shape2d, Vec2},
+//!     layout2d,
+//!     patterns::{noise_fns, Noise2d, NoiseParams},
+//! };
+//!
+//! layout2d!(
+//!     Layout,
+//!     [Shape2d::Grid {
+//!         start: Vec2::new(-1., -1.),
+//!         row_end: Vec2::new(-1., 1.),
+//!         col_end: Vec2::new(1., -1.),
+//!         row_pixel_count: 16,
+//!         col_pixel_count: 16,
+//!         serpentine: true,
+//!     }]
+//! );
+//! let mut control = ControlBuilder::new_2d()
+//!     .with_layout::<Layout>()
+//!     .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
+//!         ..Default::default()
+//!     })
+//!     .with_driver(apa102!(p))
+//!     .build();
+//!
+//! control.set_brightness(0.1);
+//!
+//! loop {
+//!     let elapsed_in_ms = elapsed().as_millis();
+//!     control.tick(elapsed_in_ms).unwrap();
 //! }
 //! ```
 

@@ -5,8 +5,8 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 
 ## How Blinksy works
 
 - Define LED layouts in 1D, 2D, or 3D space
-- Choose a visual pattern (effect), or create your own
-  - A pattern will compute colors for each LED based on its position
+- Create your visual pattern (effect), or choose from our built-in library
+  - The pattern will compute colors for each LED based on its position
 - Drive various LED chipsets with each frame of colors
 
 ## Features

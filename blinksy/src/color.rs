@@ -9,7 +9,6 @@
 //! - [`Srgb`]: sRGB color representation
 //! - [`LinSrgb`]: Linear sRGB color representation
 //! - [`Hsv`]: Hue-Saturation-Value color representation
-//! - [`RgbHue`]: Hue component of RGB-based colors
 //!
 //! The module also provides conversion traits:
 //!

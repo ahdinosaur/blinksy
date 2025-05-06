@@ -57,7 +57,11 @@ use crate::{
 ///
 /// // Use the control system
 /// control.set_brightness(0.5);
-/// control.tick(0); // Update with time 0 ms
+///
+/// // Main control loop
+/// loop {
+///     control.tick(/* current time in milliseconds */).unwrap();
+/// }
 /// ```
 pub struct Control<Dim, Layout, Pattern, Driver> {
     dim: PhantomData<Dim>,

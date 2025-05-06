@@ -636,17 +636,15 @@ impl UiManager {
                         ui.label(format!("Global Brightness: {:.3}", brightness));
 
                         // Show color preview
-                        let color_rect = egui::Rect::from_min_size(
-                            ui.cursor().min,
-                            egui::vec2(ui.available_width(), 30.0),
-                        );
+                        let (_, color_rect) =
+                            ui.allocate_space(egui::vec2(ui.available_width(), 30.0));
                         let color_preview = egui::Color32::from_rgb(
                             (bright_color.x * 255.0) as u8,
                             (bright_color.y * 255.0) as u8,
                             (bright_color.z * 255.0) as u8,
                         );
                         ui.painter().rect_filled(color_rect, 4.0, color_preview);
-                        ui.add_space(40.0); // Space after the color preview
+                        ui.add_space(10.0); // Space after the color preview
 
                         // Deselect button
                         if ui.button("Deselect").clicked() {

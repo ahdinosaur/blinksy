@@ -130,6 +130,7 @@ impl Default for DesktopConfig {
 /// * `Dim` - The dimension marker (Dim1d or Dim2d)
 /// * `Layout` - The specific layout type
 pub struct Desktop<Dim, Layout> {
+    app: BlinksyApp<'static>,
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,
     brightness: f32,
@@ -183,10 +184,11 @@ impl Desktop<Dim1d, ()> {
         let is_window_closed = Arc::new(AtomicBool::new(false));
         let is_window_closed_clone = is_window_closed.clone();
 
-        let app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
+        let mut app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
         app.run().expect("Failed to run app");
 
         Desktop {
+            app,
             dim: PhantomData,
             layout: PhantomData,
             brightness: 1.0,
@@ -243,10 +245,11 @@ impl Desktop<Dim2d, ()> {
         let is_window_closed = Arc::new(AtomicBool::new(false));
         let is_window_closed_clone = is_window_closed.clone();
 
-        let app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
+        let mut app = BlinksyApp::new(positions, colors, receiver, config, is_window_closed_clone);
         app.run().expect("Failed to run app");
 
         Desktop {
+            app,
             dim: PhantomData,
             layout: PhantomData,
             brightness: 1.0,
@@ -1031,10 +1034,10 @@ impl<'window> BlinksyApp<'window> {
         had_updates
     }
 
-    fn run(mut self) -> Result<(), EventLoopError> {
+    fn run(&mut self) -> Result<(), EventLoopError> {
         let event_loop = EventLoop::new().unwrap();
         event_loop.set_control_flow(ControlFlow::Poll);
-        event_loop.run_app(&mut self)
+        event_loop.run_app(self)
     }
 }
 

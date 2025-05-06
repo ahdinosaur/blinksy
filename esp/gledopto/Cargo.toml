@@ -23,3 +23,23 @@ esp-println = { version = "0.13.0", features = ["defmt-espflash", "esp32"] }
 esp-alloc = { version = "0.7.0", features = ["defmt"] }
 esp-backtrace = { version = "0.15.1", features = ["defmt", "esp32", "panic-handler"] }
 fugit = "0.3.7"
+
+[features]
+
+##
+# Board Support Feature Flags
+##
+
+# Gledopto GL-C-016WL-D
+gl_c_016wl_d = [
+  "esp-hal/esp32",
+]
+
+# Mock for tests, builds, and docs
+mock = [
+  "esp-hal/esp32c6"
+]
+
+[package.metadata.docs.rs]
+default-target = "riscv32imac-unknown-none-elf"
+features       = ["mock"]

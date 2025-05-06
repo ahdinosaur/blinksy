@@ -2,9 +2,11 @@
 
 Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 1D, 2D, and 3D (audio-reactive) LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 
+## How Blinksy works
+
 - Define LED layouts in 1D, 2D, or 3D space
-- Choose visual patterns (effects)
-- Compute colors for each LED based on its position
+- Choose a visual pattern (effect), or create your own
+  - A pattern will compute colors for each LED based on its position
 - Drive various LED chipsets with each frame of colors
 
 ## Features
@@ -12,8 +14,8 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 
 - **No-std, No-alloc:** Designed to run on embedded targets.
 - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
 - **Pattern (Effect) Library:**
-  - **Rainbow**: Gradual, colorful gradient transition across your layout.
-  - **Noise**: Dynamic noise‑based visuals using noise functions (Perlin, Simplex, OpenSimplex, etc).
+  - **Rainbow**:
+  - **Noise**
   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
 - **Multi‑Chipset Support:**
   - **APA102**
@@ -128,7 +130,9 @@ fn main() -> ! {
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details and join the discussion on how to make Blinksy even better.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+If you want to help, the best thing to do is use Blinksy for your own LED project, and share about your adventures.
 
 ## License
 

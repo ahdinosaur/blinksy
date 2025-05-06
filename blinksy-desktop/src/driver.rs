@@ -61,7 +61,8 @@ use blinksy::{
     layout::{Layout1d, Layout2d},
 };
 use core::{fmt, marker::PhantomData};
-use glam::{vec3, Mat4, Vec3, Vec4};
+use egui_miniquad as egui_mq;
+use glam::{vec3, Mat4, Vec3, Vec4, Vec4Swizzles};
 use miniquad::*;
 use std::sync::mpsc::{channel, Receiver, SendError, Sender};
 
@@ -474,6 +475,24 @@ struct DesktopStage {
     mouse_down: bool,
     last_mouse_x: f32,
     last_mouse_y: f32,
+    egui_mq: egui_mq::EguiMq,
+    selected_led: Option<usize>,
+    ui_state: UiState,
+}
+
+// State for the UI to avoid repeated allocations
+struct UiState {
+    show_led_info: bool,
+    want_mouse_capture: bool,
+}
+
+impl Default for UiState {
+    fn default() -> Self {
+        Self {
+            show_led_info: false,
+            want_mouse_capture: false,
+        }
+    }
 }
 
 impl DesktopStage {
@@ -502,6 +521,10 @@ impl DesktopStage {
         is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
     ) -> Self {
         let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
+
+        // Initialize egui
+        let egui_mq = egui_mq::EguiMq::new(&mut *ctx);
+
         let r = config.led_radius;
 
         #[rustfmt::skip]
@@ -603,6 +626,9 @@ impl DesktopStage {
             mouse_down: false,
             last_mouse_x: 0.0,
             last_mouse_y: 0.0,
+            egui_mq,
+            selected_led: None,
+            ui_state: UiState::default(),
         }
     }
 
@@ -625,6 +651,68 @@ impl DesktopStage {
                 }
             }
         }
+    }
+
+    /// Convert screen coordinates to a ray in world space
+    fn screen_pos_to_ray(&self, screen_x: f32, screen_y: f32) -> (Vec3, Vec3) {
+        let (width, height) = window::screen_size();
+
+        // Normalize device coordinates (-1 to 1)
+        let x = 2.0 * screen_x / width - 1.0;
+        let y = 1.0 - 2.0 * screen_y / height;
+
+        // Compute inverse matrices
+        let proj_inv = self.camera.projection_matrix().inverse();
+        let view_inv = self.camera.view_matrix().inverse();
+
+        // Calculate ray origin and direction
+        let near_point = proj_inv * Vec4::new(x, y, -1.0, 1.0);
+        let far_point = proj_inv * Vec4::new(x, y, 1.0, 1.0);
+
+        let near_point = near_point / near_point.w;
+        let far_point = far_point / far_point.w;
+
+        let near_point_world = view_inv * near_point;
+        let far_point_world = view_inv * far_point;
+
+        let origin = near_point_world.xyz();
+        let direction = (far_point_world.xyz() - near_point_world.xyz()).normalize();
+
+        (origin, direction)
+    }
+
+    /// Pick an LED based on screen coordinates
+    fn pick_led(&self, screen_x: f32, screen_y: f32) -> Option<usize> {
+        // Skip if UI wants to capture the mouse
+        if self.ui_state.want_mouse_capture {
+            return None;
+        }
+
+        let (ray_origin, ray_direction) = self.screen_pos_to_ray(screen_x, screen_y);
+        let radius = self.config.led_radius;
+
+        // Find the closest LED that intersects with the ray
+        let mut closest_led = None;
+        let mut closest_distance = f32::MAX;
+
+        for (i, &position) in self.positions.iter().enumerate() {
+            // Sphere-ray intersection test
+            let oc = ray_origin - position;
+            let a = ray_direction.dot(ray_direction);
+            let b = 2.0 * oc.dot(ray_direction);
+            let c = oc.dot(oc) - radius * radius;
+            let discriminant = b * b - 4.0 * a * c;
+
+            if discriminant > 0.0 {
+                let t = (-b - discriminant.sqrt()) / (2.0 * a);
+                if t > 0.0 && t < closest_distance {
+                    closest_distance = t;
+                    closest_led = Some(i);
+                }
+            }
+        }
+
+        closest_led
     }
 }
 
@@ -655,8 +743,11 @@ impl EventHandler for DesktopStage {
         let view_proj = self.camera.view_projection_matrix();
         let (r, g, b, a) = self.config.background_color;
 
+        // Clear the background
         self.ctx
             .begin_default_pass(PassAction::clear_color(r, g, b, a));
+
+        // Draw the LEDs
         self.ctx.apply_pipeline(&self.pipeline);
         self.ctx.apply_bindings(&self.bindings);
         self.ctx
@@ -664,6 +755,71 @@ impl EventHandler for DesktopStage {
 
         self.ctx.draw(0, 24, self.positions.len() as i32);
         self.ctx.end_render_pass();
+
+        // Run egui
+        let selected_led = self.selected_led;
+        let positions = &self.positions;
+        let colors = &self.colors;
+        let brightness = self.brightness;
+
+        self.egui_mq.run(&mut *self.ctx, |_mq_ctx, egui_ctx| {
+            self.ui_state.want_mouse_capture = egui_ctx.wants_pointer_input();
+
+            // Only show LED info window if an LED is selected
+            if let Some(led_idx) = selected_led {
+                let pos = positions[led_idx];
+                let color = colors[led_idx];
+                let bright_color = color * brightness;
+
+                egui::Window::new("LED Information")
+                    .collapsible(false)
+                    .resizable(false)
+                    .show(egui_ctx, |ui| {
+                        ui.label(format!("LED Index: {}", led_idx));
+                        ui.label(format!(
+                            "Position: ({:.3}, {:.3}, {:.3})",
+                            pos.x, pos.y, pos.z
+                        ));
+
+                        // Display raw RGB values
+                        ui.label(format!(
+                            "Raw Color: R={:.3}, G={:.3}, B={:.3}",
+                            color.x, color.y, color.z
+                        ));
+
+                        // Display brightness-adjusted RGB values
+                        ui.label(format!(
+                            "Displayed Color: R={:.3}, G={:.3}, B={:.3}",
+                            bright_color.x, bright_color.y, bright_color.z
+                        ));
+
+                        // Display global brightness
+                        ui.label(format!("Global Brightness: {:.3}", brightness));
+
+                        // Show color preview
+                        let color_rect = egui::Rect::from_min_size(
+                            ui.cursor().min,
+                            egui::vec2(ui.available_width(), 30.0),
+                        );
+                        let color_preview = egui::Color32::from_rgb(
+                            (bright_color.x * 255.0) as u8,
+                            (bright_color.y * 255.0) as u8,
+                            (bright_color.z * 255.0) as u8,
+                        );
+                        ui.painter().rect_filled(color_rect, 4.0, color_preview);
+                        ui.add_space(40.0); // Space after the color preview
+
+                        // Deselect button
+                        if ui.button("Deselect").clicked() {
+                            self.selected_led = None;
+                        }
+                    });
+            }
+        });
+
+        // Draw egui
+        self.egui_mq.draw(&mut *self.ctx);
+
         self.ctx.commit_frame();
     }
 
@@ -672,7 +828,9 @@ impl EventHandler for DesktopStage {
     }
 
     fn mouse_motion_event(&mut self, x: f32, y: f32) {
-        if self.mouse_down {
+        self.egui_mq.mouse_motion_event(x, y);
+
+        if self.mouse_down && !self.ui_state.want_mouse_capture {
             let dx = x - self.last_mouse_x;
             let dy = y - self.last_mouse_y;
             self.camera.rotate(dx, dy);
@@ -681,34 +839,64 @@ impl EventHandler for DesktopStage {
         self.last_mouse_y = y;
     }
 
-    fn mouse_wheel_event(&mut self, _x: f32, y: f32) {
-        self.camera.zoom(y);
+    fn mouse_wheel_event(&mut self, x: f32, y: f32) {
+        self.egui_mq.mouse_wheel_event(x, y);
+
+        if !self.ui_state.want_mouse_capture {
+            self.camera.zoom(y);
+        }
     }
 
     fn mouse_button_down_event(&mut self, button: MouseButton, x: f32, y: f32) {
-        if button == MouseButton::Left {
+        self.egui_mq.mouse_button_down_event(button, x, y);
+
+        if button == MouseButton::Left && !self.ui_state.want_mouse_capture {
+            // Check for LED selection on click
+            if !self.mouse_down {
+                // Only do picking when button is first pressed
+                self.selected_led = self.pick_led(x, y);
+            }
+
             self.mouse_down = true;
             self.last_mouse_x = x;
             self.last_mouse_y = y;
         }
     }
 
-    fn mouse_button_up_event(&mut self, button: MouseButton, _x: f32, _y: f32) {
+    fn mouse_button_up_event(&mut self, button: MouseButton, x: f32, y: f32) {
+        self.egui_mq.mouse_button_up_event(button, x, y);
+
         if button == MouseButton::Left {
             self.mouse_down = false;
         }
     }
 
-    fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
-        match keycode {
-            KeyCode::R => {
-                self.camera.reset();
+    fn key_down_event(&mut self, keycode: KeyCode, keymods: KeyMods, _repeat: bool) {
+        self.egui_mq.key_down_event(keycode, keymods);
+
+        if !self.ui_state.want_mouse_capture {
+            match keycode {
+                KeyCode::R => {
+                    self.camera.reset();
+                }
+                KeyCode::O => {
+                    self.camera.toggle_projection_mode();
+                }
+                KeyCode::Escape => {
+                    // Clear selection when Escape is pressed
+                    self.selected_led = None;
+                }
+                _ => {}
             }
-            KeyCode::O => {
-                self.camera.toggle_projection_mode();
-            }
-            _ => {}
         }
+    }
+
+    fn key_up_event(&mut self, keycode: KeyCode, keymods: KeyMods) {
+        self.egui_mq.key_up_event(keycode, keymods);
+    }
+
+    fn char_event(&mut self, character: char, _keymods: KeyMods, _repeat: bool) {
+        self.egui_mq.char_event(character);
     }
 
     fn quit_requested_event(&mut self) {

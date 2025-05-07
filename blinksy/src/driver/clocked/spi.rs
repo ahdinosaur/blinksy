@@ -14,7 +14,7 @@
 //!
 //! ```rust
 //! use embedded_hal::spi::SpiBus;
-//! use blinksy::driver::{ClockedSpiDriver, Apa102Led};
+//! use blinksy::{driver::ClockedSpiDriver, drivers::Apa102Led};
 //!
 //! fn setup_leds<S>(spi: S) -> ClockedSpiDriver<Apa102Led, S>
 //! where

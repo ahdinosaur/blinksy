@@ -26,7 +26,7 @@
 //! use blinksy::{
 //!     driver::{ClocklessLed, ColorChannels, RgbChannels},
 //!     time::Nanoseconds,
-//! }
+//! };
 //!
 //! // Define a new LED chipset with specific timing requirements
 //! struct MyLed;

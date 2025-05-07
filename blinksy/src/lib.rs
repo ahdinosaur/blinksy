@@ -90,17 +90,14 @@
 //! );
 //! let mut control = ControlBuilder::new_2d()
 //!     .with_layout::<Layout>()
-//!     .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
-//!         ..Default::default()
-//!     })
-//!     .with_driver(apa102!(p))
+//!     .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
+//!     .with_driver(/* insert your LED driver here */)
 //!     .build();
 //!
-//! control.set_brightness(0.1);
+//! control.set_brightness(0.5);
 //!
 //! loop {
-//!     let elapsed_in_ms = elapsed().as_millis();
-//!     control.tick(elapsed_in_ms).unwrap();
+//!     control.tick(/* current time in milliseconds */).unwrap();
 //! }
 //! ```
 

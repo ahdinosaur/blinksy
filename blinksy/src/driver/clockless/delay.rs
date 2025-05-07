@@ -17,7 +17,7 @@
 //! ```rust
 //! use embedded_hal::digital::OutputPin;
 //! use embedded_hal::delay::DelayNs;
-//! use blinksy::driver::{ClocklessDelayDriver, Ws2812Led};
+//! use blinksy::{driver::ClocklessDelayDriver, drivers::Ws2812Led};
 //!
 //! fn setup_leds<P, D>(data_pin: P, delay: D) -> ClocklessDelayDriver<Ws2812Led, P, D>
 //! where

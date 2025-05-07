@@ -15,8 +15,8 @@ fn main() {
         Layout,
         [Shape2d::Grid {
             start: Vec2::new(-1., -1.),
-            row_end: Vec2::new(1., -1.),
-            col_end: Vec2::new(-1., 1.),
+            row_end: Vec2::new(-1., 1.),
+            col_end: Vec2::new(1., -1.),
             row_pixel_count: 16,
             col_pixel_count: 16,
             serpentine: true,

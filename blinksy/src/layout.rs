@@ -1,8 +1,6 @@
 //! # LED Layout Abstractions
 //!
 //! This module provides traits and types for defining LED arrangements in 1D, 2D, and 3D space.
-//! It allows precise control over how LEDs are positioned, which is essential for creating
-//! visually appealing effects.
 //!
 //! The module supports various layout types through dedicated traits:
 //! - [`Layout1d`]: For linear LED strips
@@ -32,8 +30,8 @@
 //!     Layout,
 //!     [Shape2d::Grid {
 //!         start: Vec2::new(-1., -1.),
-//!         row_end: Vec2::new(1., -1.),
-//!         col_end: Vec2::new(-1., 1.),
+//!         row_end: Vec2::new(-1., 1.),
+//!         col_end: Vec2::new(1., -1.),
 //!         row_pixel_count: 16,
 //!         col_pixel_count: 16,
 //!         serpentine: true,

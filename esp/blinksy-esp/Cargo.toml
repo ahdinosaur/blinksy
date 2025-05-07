@@ -48,3 +48,7 @@ esp32s2 = [
 esp32s3 = [
   "esp-hal/esp32s3",
 ]
+
+[package.metadata.docs.rs]
+default-target = "riscv32imac-unknown-none-elf"
+features       = ["esp32c6"]

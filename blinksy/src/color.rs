@@ -17,7 +17,7 @@
 
 /// sRGB color representation.
 ///
-/// This is the standard RGB color space used for most displays and LEDs.
+/// This is the standard RGB color space used for most applications and displays.
 pub use palette::Srgb;
 
 /// Linear sRGB color representation.

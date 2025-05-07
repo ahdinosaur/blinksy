@@ -9,7 +9,6 @@ use palette::{
     },
     rgb::Rgb,
     stimulus::IntoStimulus,
-    GammaSrgb,
 };
 
 /// sRGB color representation.

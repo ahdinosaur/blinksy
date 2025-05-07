@@ -320,7 +320,7 @@ where
         let colors: Vec<Vec4> = pixels
             .into_iter()
             .map(|pixel| {
-                let rgb: LinSrgb = Srgb::from_color(pixel).into_linear();
+                let rgb = Srgb::from_color(pixel);
                 Vec4::new(rgb.red, rgb.green, rgb.blue, 1.0)
             })
             .collect();

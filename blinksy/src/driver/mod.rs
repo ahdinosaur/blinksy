@@ -11,7 +11,6 @@
 //! - [`clockless`]: Implementations for clockless protocols (like WS2812)
 //! - Color channel utilities for handling different RGB/RGBW ordering
 
-use palette::{FromColor, Srgb};
 use smart_leds_trait::SmartLedsWrite;
 
 pub mod clocked;
@@ -20,7 +19,7 @@ pub mod clockless;
 pub use clocked::*;
 pub use clockless::*;
 
-use crate::color::GammaSrgb;
+use crate::color::{FromColor, GammaSrgb};
 
 /// Core trait for all LED drivers.
 ///

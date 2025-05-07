@@ -31,11 +31,11 @@
 
 use palette::{FromColor, LinSrgb, Srgb};
 
-use crate::driver::{
-    clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
-    RgbChannels,
+use crate::{
+    color::RgbChannels,
+    driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
+    util::map_f32_to_u8_range,
 };
-use crate::util::map_f32_to_u8_range;
 
 /// APA102 driver using GPIO bit-banging with delay timing.
 ///

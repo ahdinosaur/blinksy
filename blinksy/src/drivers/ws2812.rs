@@ -25,7 +25,10 @@
 
 use fugit::NanosDurationU32 as Nanoseconds;
 
-use crate::driver::{ClocklessDelayDriver, ClocklessLed, ColorChannels, RgbChannels};
+use crate::{
+    color::{ColorChannels, RgbChannels},
+    driver::{ClocklessDelayDriver, ClocklessLed},
+};
 
 /// LED implementation for WS2812 protocol.
 ///

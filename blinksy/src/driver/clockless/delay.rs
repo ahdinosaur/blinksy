@@ -79,7 +79,7 @@ where
         Self::Color: FromColor<C>,
     {
         for color in pixels {
-            let color = Srgb::from_color(color) * brightness;
+            let color = GammaSrgb::from_color(color) * brightness;
             let array = Led::COLOR_CHANNELS.to_array(color);
             self.write_buffer(array.as_ref())?;
         }

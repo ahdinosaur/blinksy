@@ -1,20 +1,34 @@
 //! # Color Types and Utilities
-//!
-//! This module provides color representations and utilities for LED patterns.
-//! It re-exports types from the `palette` crate to provide a rich set of color
-//! types and operations.
-//!
-//! The main types are:
-//!
-//! - [`Srgb`]: sRGB color representation
-//! - [`LinSrgb`]: Linear sRGB color representation
-//! - [`Hsv`]: Hue-Saturation-Value color representation
-//! - [`RgbHue`]: Hue component of RGB-based colors
-//!
-//! The module also provides conversion traits:
-//!
-//! - [`FromColor`]: For converting between different color types
-//! - [`IntoColor`]: For converting a color into another color space
+
+mod hsv;
+mod rgb;
+mod rgbw;
+
+pub struct Rgbw<T> {
+    red: f32,
+    green: f32,
+    blue: f32,
+}
+
+impl Rgb {
+    pub fn into_linear<T>(self) -> LinRgb<T> {
+        todo!()
+    }
+}
+
+pub struct LinRgb<T = u8> {
+    red: T,
+    green: T,
+    blue: T,
+}
+
+pub struct HsvRainbow;
+
+pub struct HsvSpectrum;
+
+pub trait HsvColorMap {}
+
+pub struct Hsv<M: HsvColorMap = Rainbow> {}
 
 /// sRGB color representation.
 ///

@@ -4,7 +4,7 @@ mod delay;
 
 pub use self::delay::*;
 
-use super::ColorChannels;
+use crate::color::ColorChannels;
 
 pub trait ClocklessLed {
     const T_0H: Nanoseconds;

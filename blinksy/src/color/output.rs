@@ -1,3 +1,65 @@
+use super::{ColorComponent, ColorCorrection};
+
+pub struct OutputRgb<C: ColorComponent> {
+    red: C,
+    green: C,
+    blue: C,
+}
+
+impl<C: ColorComponent> OutputRgb<C> {
+    pub fn as_array(self) -> [C; 3] {
+        [self.red, self.green, self.blue]
+    }
+}
+
+pub struct OutputRgbw<C: ColorComponent> {
+    red: C,
+    green: C,
+    blue: C,
+    white: C,
+}
+
+impl<C: ColorComponent> OutputRgbw<C> {
+    pub fn as_array(self) -> [C; 4] {
+        [self.red, self.green, self.blue, self.white]
+    }
+}
+
+pub trait OutputColor {
+    fn to_rgb<C: ColorComponent>(
+        &self,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> OutputRgb<C>;
+
+    fn to_rgbw<C: ColorComponent>(
+        &self,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> OutputRgbw<C>;
+
+    fn to_channels<C: ColorComponent + Copy>(
+        &self,
+        channels: ColorChannels,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> ColorArray<C> {
+        match channels {
+            ColorChannels::Rgb(rgb_order) => {
+                let rgb = self.to_rgb(brightness, gamma, correction);
+                ColorArray::Rgb(rgb_order.reorder(rgb.as_array()))
+            }
+            ColorChannels::Rgbw(rgbw_order) => {
+                let rgbw = self.to_rgbw(brightness, gamma, correction);
+                ColorArray::Rgbw(rgbw_order.reorder(rgbw.as_array()))
+            }
+        }
+    }
+}
+
 /// Enumeration of color channel formats.
 ///
 /// Different LED chipsets have different ordering of color channels.
@@ -175,61 +237,4 @@ impl<Word> AsRef<[Word]> for ColorArray<Word> {
             ColorArray::Rgbw(rgbw) => rgbw,
         }
     }
-}
-
-impl ColorChannels {
-    /// Converts an sRGB color to a properly ordered array for the specified color channels.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `Word` - The numeric type for each color component
-    ///
-    /// # Arguments
-    ///
-    /// * `color` - The sRGB color to convert
-    ///
-    /// # Returns
-    ///
-    /// A ColorArray containing the color data in the appropriate format and order
-    pub fn to_array<Word>(&self, color: Srgb<f32>) -> ColorArray<Word>
-    where
-        f32: IntoStimulus<Word>,
-        Word: Copy + PartialOrd + Sub<Output = Word>,
-    {
-        let color: LinSrgb<Word> = Srgb::from_color(color).into_linear().into_format();
-        let rgb = into_array(color);
-
-        match self {
-            ColorChannels::Rgb(rgb_order) => ColorArray::Rgb(rgb_order.reorder(rgb)),
-            ColorChannels::Rgbw(rgbw_order) => {
-                let rgbw = rgb_to_rgbw(rgb);
-                ColorArray::Rgbw(rgbw_order.reorder(rgbw))
-            }
-        }
-    }
-}
-
-/// Extracts the white component from the RGB values by taking the minimum of R, G, and B.
-/// Then subtracts that white component from each channel so the remaining RGB is "color only."
-///
-/// # Arguments
-///
-/// * `rgb` - RGB color values
-///
-/// # Returns
-///
-/// RGBW color values with the white component extracted
-fn rgb_to_rgbw<Word>(rgb: [Word; 3]) -> [Word; 4]
-where
-    Word: Copy + PartialOrd + Sub<Output = Word>,
-{
-    let w = if rgb[0] <= rgb[1] && rgb[0] <= rgb[2] {
-        rgb[0]
-    } else if rgb[1] <= rgb[0] && rgb[1] <= rgb[2] {
-        rgb[1]
-    } else {
-        rgb[2]
-    };
-
-    [rgb[0] - w, rgb[1] - w, rgb[2] - w, w]
 }

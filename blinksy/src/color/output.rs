@@ -1,4 +1,4 @@
-use super::{ColorComponent, ColorCorrection};
+use super::{ColorComponent, ColorCorrection, LinearRgb, LinearRgbw};
 
 pub struct OutputRgb<C: ColorComponent> {
     red: C,
@@ -25,23 +25,33 @@ impl<C: ColorComponent> OutputRgbw<C> {
     }
 }
 
-pub trait OutputColor {
-    fn to_rgb<C: ColorComponent>(
-        &self,
-        brightness: f32,
-        gamma: f32,
-        correction: ColorCorrection,
-    ) -> OutputRgb<C>;
+pub trait OutputColor: Sized {
+    fn to_linear_rgb(self) -> LinearRgb;
 
-    fn to_rgbw<C: ColorComponent>(
-        &self,
+    fn to_linear_rgbw(self) -> LinearRgbw;
+
+    fn to_output_rgb<C: ColorComponent>(
+        self,
         brightness: f32,
         gamma: f32,
         correction: ColorCorrection,
-    ) -> OutputRgbw<C>;
+    ) -> OutputRgb<C> {
+        self.to_linear_rgb()
+            .to_output_rgb(brightness, gamma, correction)
+    }
+
+    fn to_output_rgbw<C: ColorComponent>(
+        self,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> OutputRgbw<C> {
+        self.to_linear_rgbw()
+            .to_output_rgbw(brightness, gamma, correction)
+    }
 
     fn to_channels<C: ColorComponent + Copy>(
-        &self,
+        self,
         channels: ColorChannels,
         brightness: f32,
         gamma: f32,
@@ -49,11 +59,11 @@ pub trait OutputColor {
     ) -> ColorArray<C> {
         match channels {
             ColorChannels::Rgb(rgb_order) => {
-                let rgb = self.to_rgb(brightness, gamma, correction);
+                let rgb = self.to_output_rgb(brightness, gamma, correction);
                 ColorArray::Rgb(rgb_order.reorder(rgb.as_array()))
             }
             ColorChannels::Rgbw(rgbw_order) => {
-                let rgbw = self.to_rgbw(brightness, gamma, correction);
+                let rgbw = self.to_output_rgbw(brightness, gamma, correction);
                 ColorArray::Rgbw(rgbw_order.reorder(rgbw.as_array()))
             }
         }

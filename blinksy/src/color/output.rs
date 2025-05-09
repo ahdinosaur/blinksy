@@ -1,35 +1,59 @@
 use super::{ColorComponent, ColorCorrection, LinearRgb, LinearRgbw};
 
+/// RGB color values ready for output to LED hardware
 pub struct OutputRgb<C: ColorComponent> {
-    red: C,
-    green: C,
-    blue: C,
+    /// Red component
+    pub red: C,
+    /// Green component
+    pub green: C,
+    /// Blue component
+    pub blue: C,
 }
 
 impl<C: ColorComponent> OutputRgb<C> {
+    /// Converts the RGB values to an array
     pub fn as_array(self) -> [C; 3] {
         [self.red, self.green, self.blue]
     }
 }
 
+/// RGBW color values ready for output to LED hardware
 pub struct OutputRgbw<C: ColorComponent> {
-    red: C,
-    green: C,
-    blue: C,
-    white: C,
+    /// Red component
+    pub red: C,
+    /// Green component
+    pub green: C,
+    /// Blue component
+    pub blue: C,
+    /// White component
+    pub white: C,
 }
 
 impl<C: ColorComponent> OutputRgbw<C> {
+    /// Converts the RGBW values to an array
     pub fn as_array(self) -> [C; 4] {
         [self.red, self.green, self.blue, self.white]
     }
 }
 
+/// Trait for types that can be converted to output colors
+///
+/// This trait defines methods to convert a color type to various
+/// output formats suitable for LED hardware.
 pub trait OutputColor: Sized {
+    /// Converts this color to a linear RGB representation
     fn to_linear_rgb(self) -> LinearRgb;
 
+    /// Converts this color to a linear RGBW representation
     fn to_linear_rgbw(self) -> LinearRgbw;
 
+    /// Converts this color to an RGB format suitable for direct LED output
+    ///
+    /// # Arguments
+    ///
+    /// * `brightness` - Overall brightness scaling factor
+    /// * `gamma` - Additional gamma correction factor
+    /// * `correction` - Color correction factors
     fn to_output_rgb<C: ColorComponent>(
         self,
         brightness: f32,
@@ -40,6 +64,13 @@ pub trait OutputColor: Sized {
             .to_output_rgb(brightness, gamma, correction)
     }
 
+    /// Converts this color to an RGBW format suitable for direct LED output
+    ///
+    /// # Arguments
+    ///
+    /// * `brightness` - Overall brightness scaling factor (0.0 to 1.0)
+    /// * `gamma` - Additional gamma correction factor
+    /// * `correction` - Color correction factors
     fn to_output_rgbw<C: ColorComponent>(
         self,
         brightness: f32,
@@ -50,6 +81,14 @@ pub trait OutputColor: Sized {
             .to_output_rgbw(brightness, gamma, correction)
     }
 
+    /// Converts this color to channels suitable for the specified LED format
+    ///
+    /// # Arguments
+    ///
+    /// * `channels` - The channel format specification
+    /// * `brightness` - Overall brightness scaling factor (0.0 to 1.0)
+    /// * `gamma` - Additional gamma correction factor
+    /// * `correction` - Color correction factors
     fn to_channels<C: ColorComponent + Copy>(
         self,
         channels: ColorChannels,

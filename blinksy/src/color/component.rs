@@ -1,5 +1,6 @@
 pub trait ColorComponent {
     fn to_normalized_f32(self) -> f32;
+    fn from_normalized_f32(value: f32) -> Self;
 }
 
 macro_rules! impl_component_for_uint {
@@ -7,6 +8,9 @@ macro_rules! impl_component_for_uint {
         impl ColorComponent for $T {
             fn to_normalized_f32(self) -> f32 {
                 self as f32 / ($T::MAX as f32)
+            }
+            fn from_normalized_f32(value: f32) -> Self {
+                (value * ($T::MAX as f32)) as $T
             }
         }
     };
@@ -19,5 +23,8 @@ impl_component_for_uint!(u32);
 impl ColorComponent for f32 {
     fn to_normalized_f32(self) -> f32 {
         self.clamp(0., 1.)
+    }
+    fn from_normalized_f32(value: f32) -> f32 {
+        value
     }
 }

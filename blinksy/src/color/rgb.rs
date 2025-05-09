@@ -1,4 +1,4 @@
-pub struct Rgb<T> {
+pub struct Rgb {
     red: f32,
     green: f32,
     blue: f32,
@@ -10,17 +10,17 @@ impl Rgb {
     }
 }
 
-pub struct LinRgb<T = u8> {
+pub struct LinearRgb<T = u8> {
     red: T,
     green: T,
     blue: T,
 }
 
-/// Convert sRGB to linear RGB (inverse sRGB companding)
-/// Verified here: http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
+/// Convert RGB component to linear RGB component (inverse RGB companding)
+/// Reference: http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
 /// Source: https://github.com/kimtore/colorspace/
 #[inline]
-fn srgb_to_linear(c: f32, gamma: f32) -> f32 {
+pub fn rgb_component_to_linear_rgb_component(c: f32, gamma: f32) -> f32 {
     if c <= 0.04045 {
         c / 12.92
     } else {
@@ -28,18 +28,16 @@ fn srgb_to_linear(c: f32, gamma: f32) -> f32 {
     }
 }
 
-/// Convert linear RGB to gamma RGB
-/// Verified here: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html
+/// Convert linear RGB component to RGB component
+/// Reference: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html
 /// Source: https://github.com/kimtore/colorspace/
 #[inline]
-fn linear_to_srgb(c: f32) -> f32 {
+pub fn linear_rgb_component_to_rgb_component(c: f32, gamma: f32) -> f32 {
     if c <= 0.0031308 {
         12.92 * c
     } else {
         1.055 * c.powf(1.0 / gamma) - 0.055
     }
 }
-
-const GAMMA: f32 = 2.4;
 
 mod test {}

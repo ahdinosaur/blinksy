@@ -196,11 +196,11 @@ impl LinearRgb {
         let blue = gamma_encode(blue, gamma);
 
         // Convert to component type and return
-        LedRgb::new(
+        [
             C::from_normalized_f32(red),
             C::from_normalized_f32(green),
             C::from_normalized_f32(blue),
-        )
+        ]
     }
 }
 
@@ -261,8 +261,8 @@ impl LinearRgbw {
     ///
     /// # Returns
     ///
-    /// An `OutputRgbw<C>` with the specified color component type
-    pub fn to_output_rgbw<C: ColorComponent>(
+    /// An `LedRgbw<C>` with the specified color component type
+    pub fn to_led_rgbw<C: ColorComponent>(
         self,
         brightness: f32,
         gamma: f32,
@@ -287,12 +287,12 @@ impl LinearRgbw {
         let white = gamma_encode(white, gamma);
 
         // Convert to component type and return
-        LedRgbw::new(
+        [
             C::from_normalized_f32(red),
             C::from_normalized_f32(green),
             C::from_normalized_f32(blue),
             C::from_normalized_f32(white),
-        )
+        ]
     }
 }
 

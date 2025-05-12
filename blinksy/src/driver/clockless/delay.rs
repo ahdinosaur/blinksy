@@ -86,9 +86,8 @@ where
         C: OutputColor,
     {
         for color in pixels {
-            let array = color.to_led(Led::COLOR_CHANNELS, brightness, gamma, correction);
-            let array = Led::COLOR_CHANNELS.to_array(color);
-            self.write_buffer(array.as_ref())?;
+            let data = color.to_led(Led::LED_CHANNELS, brightness, gamma, correction);
+            self.write_buffer(data.as_ref())?;
         }
         self.delay_for_reset();
         Ok(())

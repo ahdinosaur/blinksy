@@ -65,11 +65,11 @@ pub trait OutputColor: Sized {
         match channels {
             LedChannels::Rgb(rgb_order) => {
                 let rgb = self.to_led_rgb(brightness, gamma, correction);
-                LedColor::Rgb(rgb_order.reorder(rgb.as_array()))
+                LedColor::Rgb(rgb_order.reorder(rgb))
             }
             LedChannels::Rgbw(rgbw_order) => {
                 let rgbw = self.to_led_rgbw(brightness, gamma, correction);
-                LedColor::Rgbw(rgbw_order.reorder(rgbw.as_array()))
+                LedColor::Rgbw(rgbw_order.reorder(rgbw))
             }
         }
     }

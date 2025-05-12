@@ -26,6 +26,8 @@ pub trait ClockedLed {
         writer: &mut Writer,
         color: Color,
         brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) -> Result<(), Writer::Error>;
     fn reset<Writer: ClockedWriter<Word = Self::Word>>(
         writer: &mut Writer,
@@ -51,8 +53,7 @@ pub trait ClockedLed {
 
         let mut pixel_count = 0;
         for color in pixels.into_iter() {
-            let color = Self::Color::from_color(color);
-            Self::color(writer, color, brightness)?;
+            Self::color(writer, color, brightness, gamma, correction)?;
             pixel_count += 1;
         }
 

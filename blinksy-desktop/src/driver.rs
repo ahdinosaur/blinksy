@@ -55,10 +55,7 @@
 //! ```
 
 use blinksy::{
-    color::{
-        gamma_encode, srgb_encode, ColorCorrection, FromColor, LinSrgb, LinearRgb, OutputColor,
-        Srgb,
-    },
+    color::{gamma_encode, srgb_encode, ColorCorrection, LinearRgb, OutputColor},
     dimension::{Dim1d, Dim2d, LayoutForDim},
     driver::LedDriver,
     layout::{Layout1d, Layout2d},
@@ -170,14 +167,13 @@ impl Desktop<Dim1d, ()> {
             positions.push(vec3(x, 0.0, 0.0));
         }
 
-        let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
         let (sender, receiver) = channel();
         let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let is_window_closed_2 = is_window_closed.clone();
 
         std::thread::spawn(move || {
-            DesktopStage::start(|| {
-                DesktopStage::new(positions, colors, receiver, config, is_window_closed_2)
+            DesktopStage::start(move || {
+                DesktopStage::new(positions, receiver, config, is_window_closed_2)
             });
         });
 
@@ -188,7 +184,7 @@ impl Desktop<Dim1d, ()> {
             gamma: 1.0,
             correction: ColorCorrection::default(),
             sender,
-            is_window_closed: is_window_closed.clone(),
+            is_window_closed,
         }
     }
 }
@@ -235,14 +231,13 @@ impl Desktop<Dim2d, ()> {
             positions.push(vec3(point.x, point.y, 0.0));
         }
 
-        let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
         let (sender, receiver) = channel();
         let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let is_window_closed_2 = is_window_closed.clone();
 
         std::thread::spawn(move || {
             DesktopStage::start(move || {
-                DesktopStage::new(positions, colors, receiver, config, is_window_closed_2)
+                DesktopStage::new(positions, receiver, config, is_window_closed_2)
             });
         });
 
@@ -625,7 +620,7 @@ impl UiManager {
         ctx: &mut dyn RenderingBackend,
         led_picker: &mut LedPicker,
         positions: &[Vec3],
-        colors: &[Vec4],
+        colors: &[LinearRgb],
         brightness: f32,
         gamma: f32,
         correction: ColorCorrection,
@@ -709,7 +704,7 @@ impl UiManager {
                         ));
 
                         // Display global gamma
-                        ui.label(format!("Global Gamma: {:..3}", gamma));
+                        ui.label(format!("Global Gamma: {:.3}", gamma));
 
                         // Display brightness-adjusted RGB values
                         ui.label(format!(
@@ -727,9 +722,9 @@ impl UiManager {
                         let (_, color_rect) =
                             ui.allocate_space(egui::vec2(ui.available_width(), 30.0));
                         let color_preview = egui::Color32::from_rgb(
-                            (final_color.x * 255.0) as u8,
-                            (final_color.y * 255.0) as u8,
-                            (final_color.z * 255.0) as u8,
+                            (final_red * 255.0) as u8,
+                            (final_green * 255.0) as u8,
+                            (final_blue * 255.0) as u8,
                         );
                         ui.painter().rect_filled(color_rect, 4.0, color_preview);
                         ui.add_space(10.0); // Space after the color preview
@@ -892,6 +887,7 @@ struct DesktopStage {
     ctx: Box<dyn RenderingBackend>,
     positions: Vec<Vec3>,
     colors: Vec<LinearRgb>,
+    colors_buffer: Vec<Vec4>,
     brightness: f32,
     gamma: f32,
     correction: ColorCorrection,
@@ -927,7 +923,6 @@ impl DesktopStage {
     /// Create a new DesktopStage with the given LED positions, colors, and configuration.
     pub fn new(
         positions: Vec<Vec3>,
-        colors: Vec<Vec4>,
         receiver: Receiver<LedMessage>,
         config: DesktopConfig,
         is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -947,11 +942,17 @@ impl DesktopStage {
         let (width, height) = window::screen_size();
         let camera = Camera::new(width / height, config.orthographic_view);
 
+        // Initialize colors buffer
+        let colors_buffer = (0..positions.len())
+            .map(|_| Vec4::new(0.0, 0.0, 0.0, 1.0))
+            .collect();
+
         // Create the stage
         let mut stage = Self {
             ctx,
             positions: positions.clone(),
-            colors,
+            colors: Vec::new(),
+            colors_buffer,
             brightness: 1.0,
             gamma: 1.0,
             correction: ColorCorrection::default(),
@@ -973,7 +974,7 @@ impl DesktopStage {
             .update_positions_buffer(&mut *stage.ctx, &positions);
         stage
             .renderer
-            .update_colors_buffer(&mut *stage.ctx, &stage.colors);
+            .update_colors_buffer(&mut *stage.ctx, &stage.colors_buffer);
 
         stage
     }
@@ -983,10 +984,6 @@ impl DesktopStage {
         while let Ok(message) = self.receiver.try_recv() {
             match message {
                 LedMessage::UpdateColors(colors) => {
-                    assert!(
-                        colors.len() == self.colors.len(),
-                        "Uh oh, number of pixels changed!"
-                    );
                     self.colors = colors;
                 }
                 LedMessage::UpdateBrightness(brightness) => {
@@ -1029,7 +1026,7 @@ impl EventHandler for DesktopStage {
     }
 
     fn draw(&mut self) {
-        let colors: Vec<Vec4> = self
+        let colors_buffer: Vec<Vec4> = self
             .colors
             .iter()
             .map(|color| {
@@ -1056,7 +1053,7 @@ impl EventHandler for DesktopStage {
                 let (red, green, blue) = (
                     gamma_encode(red, self.gamma),
                     gamma_encode(green, self.gamma),
-                    gamma_encode(blue, gamma),
+                    gamma_encode(blue, self.gamma),
                 );
 
                 Vec4::new(red, green, blue, 1.)
@@ -1064,9 +1061,10 @@ impl EventHandler for DesktopStage {
             .collect();
 
         // Update colors buffer
+        self.colors_buffer = colors_buffer;
         self.ctx.buffer_update(
             self.renderer.bindings.vertex_buffers[2],
-            BufferSource::slice(&colors),
+            BufferSource::slice(&self.colors_buffer),
         );
 
         // Render the LEDs

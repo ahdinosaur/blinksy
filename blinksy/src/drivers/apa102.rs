@@ -31,7 +31,7 @@
 
 use num_traits::ToPrimitive;
 
-use crate::color::OutputColor;
+use crate::color::{ColorComponent, ColorCorrection, OutputColor};
 use crate::util::map_f32_to_u8_range;
 use crate::{
     color::RgbChannels,
@@ -79,15 +79,20 @@ impl ClockedLed for Apa102Led {
         writer: &mut Writer,
         color: C,
         brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) -> Result<(), Writer::Error> {
+        // TODO when to gamma?
+        // TODO when to correction?
+
         let color_linear = color.to_linear_rgb();
         let (red_u16, green_u16, blue_u16) = (
-            color_linear.red.to_u16(),
-            color_linear.green.to_u16(),
-            color_linear.blue.to_u16(),
+            ColorComponent::from_normalized_f32(color_linear.red),
+            ColorComponent::from_normalized_f32(color_linear.green),
+            ColorComponent::from_normalized_f32(color_linear.blue),
         );
 
-        let brightness: u8 = map_f32_to_u8_range(brightness, 255);
+        let brightness: u8 = ColorComponent::from_normalized_f32(brightness);
 
         let ((red, green, blue), brightness) =
             five_bit_bitshift(red_u16, green_u16, blue_u16, brightness);

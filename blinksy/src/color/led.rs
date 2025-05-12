@@ -1,5 +1,5 @@
 /// Color data ready for output to LED hardware
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LedColor<C> {
     /// Output RGB color data
     Rgb(LedRgb<C>),
@@ -18,34 +18,10 @@ impl<C> AsRef<[C]> for LedColor<C> {
 }
 
 /// RGB color values ready for output to LED hardware
-pub struct LedRgb<C>([C; 3]);
-
-impl<C> LedRgb<C> {
-    pub fn new(red: C, green: C, blue: C) -> Self {
-        Self([red, green, blue])
-    }
-}
-
-impl<C> AsRef<[C]> for LedRgb<C> {
-    fn as_ref(&self) -> &[C] {
-        &self.0
-    }
-}
+pub type LedRgb<C> = [C; 3];
 
 /// RGBW color values ready for output to LED hardware
-pub struct LedRgbw<C>([C; 4]);
-
-impl<C> LedRgbw<C> {
-    pub fn new(red: C, green: C, blue: C, white: C) -> Self {
-        Self([red, green, blue, white])
-    }
-}
-
-impl<C> AsRef<[C]> for LedRgbw<C> {
-    fn as_ref(&self) -> &[C] {
-        &self.0
-    }
-}
+pub type LedRgbw<C> = [C; 4];
 
 /// Enumeration of color channel formats.
 ///
@@ -140,7 +116,7 @@ impl RgbChannels {
     /// # Returns
     ///
     /// Array of values reordered according to the channel specification
-    pub fn reorder<Word: Copy>(&self, rgb: [Word; 3]) -> [Word; 3] {
+    pub fn reorder<Word: Copy>(&self, rgb: LedRgb<Word>) -> LedRgb<Word> {
         use RgbChannels::*;
         match self {
             RGB => [rgb[0], rgb[1], rgb[2]],
@@ -163,7 +139,7 @@ impl RgbwChannels {
     /// # Returns
     ///
     /// Array of values reordered according to the channel specification
-    pub fn reorder<Word: Copy>(&self, rgbw: [Word; 4]) -> [Word; 4] {
+    pub fn reorder<Word: Copy>(&self, rgbw: LedRgbw<Word>) -> LedRgbw<Word> {
         use RgbwChannels::*;
         match self {
             // RGB

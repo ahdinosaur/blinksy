@@ -30,7 +30,7 @@ pub use clockless::*;
 /// # Example
 ///
 /// ```rust
-/// use blinksy::driver::LedDriver;
+/// use blinksy::{color::{ColorCorrection, OutputColor}, driver::LedDriver};
 ///
 /// struct MyDriver {
 ///     // Implementation details
@@ -39,10 +39,10 @@ pub use clockless::*;
 /// impl LedDriver for MyDriver {
 ///     type Error = ();
 ///
-///     fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+///     fn write<I, C>(&mut self, pixels: I, brightness: f32, gamma: f32, correction: ColorCorrection) -> Result<(), Self::Error>
 ///     where
 ///         I: IntoIterator<Item = C>,
-///         C: OutputColor;
+///         C: OutputColor
 ///     {
 ///         // Implementation of writing colors to the LED hardware
 ///         Ok(())

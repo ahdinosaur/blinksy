@@ -12,18 +12,6 @@
 /// - Calibrating a display system for accurate color reproduction
 /// - Compensating for RGB LED intensity differences
 ///
-/// # Example
-///
-/// ```
-/// use blinksy::color::{ColorCorrection, LinearRgb};
-///
-/// // Create correction for LEDs with weak green and strong blue
-/// let correction = ColorCorrection::new(1.0, 1.3, 0.8);
-///
-/// // Apply correction to a linear RGB color
-/// let linear = LinearRgb::<f32>::new(0.5, 0.5, 0.5);
-/// let output = linear.to_output_rgb(&correction);
-/// ```
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ColorCorrection {
     /// Scaling factor for red channel
@@ -50,7 +38,7 @@ impl ColorCorrection {
     /// # Example
     ///
     /// ```
-    /// use led_color::ColorCorrection;
+    /// use blinksy::color::ColorCorrection;
     ///
     /// // Create a correction for LEDs with strong red, weak blue
     /// let correction = ColorCorrection::new(0.8, 1.0, 1.4);
@@ -79,7 +67,7 @@ impl ColorCorrection {
     /// # Example
     ///
     /// ```
-    /// use led_color::ColorCorrection;
+    /// use blinksy::color::ColorCorrection;
     ///
     /// // Create a warm white (incandescent-like) correction
     /// let warm = ColorCorrection::from_temperature(2700);

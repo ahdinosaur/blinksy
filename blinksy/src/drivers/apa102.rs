@@ -29,7 +29,7 @@
 //! This implementation includes the "High Definition" color handling from FastLED, which
 //! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 
-use crate::color::{ColorComponent, ColorCorrection, OutputColor};
+use crate::color::{gamma_encode, ColorComponent, ColorCorrection, OutputColor};
 use crate::{
     color::RgbChannels,
     driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
@@ -79,22 +79,32 @@ impl ClockedLed for Apa102Led {
         gamma: f32,
         correction: ColorCorrection,
     ) -> Result<(), Writer::Error> {
-        // TODO when to gamma?
-        // TODO when to correction?
+        let linear = color.to_linear_rgb();
+        let (red, green, blue) = (linear.red, linear.green, linear.blue);
 
-        let color_linear = color.to_linear_rgb();
+        // First color correct the linear RGB
+        let red = red * correction.red;
+        let green = green * correction.red;
+        let blue = blue * correction.red;
+
+        // Then, adjust additional gamma
+        let red = gamma_encode(red, gamma);
+        let green = gamma_encode(green, gamma);
+        let blue = gamma_encode(blue, gamma);
+
+        // Then, convert to u16's
         let (red_u16, green_u16, blue_u16) = (
-            ColorComponent::from_normalized_f32(color_linear.red),
-            ColorComponent::from_normalized_f32(color_linear.green),
-            ColorComponent::from_normalized_f32(color_linear.blue),
+            ColorComponent::from_normalized_f32(red),
+            ColorComponent::from_normalized_f32(green),
+            ColorComponent::from_normalized_f32(blue),
         );
 
         let brightness: u8 = ColorComponent::from_normalized_f32(brightness);
 
-        let ((red, green, blue), brightness) =
+        let ((red_u8, green_u8, blue_u8), brightness) =
             five_bit_bitshift(red_u16, green_u16, blue_u16, brightness);
 
-        let led_frame = RgbChannels::BGR.reorder([red, green, blue]);
+        let led_frame = RgbChannels::BGR.reorder([red_u8, green_u8, blue_u8]);
 
         writer.write(&[0b11100000 | (brightness & 0b00011111)])?;
         writer.write(&led_frame)?;

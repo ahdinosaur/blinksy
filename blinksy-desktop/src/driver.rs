@@ -55,7 +55,10 @@
 //! ```
 
 use blinksy::{
-    color::{FromColor, LinSrgb, Srgb},
+    color::{
+        gamma_encode, srgb_encode, ColorCorrection, FromColor, LinSrgb, LinearRgb, OutputColor,
+        Srgb,
+    },
     dimension::{Dim1d, Dim2d, LayoutForDim},
     driver::LedDriver,
     layout::{Layout1d, Layout2d},
@@ -120,6 +123,8 @@ pub struct Desktop<Dim, Layout> {
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,
     brightness: f32,
+    gamma: f32,
+    correction: ColorCorrection,
     sender: Sender<LedMessage>,
     is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
@@ -180,6 +185,8 @@ impl Desktop<Dim1d, ()> {
             dim: PhantomData,
             layout: PhantomData,
             brightness: 1.0,
+            gamma: 1.0,
+            correction: ColorCorrection::default(),
             sender,
             is_window_closed: is_window_closed.clone(),
         }
@@ -243,6 +250,8 @@ impl Desktop<Dim2d, ()> {
             dim: PhantomData,
             layout: PhantomData,
             brightness: 1.0,
+            gamma: 1.0,
+            correction: ColorCorrection::default(),
             sender,
             is_window_closed,
         }
@@ -292,10 +301,16 @@ impl From<SendError<LedMessage>> for DesktopError {
 /// Messages for communication with the rendering thread.
 enum LedMessage {
     /// Update the colors of all LEDs
-    UpdateColors(Vec<Vec4>),
+    UpdateColors(Vec<LinearRgb>),
 
     /// Update the global brightness
     UpdateBrightness(f32),
+
+    /// Update the global gamma
+    UpdateGamma(f32),
+
+    /// Update the global color correction
+    UpdateColorCorrection(ColorCorrection),
 
     /// Terminate the rendering thread
     Quit,
@@ -306,24 +321,36 @@ where
     Layout: LayoutForDim<Dim>,
 {
     type Error = DesktopError;
-    type Color = Srgb;
 
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+    fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
         if self.brightness != brightness {
             self.brightness = brightness;
             self.send(LedMessage::UpdateBrightness(brightness))?;
         }
 
-        let colors: Vec<Vec4> = pixels
+        if self.gamma != gamma {
+            self.gamma = gamma;
+            self.send(LedMessage::UpdateGamma(gamma))?;
+        }
+
+        if self.correction != correction {
+            self.correction = correction;
+            self.send(LedMessage::UpdateColorCorrection(correction))?;
+        }
+
+        let colors: Vec<LinearRgb> = pixels
             .into_iter()
-            .map(|pixel| {
-                let rgb: LinSrgb = Srgb::from_color(pixel).into_linear();
-                Vec4::new(rgb.red, rgb.green, rgb.blue, 1.0)
-            })
+            .map(|pixel| pixel.to_linear_rgb())
             .collect();
 
         self.send(LedMessage::UpdateColors(colors))?;
@@ -600,6 +627,8 @@ impl UiManager {
         positions: &[Vec3],
         colors: &[Vec4],
         brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) {
         self.egui_mq.run(ctx, |_mq_ctx, egui_ctx| {
             self.want_mouse_capture = egui_ctx.wants_pointer_input();
@@ -608,7 +637,36 @@ impl UiManager {
             if let Some(led_idx) = led_picker.selected_led {
                 let pos = positions[led_idx];
                 let color = colors[led_idx];
-                let bright_color = color * brightness;
+
+                let (red, green, blue) = (color.red, color.green, color.blue);
+
+                // Apply brightness
+                let (bright_red, bright_green, bright_blue) = (
+                    red * self.brightness,
+                    green * self.brightness,
+                    blue * self.brightness,
+                );
+
+                // Apply color correction
+                let (correct_red, correct_green, correct_blue) = (
+                    bright_red * self.correction.red,
+                    bright_green * self.correction.green,
+                    bright_blue * self.correction.blue,
+                );
+
+                // Convert to sRGB
+                let (srgb_red, srgb_green, srgb_blue) = (
+                    srgb_encode(correct_red),
+                    srgb_encode(correct_green),
+                    srgb_encode(correct_blue),
+                );
+
+                // Apply gamma
+                let (final_red, final_green, final_blue) = (
+                    gamma_encode(srgb_red, self.gamma),
+                    gamma_encode(srgb_green, self.gamma),
+                    gamma_encode(srgb_blue, gamma),
+                );
 
                 egui::Window::new("LED Information")
                     .collapsible(false)
@@ -622,18 +680,34 @@ impl UiManager {
 
                         // Display raw RGB values
                         ui.label(format!(
-                            "Raw Color: R={:.3}, G={:.3}, B={:.3}",
-                            color.x, color.y, color.z
-                        ));
-
-                        // Display brightness-adjusted RGB values
-                        ui.label(format!(
-                            "Displayed Color: R={:.3}, G={:.3}, B={:.3}",
-                            bright_color.x, bright_color.y, bright_color.z
+                            "Linear RGB: R={:.3}, G={:.3}, B={:.3}",
+                            red, green, blue,
                         ));
 
                         // Display global brightness
                         ui.label(format!("Global Brightness: {:.3}", brightness));
+
+                        // Display brightness-adjusted RGB values
+                        ui.label(format!(
+                            "Brightness-adjusted RGB: R={:.3}, G={:.3}, B={:.3}",
+                            bright_red, bright_green, bright_blue
+                        ));
+
+                        // Display global color correction
+                        ui.label(format!(
+                            "Global Color Correction: R={:.3}, G={:.3}, B={:.3}",
+                            correction.red, correction.green, correction.blue
+                        ));
+
+                        // Display brightness-adjusted RGB values
+                        ui.label(format!(
+                            "Correction-adjusted RGB: R={:.3}, G={:.3}, B={:.3}",
+                            correct_red, correct_green, correct_blue
+                        ));
+
+                        // TODO Display sRGB values
+                        // TODO Display global gamma
+                        // TODO Display final color
 
                         // Show color preview
                         let (_, color_rect) =
@@ -803,8 +877,10 @@ impl Renderer {
 struct DesktopStage {
     ctx: Box<dyn RenderingBackend>,
     positions: Vec<Vec3>,
-    colors: Vec<Vec4>,
+    colors: Vec<LinearRgb>,
     brightness: f32,
+    gamma: f32,
+    correction: ColorCorrection,
     receiver: Receiver<LedMessage>,
     camera: Camera,
     config: DesktopConfig,
@@ -863,6 +939,8 @@ impl DesktopStage {
             positions: positions.clone(),
             colors,
             brightness: 1.0,
+            gamma: 1.0,
+            correction: ColorCorrection::default(),
             receiver,
             camera,
             config,
@@ -896,13 +974,15 @@ impl DesktopStage {
                         "Uh oh, number of pixels changed!"
                     );
                     self.colors = colors;
-                    self.ctx.buffer_update(
-                        self.renderer.bindings.vertex_buffers[2],
-                        BufferSource::slice(&self.colors),
-                    );
                 }
                 LedMessage::UpdateBrightness(brightness) => {
                     self.brightness = brightness;
+                }
+                LedMessage::UpdateGamma(gamma) => {
+                    self.gamma = gamma;
+                }
+                LedMessage::UpdateColorCorrection(correction) => {
+                    self.correction = correction;
                 }
                 LedMessage::Quit => {
                     window::quit();
@@ -935,24 +1015,44 @@ impl EventHandler for DesktopStage {
     }
 
     fn draw(&mut self) {
-        // Apply brightness to colors
-        let bright_colors: Vec<Vec4> = self
+        let colors: Vec<Vec4> = self
             .colors
             .iter()
-            .map(|c| {
-                Vec4::new(
-                    c.x * self.brightness,
-                    c.y * self.brightness,
-                    c.z * self.brightness,
-                    c.w,
-                )
+            .map(|color| {
+                let (red, green, blue) = (color.red, color.green, color.blue);
+
+                // Apply brightness
+                let (red, green, blue) = (
+                    red * self.brightness,
+                    green * self.brightness,
+                    blue * self.brightness,
+                );
+
+                // Apply color correction
+                let (red, green, blue) = (
+                    red * self.correction.red,
+                    green * self.correction.green,
+                    blue * self.correction.blue,
+                );
+
+                // Convert to sRGB
+                let (red, green, blue) = (srgb_encode(red), srgb_encode(green), srgb_encode(blue));
+
+                // Apply gamma
+                let (red, green, blue) = (
+                    gamma_encode(red, self.gamma),
+                    gamma_encode(green, self.gamma),
+                    gamma_encode(blue, gamma),
+                );
+
+                Vec4::new(red, green, blue, 1.)
             })
             .collect();
 
         // Update colors buffer
         self.ctx.buffer_update(
             self.renderer.bindings.vertex_buffers[2],
-            BufferSource::slice(&bright_colors),
+            BufferSource::slice(&colors),
         );
 
         // Render the LEDs
@@ -971,6 +1071,8 @@ impl EventHandler for DesktopStage {
             &self.positions,
             &self.colors,
             self.brightness,
+            self.gamma,
+            self.correction,
         );
 
         // Draw egui

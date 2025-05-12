@@ -112,3 +112,13 @@ impl ColorCorrection {
         ColorCorrection::new(r, g, b)
     }
 }
+
+impl Default for ColorCorrection {
+    fn default() -> Self {
+        Self {
+            red: 1.,
+            green: 1.,
+            blue: 1.,
+        }
+    }
+}

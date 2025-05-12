@@ -309,7 +309,7 @@ impl LinearRgbw {
 /// - http://color.org/sRGB.pdf
 /// - http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html
 #[inline]
-pub(crate) fn srgb_decode(c: f32) -> f32 {
+pub fn srgb_decode(c: f32) -> f32 {
     if c <= 0.04045 {
         c / 12.92
     } else {
@@ -330,7 +330,7 @@ pub(crate) fn srgb_decode(c: f32) -> f32 {
 /// - http://color.org/sRGB.pdf
 /// - http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
 #[inline]
-pub(crate) fn srgb_encode(c: f32) -> f32 {
+pub fn srgb_encode(c: f32) -> f32 {
     if c <= 0.0031308 {
         12.92 * c
     } else {
@@ -345,7 +345,7 @@ pub(crate) fn srgb_encode(c: f32) -> f32 {
 ///
 /// The gamma value is typically in the range 1.8-2.2, where 2.2 is common.
 #[inline]
-pub(crate) fn gamma_decode(c: f32, gamma: f32) -> f32 {
+pub fn gamma_decode(c: f32, gamma: f32) -> f32 {
     c.powf(gamma)
 }
 
@@ -356,6 +356,6 @@ pub(crate) fn gamma_decode(c: f32, gamma: f32) -> f32 {
 ///
 /// The gamma value is typically in the range 1.8-2.2, where 2.2 is common.
 #[inline]
-pub(crate) fn gamma_encode(c: f32, gamma: f32) -> f32 {
+pub fn gamma_encode(c: f32, gamma: f32) -> f32 {
     c.powf(1.0 / gamma)
 }

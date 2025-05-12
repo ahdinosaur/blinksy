@@ -187,8 +187,8 @@ where
             ]);
             let hue = noise as f32;
             let saturation = 1.;
-            let value = 1.;
-            Hsi::new(hue, saturation, value)
+            let intensity = 1.;
+            Hsi::new(hue, saturation, intensity)
         })
     }
 }

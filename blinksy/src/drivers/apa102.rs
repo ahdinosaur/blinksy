@@ -29,8 +29,9 @@
 //! This implementation includes the "High Definition" color handling from FastLED, which
 //! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 
-use palette::{FromColor, LinSrgb, Srgb};
+use num_traits::ToPrimitive;
 
+use crate::color::OutputColor;
 use crate::util::map_f32_to_u8_range;
 use crate::{
     color::RgbChannels,
@@ -62,7 +63,6 @@ pub struct Apa102Led;
 
 impl ClockedLed for Apa102Led {
     type Word = u8;
-    type Color = Srgb;
 
     /// Writes the APA102 start frame (32 bits of zeros).
     fn start<Writer: ClockedWriter<Word = Self::Word>>(
@@ -75,18 +75,22 @@ impl ClockedLed for Apa102Led {
     ///
     /// Uses the "High Definition" color handling algorithm from FastLED to optimize
     /// the use of the 5-bit brightness and 8-bit per-channel color values.
-    fn color<Writer: ClockedWriter<Word = Self::Word>>(
+    fn color<Writer: ClockedWriter<Word = Self::Word>, C: OutputColor>(
         writer: &mut Writer,
-        color: Self::Color,
+        color: C,
         brightness: f32,
     ) -> Result<(), Writer::Error> {
-        let color_linear: LinSrgb<f32> = Srgb::from_color(color).into_linear();
-        let color_u16: LinSrgb<u16> = color_linear.into_format();
+        let color_linear = color.to_linear_rgb();
+        let (red_u16, green_u16, blue_u16) = (
+            color_linear.red.to_u16(),
+            color_linear.green.to_u16(),
+            color_linear.blue.to_u16(),
+        );
 
         let brightness: u8 = map_f32_to_u8_range(brightness, 255);
 
         let ((red, green, blue), brightness) =
-            five_bit_bitshift(color_u16.red, color_u16.green, color_u16.blue, brightness);
+            five_bit_bitshift(red_u16, green_u16, blue_u16, brightness);
 
         let led_frame = RgbChannels::BGR.reorder([red, green, blue]);
 

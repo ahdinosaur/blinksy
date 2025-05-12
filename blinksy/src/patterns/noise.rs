@@ -46,9 +46,9 @@
 //! ```
 
 use noise::NoiseFn;
-use palette::Hsv;
 
 use crate::{
+    color::Hsi,
     dimension::{Dim1d, Dim2d},
     layout::{Layout1d, Layout2d},
     pattern::Pattern,
@@ -101,7 +101,7 @@ where
     Noise: NoiseFn<f64, 2> + Default,
 {
     type Params = NoiseParams;
-    type Color = Hsv;
+    type Color = Hsi;
 
     /// Creates a new Noise1d pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -126,10 +126,10 @@ where
 
         Layout::points().map(move |x| {
             let noise = noise.get([position_scalar * x as f64, noise_time]);
-            let hue = 360. * noise as f32;
+            let hue = noise as f32;
             let saturation = 1.;
             let value = 1.;
-            Hsv::new_srgb(hue, saturation, value)
+            Hsi::new(hue, saturation, value)
         })
     }
 }
@@ -156,7 +156,7 @@ where
     Noise: NoiseFn<f64, 3> + Default,
 {
     type Params = NoiseParams;
-    type Color = Hsv;
+    type Color = Hsi;
 
     /// Creates a new Noise2d pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -185,10 +185,10 @@ where
                 position_scalar * point.y as f64,
                 noise_time,
             ]);
-            let hue = 360. * noise as f32;
+            let hue = noise as f32;
             let saturation = 1.;
             let value = 1.;
-            Hsv::new_srgb(hue, saturation, value)
+            Hsi::new(hue, saturation, value)
         })
     }
 }

@@ -14,7 +14,6 @@
 use core::marker::PhantomData;
 
 use crate::{
-    color::OutputColor,
     dimension::{Dim1d, Dim2d},
     driver::LedDriver,
     layout::{Layout1d, Layout2d},

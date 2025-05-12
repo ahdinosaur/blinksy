@@ -25,7 +25,10 @@
 
 use fugit::NanosDurationU32 as Nanoseconds;
 
-use crate::driver::{ClocklessDelayDriver, ClocklessLed, ColorChannels, RgbChannels};
+use crate::{
+    color::{LedChannels, RgbChannels},
+    driver::{ClocklessDelayDriver, ClocklessLed},
+};
 
 /// LED implementation for WS2812 protocol.
 ///
@@ -49,8 +52,8 @@ impl ClocklessLed for Ws2812Led {
     /// Reset period (>50µs) - signals the end of a data stream
     const T_RESET: Nanoseconds = Nanoseconds::micros(50);
 
-    /// Color channel specification - WS2812 uses GRB ordering
-    const COLOR_CHANNELS: ColorChannels = ColorChannels::Rgb(RgbChannels::GRB);
+    /// LED channel specification - WS2812 uses GRB ordering
+    const LED_CHANNELS: LedChannels = LedChannels::Rgb(RgbChannels::GRB);
 }
 
 /// WS2812 driver using GPIO bit-banging with delay timing.

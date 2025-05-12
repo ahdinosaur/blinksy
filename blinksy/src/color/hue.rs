@@ -1,5 +1,11 @@
-use super::LinearRgb;
 use core::marker::PhantomData;
+
+#[allow(unused_imports)]
+use num_traits::float::FloatCore;
+#[allow(unused_imports)]
+use num_traits::Euclid;
+
+use super::LinearRgb;
 
 /// Representation of a color hue with a specific mapping method
 ///
@@ -25,7 +31,7 @@ impl<M: HueMap> Hue<M> {
     pub fn new(hue: f32) -> Self {
         Self {
             map: PhantomData,
-            inner: hue.clamp(0.0, 1.0),
+            inner: Euclid::rem_euclid(&hue, &1.0),
         }
     }
 

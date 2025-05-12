@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use num_traits::Float;
+
 use super::{ColorComponent, ColorCorrection, LedRgb, LedRgbw, OutputColor};
 
 /// # sRGB Color Space

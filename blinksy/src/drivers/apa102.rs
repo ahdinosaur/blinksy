@@ -29,10 +29,7 @@
 //! This implementation includes the "High Definition" color handling from FastLED, which
 //! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 
-use num_traits::ToPrimitive;
-
 use crate::color::{ColorComponent, ColorCorrection, OutputColor};
-use crate::util::map_f32_to_u8_range;
 use crate::{
     color::RgbChannels,
     driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},

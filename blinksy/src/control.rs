@@ -12,9 +12,9 @@
 //! allowing for type-safe combinations of these components.
 
 use core::marker::PhantomData;
-use palette::FromColor;
 
 use crate::{
+    color::OutputColor,
     dimension::{Dim1d, Dim2d},
     driver::LedDriver,
     layout::{Layout1d, Layout2d},
@@ -103,7 +103,6 @@ where
     Layout: Layout1d,
     Pattern: PatternTrait<Dim1d, Layout>,
     Driver: LedDriver,
-    Driver::Color: FromColor<Pattern::Color>,
 {
     /// Updates the LED state based on the current time.
     ///

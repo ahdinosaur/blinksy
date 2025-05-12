@@ -1,9 +1,11 @@
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
-use palette::{FromColor, Srgb};
 
 use super::ClocklessLed;
-use crate::driver::LedDriver;
+use crate::{
+    color::{ColorCorrection, OutputColor},
+    driver::LedDriver,
+};
 
 pub struct ClocklessDelayDriver<Led: ClocklessLed, Pin: OutputPin, Delay: DelayNs> {
     led: PhantomData<Led>,
@@ -71,15 +73,20 @@ where
     Delay: DelayNs,
 {
     type Error = Pin::Error;
-    type Color = Srgb;
 
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+    fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
         for color in pixels {
-            let color = Srgb::from_color(color) * brightness;
+            let array = color.to_led(Led::COLOR_CHANNELS, brightness, gamma, correction);
             let array = Led::COLOR_CHANNELS.to_array(color);
             self.write_buffer(array.as_ref())?;
         }

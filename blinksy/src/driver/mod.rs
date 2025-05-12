@@ -9,11 +9,8 @@
 //! - [`LedDriver`]: The core trait for all LED drivers
 //! - [`clocked`]: Implementations for clocked protocols (like APA102)
 //! - [`clockless`]: Implementations for clockless protocols (like WS2812)
-//! - Color channel utilities for handling different RGB/RGBW ordering
 
-use core::ops::Sub;
-use palette::{cast::into_array, stimulus::IntoStimulus, FromColor, LinSrgb, Srgb};
-use smart_leds_trait::SmartLedsWrite;
+use crate::color::{ColorCorrection, OutputColor};
 
 pub mod clocked;
 pub mod clockless;
@@ -29,13 +26,11 @@ pub use clockless::*;
 /// # Type Parameters
 ///
 /// * `Error` - The error type that may be returned by the driver
-/// * `Color` - The color type accepted by the driver
 ///
 /// # Example
 ///
 /// ```rust
 /// use blinksy::driver::LedDriver;
-/// use palette::Srgb;
 ///
 /// struct MyDriver {
 ///     // Implementation details
@@ -43,12 +38,11 @@ pub use clockless::*;
 ///
 /// impl LedDriver for MyDriver {
 ///     type Error = ();
-///     type Color = Srgb;
 ///
 ///     fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
 ///     where
 ///         I: IntoIterator<Item = C>,
-///         Self::Color: palette::FromColor<C>,
+///         C: OutputColor;
 ///     {
 ///         // Implementation of writing colors to the LED hardware
 ///         Ok(())
@@ -58,9 +52,6 @@ pub use clockless::*;
 pub trait LedDriver {
     /// The error type that may be returned by the driver.
     type Error;
-
-    /// The color type accepted by the driver.
-    type Color;
 
     /// Writes a sequence of colors to the LED hardware.
     ///
@@ -72,34 +63,14 @@ pub trait LedDriver {
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+    fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>;
+        C: OutputColor;
 }
-
-/// Implementation of LedDriver for smart-leds-compatible drivers.
-///
-/// This allows using any driver implementing the smart-leds-trait interface with Blinksy.
-impl<Driver, DriverColor> LedDriver for Driver
-where
-    Driver: SmartLedsWrite<Color = DriverColor>,
-    DriverColor: From<smart_leds_trait::RGB<f32>>,
-{
-    type Color = palette::Srgb;
-    type Error = Driver::Error;
-
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
-        let iterator = pixels.into_iter().map(|color| {
-            let color: LinSrgb<f32> = Srgb::from_color(color).into_linear();
-            let color = color * brightness;
-            smart_leds_trait::RGB::<f32>::new(color.red, color.green, color.blue)
-        });
-        SmartLedsWrite::write(self, iterator)
-    }
-}
-

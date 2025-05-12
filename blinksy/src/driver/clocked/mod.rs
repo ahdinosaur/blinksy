@@ -1,4 +1,5 @@
-use palette::FromColor;
+use crate::color::ColorCorrection;
+use crate::color::OutputColor;
 
 use super::LedDriver;
 
@@ -17,13 +18,13 @@ pub trait ClockedWriter {
 
 pub trait ClockedLed {
     type Word: Copy + 'static;
-    type Color;
+
     fn start<Writer: ClockedWriter<Word = Self::Word>>(
         writer: &mut Writer,
     ) -> Result<(), Writer::Error>;
-    fn color<Writer: ClockedWriter<Word = Self::Word>>(
+    fn color<Writer: ClockedWriter<Word = Self::Word>, Color: OutputColor>(
         writer: &mut Writer,
-        color: Self::Color,
+        color: Color,
         brightness: f32,
     ) -> Result<(), Writer::Error>;
     fn reset<Writer: ClockedWriter<Word = Self::Word>>(
@@ -38,11 +39,13 @@ pub trait ClockedLed {
         writer: &mut Writer,
         pixels: I,
         brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) -> Result<(), Writer::Error>
     where
         Writer: ClockedWriter<Word = Self::Word>,
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
         Self::start(writer)?;
 

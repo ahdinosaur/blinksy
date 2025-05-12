@@ -641,17 +641,21 @@ impl UiManager {
                 let (red, green, blue) = (color.red, color.green, color.blue);
 
                 // Apply brightness
-                let (bright_red, bright_green, bright_blue) = (
-                    red * self.brightness,
-                    green * self.brightness,
-                    blue * self.brightness,
-                );
+                let (bright_red, bright_green, bright_blue) =
+                    (red * brightness, green * brightness, blue * brightness);
 
                 // Apply color correction
                 let (correct_red, correct_green, correct_blue) = (
-                    bright_red * self.correction.red,
-                    bright_green * self.correction.green,
-                    bright_blue * self.correction.blue,
+                    bright_red * correction.red,
+                    bright_green * correction.green,
+                    bright_blue * correction.blue,
+                );
+
+                // Apply gamma
+                let (gamma_red, gamma_green, gamma_blue) = (
+                    gamma_encode(correct_red, gamma),
+                    gamma_encode(correct_red, gamma),
+                    gamma_encode(correct_red, gamma),
                 );
 
                 // Convert to sRGB
@@ -661,10 +665,9 @@ impl UiManager {
                     srgb_encode(correct_blue),
                 );
 
-                // Apply gamma
                 let (final_red, final_green, final_blue) = (
-                    gamma_encode(srgb_red, self.gamma),
-                    gamma_encode(srgb_green, self.gamma),
+                    gamma_encode(srgb_red, gamma),
+                    gamma_encode(srgb_green, gamma),
                     gamma_encode(srgb_blue, gamma),
                 );
 
@@ -705,17 +708,28 @@ impl UiManager {
                             correct_red, correct_green, correct_blue
                         ));
 
-                        // TODO Display sRGB values
-                        // TODO Display global gamma
-                        // TODO Display final color
+                        // Display global gamma
+                        ui.label(format!("Global Gamma: {:..3}", gamma));
+
+                        // Display brightness-adjusted RGB values
+                        ui.label(format!(
+                            "Gamma-adjusted RGB: R={:.3}, G={:.3}, B={:.3}",
+                            gamma_red, gamma_green, gamma_blue
+                        ));
+
+                        // Display sRGB values
+                        ui.label(format!(
+                            "sRGB: R={:.3}, G={:.3}, B={:.3}",
+                            srgb_red, srgb_green, srgb_blue
+                        ));
 
                         // Show color preview
                         let (_, color_rect) =
                             ui.allocate_space(egui::vec2(ui.available_width(), 30.0));
                         let color_preview = egui::Color32::from_rgb(
-                            (bright_color.x * 255.0) as u8,
-                            (bright_color.y * 255.0) as u8,
-                            (bright_color.z * 255.0) as u8,
+                            (final_color.x * 255.0) as u8,
+                            (final_color.y * 255.0) as u8,
+                            (final_color.z * 255.0) as u8,
                         );
                         ui.painter().rect_filled(color_rect, 4.0, color_preview);
                         ui.add_space(10.0); // Space after the color preview

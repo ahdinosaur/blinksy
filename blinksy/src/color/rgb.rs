@@ -1,4 +1,4 @@
-use super::{ColorComponent, ColorCorrection, OutputColor, OutputRgb, OutputRgbw};
+use super::{ColorComponent, ColorCorrection, LedRgb, LedRgbw, OutputColor};
 
 /// # sRGB Color Space
 ///
@@ -173,13 +173,13 @@ impl LinearRgb {
     ///
     /// # Returns
     ///
-    /// An `OutputRgb<C>` with the specified color component type
-    pub fn to_output_rgb<C: ColorComponent>(
+    /// An `LedRgb<C>` with the specified color component type
+    pub fn to_led_rgb<C: ColorComponent>(
         self,
         brightness: f32,
         gamma: f32,
         correction: ColorCorrection,
-    ) -> OutputRgb<C> {
+    ) -> LedRgb<C> {
         // Apply color correction first
         let red = self.red * correction.red;
         let green = self.green * correction.green;
@@ -196,11 +196,11 @@ impl LinearRgb {
         let blue = gamma_encode(blue, gamma);
 
         // Convert to component type and return
-        OutputRgb {
-            red: C::from_normalized_f32(red),
-            green: C::from_normalized_f32(green),
-            blue: C::from_normalized_f32(blue),
-        }
+        LedRgb::new(
+            C::from_normalized_f32(red),
+            C::from_normalized_f32(green),
+            C::from_normalized_f32(blue),
+        )
     }
 }
 
@@ -267,7 +267,7 @@ impl LinearRgbw {
         brightness: f32,
         gamma: f32,
         correction: ColorCorrection,
-    ) -> OutputRgbw<C> {
+    ) -> LedRgbw<C> {
         // Apply color correction first
         let red = self.red * correction.red;
         let green = self.green * correction.green;
@@ -287,12 +287,12 @@ impl LinearRgbw {
         let white = gamma_encode(white, gamma);
 
         // Convert to component type and return
-        OutputRgbw {
-            red: C::from_normalized_f32(red),
-            green: C::from_normalized_f32(green),
-            blue: C::from_normalized_f32(blue),
-            white: C::from_normalized_f32(white),
-        }
+        LedRgbw::new(
+            C::from_normalized_f32(red),
+            C::from_normalized_f32(green),
+            C::from_normalized_f32(blue),
+            C::from_normalized_f32(white),
+        )
     }
 }
 

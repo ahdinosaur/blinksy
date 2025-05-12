@@ -615,6 +615,7 @@ impl UiManager {
     }
 
     /// Render the LED information UI
+    #[allow(clippy::too_many_arguments)]
     fn render_led_info(
         &mut self,
         ctx: &mut dyn RenderingBackend,

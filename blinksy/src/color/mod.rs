@@ -1,17 +1,25 @@
 //! # Color Types and Utilities
 
 mod component;
+mod convert;
 mod correction;
-mod hsi;
-mod hue;
+mod gamma_srgb;
 mod led;
-mod output;
-mod rgb;
+mod linear_srgb;
+mod okhsl;
+mod okhsv;
+mod oklab;
+mod srgb;
+mod xyz;
 
 pub use self::component::*;
+pub use self::convert::*;
 pub use self::correction::*;
-pub use self::hsi::*;
-pub use self::hue::*;
+pub use self::gamma_srgb::*;
 pub use self::led::*;
-pub use self::output::*;
-pub use self::rgb::*;
+pub use self::linear_srgb::*;
+pub use self::okhsl::*;
+pub use self::okhsv::*;
+pub use self::oklab::*;
+pub use self::srgb::*;
+pub use self::xyz::*;

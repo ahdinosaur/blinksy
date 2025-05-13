@@ -24,7 +24,8 @@
 //!
 //! ```rust
 //! use blinksy::{
-//!     driver::{ClocklessLed, ColorChannels, RgbChannels},
+//!     color::{LedChannels, RgbChannels},
+//!     driver::ClocklessLed,
 //!     time::Nanoseconds,
 //! };
 //!
@@ -43,14 +44,15 @@
 //!     // Reset period
 //!     const T_RESET: Nanoseconds = Nanoseconds::micros(50);
 //!     // Color channel ordering
-//!     const COLOR_CHANNELS: ColorChannels = ColorChannels::Rgb(RgbChannels::RGB);
+//!     const LED_CHANNELS: LedChannels = LedChannels::Rgb(RgbChannels::RGB);
 //! }
 //! ```
 
+use crate::color::LedChannels;
 use crate::time::Nanoseconds;
+
 mod delay;
 pub use self::delay::*;
-use super::ColorChannels;
 
 /// Trait that defines the timing parameters and protocol specifics for a clockless LED chipset.
 ///
@@ -61,7 +63,7 @@ use super::ColorChannels;
 ///
 /// ```rust
 /// use fugit::NanosDurationU32 as Nanoseconds;
-/// use blinksy::driver::{ClocklessLed, ColorChannels, RgbChannels};
+/// use blinksy::{color::{LedChannels, RgbChannels}, driver::ClocklessLed};
 ///
 /// struct WS2811Led;
 ///
@@ -71,7 +73,7 @@ use super::ColorChannels;
 ///     const T_1H: Nanoseconds = Nanoseconds::nanos(600);
 ///     const T_1L: Nanoseconds = Nanoseconds::nanos(650);
 ///     const T_RESET: Nanoseconds = Nanoseconds::micros(50);
-///     const COLOR_CHANNELS: ColorChannels = ColorChannels::Rgb(RgbChannels::RGB);
+///     const LED_CHANNELS: LedChannels = LedChannels::Rgb(RgbChannels::RGB);
 /// }
 /// ```
 pub trait ClocklessLed {
@@ -96,7 +98,7 @@ pub trait ClocklessLed {
     /// Specification of the color channel order and format.
     ///
     /// Different LED chipsets may expect data in different channel orders (e.g., RGB, GRB, RGBW).
-    const COLOR_CHANNELS: ColorChannels;
+    const LED_CHANNELS: LedChannels;
 
     /// Calculates the total cycle time for a bit transmission.
     ///

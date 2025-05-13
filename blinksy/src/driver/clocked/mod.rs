@@ -27,31 +27,29 @@
 //! ## Example
 //!
 //! ```rust
-//! use blinksy::driver::{ClockedLed, ClockedWriter};
-//! use palette::Srgb;
+//! use blinksy::{color::{ColorComponent, ColorCorrection, OutputColor}, driver::{ClockedLed, ClockedWriter}};
 //!
 //! // Define a new LED chipset with specific protocol requirements
 //! struct MyLed;
 //!
 //! impl ClockedLed for MyLed {
 //!     type Word = u8;
-//!     type Color = Srgb;
 //!
 //!     fn start<W: ClockedWriter<Word = Self::Word>>(writer: &mut W) -> Result<(), W::Error> {
 //!         // Write start frame
 //!         writer.write(&[0x00, 0x00, 0x00, 0x00])
 //!     }
 //!
-//!     fn color<W: ClockedWriter<Word = Self::Word>>(
+//!     fn color<W: ClockedWriter<Word = Self::Word>, C: OutputColor>(
 //!         writer: &mut W,
-//!         color: Self::Color,
+//!         color: C,
 //!         brightness: f32,
+//!         gamma: f32,
+//!         correction: ColorCorrection,
 //!     ) -> Result<(), W::Error> {
 //!         // Write color data for one LED
-//!         let r = (color.red * 255.0 * brightness) as u8;
-//!         let g = (color.green * 255.0 * brightness) as u8;
-//!         let b = (color.blue * 255.0 * brightness) as u8;
-//!         writer.write(&[0x80, r, g, b])
+//!         let rgb: [u8; 3] = color.to_led_rgb(brightness, gamma, correction);
+//!         writer.write(&[0x80, rgb[0], rgb[1], rgb[2]])
 //!     }
 //!
 //!     fn reset<W: ClockedWriter<Word = Self::Word>>(_: &mut W) -> Result<(), W::Error> {
@@ -65,9 +63,9 @@
 //!     }
 //! }
 //! ```
+use crate::color::{ColorCorrection, OutputColor};
 
 use super::LedDriver;
-use palette::FromColor;
 
 mod delay;
 mod spi;
@@ -111,9 +109,6 @@ pub trait ClockedLed {
     /// The word type (typically u8).
     type Word: Copy + 'static;
 
-    /// The color representation type.
-    type Color;
-
     /// Writes a start frame to begin a transmission.
     ///
     /// This typically sends some form of header that identifies the beginning
@@ -141,10 +136,12 @@ pub trait ClockedLed {
     /// # Returns
     ///
     /// Ok(()) on success or an error if the write fails
-    fn color<Writer: ClockedWriter<Word = Self::Word>>(
+    fn color<Writer: ClockedWriter<Word = Self::Word>, Color: OutputColor>(
         writer: &mut Writer,
-        color: Self::Color,
+        color: Color,
         brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) -> Result<(), Writer::Error>;
 
     /// Performs any necessary reset operations mid-transmission.
@@ -190,6 +187,8 @@ pub trait ClockedLed {
     /// * `writer` - The writer implementation to use
     /// * `pixels` - Iterator over colors
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `gamma` - Gamma correction factor
+    /// * `correction` - Color correction factors
     ///
     /// # Returns
     ///
@@ -198,18 +197,19 @@ pub trait ClockedLed {
         writer: &mut Writer,
         pixels: I,
         brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) -> Result<(), Writer::Error>
     where
         Writer: ClockedWriter<Word = Self::Word>,
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
         Self::start(writer)?;
 
         let mut pixel_count = 0;
         for color in pixels.into_iter() {
-            let color = Self::Color::from_color(color);
-            Self::color(writer, color, brightness)?;
+            Self::color(writer, color, brightness, gamma, correction)?;
             pixel_count += 1;
         }
 

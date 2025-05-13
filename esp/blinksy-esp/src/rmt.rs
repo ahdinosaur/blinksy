@@ -18,8 +18,8 @@
 //! into the corresponding high/low pulse durations required by the specific LED protocol.
 
 use blinksy::{
-    color::{FromColor, Srgb},
-    driver::{clockless::ClocklessLed, ColorArray, LedDriver},
+    color::{ColorCorrection, LedColor, OutputColor},
+    driver::{clockless::ClocklessLed, LedDriver},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
 use esp_hal::{
@@ -175,20 +175,23 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn write_color_to_rmt(
-        color: Srgb,
+    fn write_color_to_rmt<C: OutputColor>(
+        color: C,
         rmt_iter: &mut IterMut<u32>,
         pulses: &(u32, u32, u32),
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) -> Result<(), ClocklessRmtDriverError> {
-        let array = Led::COLOR_CHANNELS.to_array(color);
+        let led_color = color.to_led(Led::LED_CHANNELS, brightness, gamma, correction);
 
-        match array {
-            ColorArray::Rgb(rgb) => {
+        match led_color {
+            LedColor::Rgb(rgb) => {
                 Self::write_color_byte_to_rmt(&rgb[0], rmt_iter, pulses)?;
                 Self::write_color_byte_to_rmt(&rgb[1], rmt_iter, pulses)?;
                 Self::write_color_byte_to_rmt(&rgb[2], rmt_iter, pulses)?;
             }
-            ColorArray::Rgbw(rgbw) => {
+            LedColor::Rgbw(rgbw) => {
                 Self::write_color_byte_to_rmt(&rgbw[0], rmt_iter, pulses)?;
                 Self::write_color_byte_to_rmt(&rgbw[1], rmt_iter, pulses)?;
                 Self::write_color_byte_to_rmt(&rgbw[2], rmt_iter, pulses)?;
@@ -214,16 +217,24 @@ where
         &mut self,
         pixels: I,
         brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) -> Result<(), ClocklessRmtDriverError>
     where
         I: IntoIterator<Item = C>,
-        Srgb: FromColor<C>,
+        C: OutputColor,
     {
         let mut rmt_iter = self.rmt_buffer.iter_mut();
 
         for color in pixels {
-            let color = Srgb::from_color(color) * brightness;
-            Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses)?;
+            Self::write_color_to_rmt(
+                color,
+                &mut rmt_iter,
+                &self.pulses,
+                brightness,
+                gamma,
+                correction,
+            )?;
         }
 
         *rmt_iter
@@ -253,13 +264,18 @@ where
     Tx: TxChannel,
 {
     type Error = ClocklessRmtDriverError;
-    type Color = Srgb;
 
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+    fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
-        self.write_pixels(pixels, brightness)
+        self.write_pixels(pixels, brightness, gamma, correction)
     }
 }

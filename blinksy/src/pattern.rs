@@ -16,7 +16,7 @@
 //! Patterns are generic over both the dimension they operate in and the specific layout
 //! type, allowing compile-time enforcement of dimensional compatibility.
 
-use crate::dimension::LayoutForDim;
+use crate::{color::OutputColor, dimension::LayoutForDim};
 
 /// Trait for creating visual patterns on LED layouts.
 ///
@@ -36,8 +36,7 @@ use crate::dimension::LayoutForDim;
 /// # Example
 ///
 /// ```rust
-/// use blinksy::{pattern::Pattern, dimension::Dim1d, layout::Layout1d};
-/// use palette::Hsv;
+/// use blinksy::{color::Hsi, dimension::Dim1d, layout::Layout1d, pattern::Pattern};
 ///
 /// struct RainbowParams {
 ///     speed: f32,
@@ -53,19 +52,19 @@ use crate::dimension::LayoutForDim;
 ///     Layout: Layout1d,
 /// {
 ///     type Params = RainbowParams;
-///     type Color = Hsv;
+///     type Color = Hsi;
 ///
 ///     fn new(params: Self::Params) -> Self {
 ///         Self { params }
 ///     }
 ///
 ///     fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
-///         let offset = (time_in_ms as f32 * self.params.speed) % 360.0;
-///         let step = 0.5 * 360. * self.params.scale;
+///         let offset = (time_in_ms as f32 * self.params.speed);
+///         let step = 0.5 * self.params.scale;
 ///
 ///         Layout::points().map(move |x| {
-///             let hue = (x * step + offset) % 360.0;
-///             Hsv::new(hue, 1.0, 1.0)
+///             let hue = x * step + offset;
+///             Hsi::new(hue, 1.0, 1.0)
 ///         })
 ///     }
 /// }
@@ -78,7 +77,7 @@ where
     type Params;
 
     /// The color type produced by this pattern.
-    type Color;
+    type Color: OutputColor;
 
     /// Creates a new pattern instance with the specified parameters.
     fn new(params: Self::Params) -> Self;

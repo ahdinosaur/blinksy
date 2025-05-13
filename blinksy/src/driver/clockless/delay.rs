@@ -32,10 +32,12 @@
 
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
-use palette::{FromColor, Srgb};
 
 use super::ClocklessLed;
-use crate::driver::LedDriver;
+use crate::{
+    color::{ColorCorrection, OutputColor},
+    driver::LedDriver,
+};
 
 /// Driver for clockless LEDs using GPIO bit-banging with a delay timer.
 ///
@@ -159,7 +161,6 @@ where
     Delay: DelayNs,
 {
     type Error = Pin::Error;
-    type Color = Srgb;
 
     /// Writes a sequence of colors to the LED chain.
     ///
@@ -178,15 +179,20 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if transmission fails
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+    fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
         for color in pixels {
-            let color = Srgb::from_color(color) * brightness;
-            let array = Led::COLOR_CHANNELS.to_array(color);
-            self.write_buffer(array.as_ref())?;
+            let data = color.to_led(Led::LED_CHANNELS, brightness, gamma, correction);
+            self.write_buffer(data.as_ref())?;
         }
         self.delay_for_reset();
         Ok(())

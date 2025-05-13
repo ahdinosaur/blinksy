@@ -29,13 +29,11 @@
 //! This implementation includes the "High Definition" color handling from FastLED, which
 //! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 
-use palette::{FromColor, LinSrgb, Srgb};
-
-use crate::driver::{
-    clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
-    RgbChannels,
+use crate::color::{gamma_encode, ColorComponent, ColorCorrection, OutputColor};
+use crate::{
+    color::RgbChannels,
+    driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
 };
-use crate::util::map_f32_to_u8_range;
 
 /// APA102 driver using GPIO bit-banging with delay timing.
 ///
@@ -62,7 +60,6 @@ pub struct Apa102Led;
 
 impl ClockedLed for Apa102Led {
     type Word = u8;
-    type Color = Srgb;
 
     /// Writes the APA102 start frame (32 bits of zeros).
     fn start<Writer: ClockedWriter<Word = Self::Word>>(
@@ -75,20 +72,39 @@ impl ClockedLed for Apa102Led {
     ///
     /// Uses the "High Definition" color handling algorithm from FastLED to optimize
     /// the use of the 5-bit brightness and 8-bit per-channel color values.
-    fn color<Writer: ClockedWriter<Word = Self::Word>>(
+    fn color<Writer: ClockedWriter<Word = Self::Word>, C: OutputColor>(
         writer: &mut Writer,
-        color: Self::Color,
+        color: C,
         brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
     ) -> Result<(), Writer::Error> {
-        let color_linear: LinSrgb<f32> = Srgb::from_color(color).into_linear();
-        let color_u16: LinSrgb<u16> = color_linear.into_format();
+        let linear = color.to_linear_rgb();
+        let (red, green, blue) = (linear.red, linear.green, linear.blue);
 
-        let brightness: u8 = map_f32_to_u8_range(brightness, 255);
+        // First color correct the linear RGB
+        let red = red * correction.red;
+        let green = green * correction.red;
+        let blue = blue * correction.red;
 
-        let ((red, green, blue), brightness) =
-            five_bit_bitshift(color_u16.red, color_u16.green, color_u16.blue, brightness);
+        // Then, adjust additional gamma
+        let red = gamma_encode(red, gamma);
+        let green = gamma_encode(green, gamma);
+        let blue = gamma_encode(blue, gamma);
 
-        let led_frame = RgbChannels::BGR.reorder([red, green, blue]);
+        // Then, convert to u16's
+        let (red_u16, green_u16, blue_u16) = (
+            ColorComponent::from_normalized_f32(red),
+            ColorComponent::from_normalized_f32(green),
+            ColorComponent::from_normalized_f32(blue),
+        );
+
+        let brightness: u8 = ColorComponent::from_normalized_f32(brightness);
+
+        let ((red_u8, green_u8, blue_u8), brightness) =
+            five_bit_bitshift(red_u16, green_u16, blue_u16, brightness);
+
+        let led_frame = RgbChannels::BGR.reorder([red_u8, green_u8, blue_u8]);
 
         writer.write(&[0b11100000 | (brightness & 0b00011111)])?;
         writer.write(&led_frame)?;

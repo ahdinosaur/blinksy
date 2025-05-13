@@ -55,13 +55,14 @@
 //! ```
 
 use blinksy::{
-    color::{FromColor, LinSrgb, Srgb},
+    color::{gamma_encode, srgb_encode, ColorCorrection, LinearRgb, OutputColor},
     dimension::{Dim1d, Dim2d, LayoutForDim},
     driver::LedDriver,
     layout::{Layout1d, Layout2d},
 };
 use core::{fmt, marker::PhantomData};
-use glam::{vec3, Mat4, Vec3, Vec4};
+use egui_miniquad as egui_mq;
+use glam::{vec3, Mat4, Vec3, Vec4, Vec4Swizzles};
 use miniquad::*;
 use std::sync::mpsc::{channel, Receiver, SendError, Sender};
 
@@ -119,6 +120,8 @@ pub struct Desktop<Dim, Layout> {
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,
     brightness: f32,
+    gamma: f32,
+    correction: ColorCorrection,
     sender: Sender<LedMessage>,
     is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
@@ -164,14 +167,13 @@ impl Desktop<Dim1d, ()> {
             positions.push(vec3(x, 0.0, 0.0));
         }
 
-        let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
         let (sender, receiver) = channel();
         let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let is_window_closed_2 = is_window_closed.clone();
 
         std::thread::spawn(move || {
-            DesktopStage::start(|| {
-                DesktopStage::new(positions, colors, receiver, config, is_window_closed_2)
+            DesktopStage::start(move || {
+                DesktopStage::new(positions, receiver, config, is_window_closed_2)
             });
         });
 
@@ -179,8 +181,10 @@ impl Desktop<Dim1d, ()> {
             dim: PhantomData,
             layout: PhantomData,
             brightness: 1.0,
+            gamma: 1.0,
+            correction: ColorCorrection::default(),
             sender,
-            is_window_closed: is_window_closed.clone(),
+            is_window_closed,
         }
     }
 }
@@ -227,14 +231,13 @@ impl Desktop<Dim2d, ()> {
             positions.push(vec3(point.x, point.y, 0.0));
         }
 
-        let colors = vec![Vec4::new(0.0, 0.0, 0.0, 1.0); Layout::PIXEL_COUNT];
         let (sender, receiver) = channel();
         let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let is_window_closed_2 = is_window_closed.clone();
 
         std::thread::spawn(move || {
             DesktopStage::start(move || {
-                DesktopStage::new(positions, colors, receiver, config, is_window_closed_2)
+                DesktopStage::new(positions, receiver, config, is_window_closed_2)
             });
         });
 
@@ -242,6 +245,8 @@ impl Desktop<Dim2d, ()> {
             dim: PhantomData,
             layout: PhantomData,
             brightness: 1.0,
+            gamma: 1.0,
+            correction: ColorCorrection::default(),
             sender,
             is_window_closed,
         }
@@ -291,10 +296,16 @@ impl From<SendError<LedMessage>> for DesktopError {
 /// Messages for communication with the rendering thread.
 enum LedMessage {
     /// Update the colors of all LEDs
-    UpdateColors(Vec<Vec4>),
+    UpdateColors(Vec<LinearRgb>),
 
     /// Update the global brightness
     UpdateBrightness(f32),
+
+    /// Update the global gamma
+    UpdateGamma(f32),
+
+    /// Update the global color correction
+    UpdateColorCorrection(ColorCorrection),
 
     /// Terminate the rendering thread
     Quit,
@@ -305,24 +316,36 @@ where
     Layout: LayoutForDim<Dim>,
 {
     type Error = DesktopError;
-    type Color = Srgb;
 
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+    fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
         if self.brightness != brightness {
             self.brightness = brightness;
             self.send(LedMessage::UpdateBrightness(brightness))?;
         }
 
-        let colors: Vec<Vec4> = pixels
+        if self.gamma != gamma {
+            self.gamma = gamma;
+            self.send(LedMessage::UpdateGamma(gamma))?;
+        }
+
+        if self.correction != correction {
+            self.correction = correction;
+            self.send(LedMessage::UpdateColorCorrection(correction))?;
+        }
+
+        let colors: Vec<LinearRgb> = pixels
             .into_iter()
-            .map(|pixel| {
-                let rgb: LinSrgb = Srgb::from_color(pixel).into_linear();
-                Vec4::new(rgb.red, rgb.green, rgb.blue, 1.0)
-            })
+            .map(|pixel| pixel.to_linear_rgb())
             .collect();
 
         self.send(LedMessage::UpdateColors(colors))?;
@@ -459,93 +482,282 @@ impl Camera {
     }
 }
 
-/// The rendering stage that handles the miniquad window and OpenGL drawing.
-struct DesktopStage {
-    ctx: Box<dyn RenderingBackend>,
-    pipeline: Pipeline,
-    bindings: Bindings,
+/// Manages LED selection and interaction
+struct LedPicker {
     positions: Vec<Vec3>,
-    colors: Vec<Vec4>,
-    brightness: f32,
-    receiver: Receiver<LedMessage>,
-    camera: Camera,
-    config: DesktopConfig,
-    is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    mouse_down: bool,
-    last_mouse_x: f32,
-    last_mouse_y: f32,
+    selected_led: Option<usize>,
+    radius: f32,
 }
 
-impl DesktopStage {
-    /// Start the rendering loop.
-    pub fn start<F, H>(f: F)
-    where
-        F: 'static + FnOnce() -> H,
-        H: EventHandler + 'static,
-    {
-        let conf = conf::Conf {
-            window_title: "Blinksy".to_string(),
-            window_width: 800,
-            window_height: 600,
-            high_dpi: true,
-            ..Default::default()
-        };
-        miniquad::start(conf, move || Box::new(f()));
+impl LedPicker {
+    fn new(positions: Vec<Vec3>, radius: f32) -> Self {
+        Self {
+            positions,
+            selected_led: None,
+            radius,
+        }
     }
 
-    /// Create a new DesktopStage with the given LED positions, colors, and configuration.
-    pub fn new(
-        positions: Vec<Vec3>,
-        colors: Vec<Vec4>,
-        receiver: Receiver<LedMessage>,
-        config: DesktopConfig,
-        is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    ) -> Self {
-        let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
-        let r = config.led_radius;
+    /// Convert screen coordinates to a ray in world space
+    fn screen_pos_to_ray(&self, screen_x: f32, screen_y: f32, camera: &Camera) -> (Vec3, Vec3) {
+        let (width, height) = window::screen_size();
 
-        #[rustfmt::skip]
-        let vertices: &[f32] = &[
-            0.0, -r, 0.0, 1.0, 0.0, 0.0, 1.0,
-            r, 0.0, r, 0.0, 1.0, 0.0, 1.0,
-            r, 0.0, -r, 0.0, 0.0, 1.0, 1.0,
-            -r, 0.0, -r, 1.0, 1.0, 0.0, 1.0,
-            -r, 0.0, r, 0.0, 1.0, 1.0, 1.0,
-            0.0, r, 0.0, 1.0, 0.0, 1.0, 1.0,
-        ];
+        // Normalize device coordinates (-1 to 1)
+        let x = 2.0 * screen_x / width - 1.0;
+        let y = 1.0 - 2.0 * screen_y / height;
 
-        let vertex_buffer = ctx.new_buffer(
-            BufferType::VertexBuffer,
-            BufferUsage::Immutable,
-            BufferSource::slice(vertices),
-        );
+        // Compute inverse matrices
+        let proj_inv = camera.projection_matrix().inverse();
+        let view_inv = camera.view_matrix().inverse();
 
-        #[rustfmt::skip]
-        let indices: &[u16] = &[
-            0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1,
-            5, 1, 2, 5, 2, 3, 5, 3, 4, 5, 4, 1
-        ];
+        // Calculate ray origin and direction
+        let near_point = proj_inv * Vec4::new(x, y, -1.0, 1.0);
+        let far_point = proj_inv * Vec4::new(x, y, 1.0, 1.0);
 
-        let index_buffer = ctx.new_buffer(
-            BufferType::IndexBuffer,
-            BufferUsage::Immutable,
-            BufferSource::slice(indices),
-        );
+        let near_point = near_point / near_point.w;
+        let far_point = far_point / far_point.w;
 
-        let positions_buffer = ctx.new_buffer(
-            BufferType::VertexBuffer,
-            BufferUsage::Stream,
-            BufferSource::slice(&positions),
-        );
+        let near_point_world = view_inv * near_point;
+        let far_point_world = view_inv * far_point;
 
-        let colors_buffer = ctx.new_buffer(
-            BufferType::VertexBuffer,
-            BufferUsage::Stream,
-            BufferSource::slice(&colors),
-        );
+        let origin = near_point_world.xyz();
+        let direction = (far_point_world.xyz() - near_point_world.xyz()).normalize();
+
+        (origin, direction)
+    }
+
+    /// Pick an LED based on screen coordinates
+    fn pick_led(&self, screen_x: f32, screen_y: f32, camera: &Camera) -> Option<usize> {
+        let (ray_origin, ray_direction) = self.screen_pos_to_ray(screen_x, screen_y, camera);
+
+        // Find the closest LED that intersects with the ray
+        let mut closest_led = None;
+        let mut closest_distance = f32::MAX;
+
+        for (i, &position) in self.positions.iter().enumerate() {
+            // Sphere-ray intersection test
+            let oc = ray_origin - position;
+            let a = ray_direction.dot(ray_direction);
+            let b = 2.0 * oc.dot(ray_direction);
+            let c = oc.dot(oc) - self.radius * self.radius;
+            let discriminant = b * b - 4.0 * a * c;
+
+            if discriminant > 0.0 {
+                let t = (-b - discriminant.sqrt()) / (2.0 * a);
+                if t > 0.0 && t < closest_distance {
+                    closest_distance = t;
+                    closest_led = Some(i);
+                }
+            }
+        }
+
+        closest_led
+    }
+
+    /// Try to select an LED at the given screen coordinates
+    fn try_select_at(&mut self, screen_x: f32, screen_y: f32, camera: &Camera) {
+        self.selected_led = self.pick_led(screen_x, screen_y, camera);
+    }
+
+    /// Clear the current selection
+    fn clear_selection(&mut self) {
+        self.selected_led = None;
+    }
+}
+
+/// Manages UI state and rendering
+struct UiManager {
+    egui_mq: egui_mq::EguiMq,
+    want_mouse_capture: bool,
+}
+
+impl UiManager {
+    fn new(ctx: &mut dyn RenderingBackend) -> Self {
+        Self {
+            egui_mq: egui_mq::EguiMq::new(ctx),
+            want_mouse_capture: false,
+        }
+    }
+
+    /// Forward mouse motion events to egui
+    fn mouse_motion_event(&mut self, x: f32, y: f32) {
+        self.egui_mq.mouse_motion_event(x, y);
+    }
+
+    /// Forward mouse wheel events to egui
+    fn mouse_wheel_event(&mut self, x: f32, y: f32) {
+        self.egui_mq.mouse_wheel_event(x, y);
+    }
+
+    /// Forward mouse button down events to egui
+    fn mouse_button_down_event(&mut self, button: MouseButton, x: f32, y: f32) {
+        self.egui_mq.mouse_button_down_event(button, x, y);
+    }
+
+    /// Forward mouse button up events to egui
+    fn mouse_button_up_event(&mut self, button: MouseButton, x: f32, y: f32) {
+        self.egui_mq.mouse_button_up_event(button, x, y);
+    }
+
+    /// Forward key down events to egui
+    fn key_down_event(&mut self, keycode: KeyCode, keymods: KeyMods) {
+        self.egui_mq.key_down_event(keycode, keymods);
+    }
+
+    /// Forward key up events to egui
+    fn key_up_event(&mut self, keycode: KeyCode, keymods: KeyMods) {
+        self.egui_mq.key_up_event(keycode, keymods);
+    }
+
+    /// Forward character events to egui
+    fn char_event(&mut self, character: char) {
+        self.egui_mq.char_event(character);
+    }
+
+    /// Render the LED information UI
+    #[allow(clippy::too_many_arguments)]
+    fn render_led_info(
+        &mut self,
+        ctx: &mut dyn RenderingBackend,
+        led_picker: &mut LedPicker,
+        positions: &[Vec3],
+        colors: &[LinearRgb],
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) {
+        self.egui_mq.run(ctx, |_mq_ctx, egui_ctx| {
+            self.want_mouse_capture = egui_ctx.wants_pointer_input();
+
+            // Only show LED info window if an LED is selected
+            if let Some(led_idx) = led_picker.selected_led {
+                let pos = positions[led_idx];
+                let color = colors[led_idx];
+
+                let (red, green, blue) = (color.red, color.green, color.blue);
+
+                // Apply brightness
+                let (bright_red, bright_green, bright_blue) =
+                    (red * brightness, green * brightness, blue * brightness);
+
+                // Apply color correction
+                let (correct_red, correct_green, correct_blue) = (
+                    bright_red * correction.red,
+                    bright_green * correction.green,
+                    bright_blue * correction.blue,
+                );
+
+                // Apply gamma
+                let (gamma_red, gamma_green, gamma_blue) = (
+                    gamma_encode(correct_red, gamma),
+                    gamma_encode(correct_red, gamma),
+                    gamma_encode(correct_red, gamma),
+                );
+
+                // Convert to sRGB
+                let (srgb_red, srgb_green, srgb_blue) = (
+                    srgb_encode(correct_red),
+                    srgb_encode(correct_green),
+                    srgb_encode(correct_blue),
+                );
+
+                let (final_red, final_green, final_blue) = (
+                    gamma_encode(srgb_red, gamma),
+                    gamma_encode(srgb_green, gamma),
+                    gamma_encode(srgb_blue, gamma),
+                );
+
+                egui::Window::new("LED Information")
+                    .collapsible(false)
+                    .resizable(false)
+                    .show(egui_ctx, |ui| {
+                        ui.label(format!("LED Index: {}", led_idx));
+                        ui.label(format!(
+                            "Position: ({:.3}, {:.3}, {:.3})",
+                            pos.x, pos.y, pos.z
+                        ));
+
+                        // Display raw RGB values
+                        ui.label(format!(
+                            "Linear RGB: R={:.3}, G={:.3}, B={:.3}",
+                            red, green, blue,
+                        ));
+
+                        // Display global brightness
+                        ui.label(format!("Global Brightness: {:.3}", brightness));
+
+                        // Display brightness-adjusted RGB values
+                        ui.label(format!(
+                            "Brightness-adjusted RGB: R={:.3}, G={:.3}, B={:.3}",
+                            bright_red, bright_green, bright_blue
+                        ));
+
+                        // Display global color correction
+                        ui.label(format!(
+                            "Global Color Correction: R={:.3}, G={:.3}, B={:.3}",
+                            correction.red, correction.green, correction.blue
+                        ));
+
+                        // Display brightness-adjusted RGB values
+                        ui.label(format!(
+                            "Correction-adjusted RGB: R={:.3}, G={:.3}, B={:.3}",
+                            correct_red, correct_green, correct_blue
+                        ));
+
+                        // Display global gamma
+                        ui.label(format!("Global Gamma: {:.3}", gamma));
+
+                        // Display brightness-adjusted RGB values
+                        ui.label(format!(
+                            "Gamma-adjusted RGB: R={:.3}, G={:.3}, B={:.3}",
+                            gamma_red, gamma_green, gamma_blue
+                        ));
+
+                        // Display sRGB values
+                        ui.label(format!(
+                            "sRGB: R={:.3}, G={:.3}, B={:.3}",
+                            srgb_red, srgb_green, srgb_blue
+                        ));
+
+                        // Show color preview
+                        let (_, color_rect) =
+                            ui.allocate_space(egui::vec2(ui.available_width(), 30.0));
+                        let color_preview = egui::Color32::from_rgb(
+                            (final_red * 255.0) as u8,
+                            (final_green * 255.0) as u8,
+                            (final_blue * 255.0) as u8,
+                        );
+                        ui.painter().rect_filled(color_rect, 4.0, color_preview);
+                        ui.add_space(10.0); // Space after the color preview
+
+                        // Deselect button
+                        if ui.button("Deselect").clicked() {
+                            led_picker.selected_led = None;
+                        }
+                    });
+            }
+        });
+    }
+
+    /// Draw egui content
+    fn draw(&mut self, ctx: &mut dyn RenderingBackend) {
+        self.egui_mq.draw(ctx);
+    }
+}
+
+/// Manages rendering of LEDs
+struct Renderer {
+    pipeline: Pipeline,
+    bindings: Bindings,
+}
+
+impl Renderer {
+    fn new(ctx: &mut dyn RenderingBackend, led_radius: f32) -> Self {
+        let vertex_buffer = Self::create_vertex_buffer(ctx, led_radius);
+        let index_buffer = Self::create_index_buffer(ctx);
 
         let bindings = Bindings {
-            vertex_buffers: vec![vertex_buffer, positions_buffer, colors_buffer],
+            vertex_buffers: vec![vertex_buffer],
             index_buffer,
             images: vec![],
         };
@@ -586,16 +798,165 @@ impl DesktopStage {
             },
         );
 
+        Self { pipeline, bindings }
+    }
+
+    fn create_vertex_buffer(ctx: &mut dyn RenderingBackend, r: f32) -> BufferId {
+        #[rustfmt::skip]
+        let vertices: &[f32] = &[
+            0.0, -r, 0.0, 1.0, 0.0, 0.0, 1.0,
+            r, 0.0, r, 0.0, 1.0, 0.0, 1.0,
+            r, 0.0, -r, 0.0, 0.0, 1.0, 1.0,
+            -r, 0.0, -r, 1.0, 1.0, 0.0, 1.0,
+            -r, 0.0, r, 0.0, 1.0, 1.0, 1.0,
+            0.0, r, 0.0, 1.0, 0.0, 1.0, 1.0,
+        ];
+
+        ctx.new_buffer(
+            BufferType::VertexBuffer,
+            BufferUsage::Immutable,
+            BufferSource::slice(vertices),
+        )
+    }
+
+    fn create_index_buffer(ctx: &mut dyn RenderingBackend) -> BufferId {
+        #[rustfmt::skip]
+        let indices: &[u16] = &[
+            0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1,
+            5, 1, 2, 5, 2, 3, 5, 3, 4, 5, 4, 1
+        ];
+
+        ctx.new_buffer(
+            BufferType::IndexBuffer,
+            BufferUsage::Immutable,
+            BufferSource::slice(indices),
+        )
+    }
+
+    fn update_positions_buffer(
+        &mut self,
+        ctx: &mut dyn RenderingBackend,
+        positions: &[Vec3],
+    ) -> BufferId {
+        let positions_buffer = ctx.new_buffer(
+            BufferType::VertexBuffer,
+            BufferUsage::Stream,
+            BufferSource::slice(positions),
+        );
+        self.bindings.vertex_buffers.push(positions_buffer);
+        positions_buffer
+    }
+
+    fn update_colors_buffer(
+        &mut self,
+        ctx: &mut dyn RenderingBackend,
+        colors: &[Vec4],
+    ) -> BufferId {
+        let colors_buffer = ctx.new_buffer(
+            BufferType::VertexBuffer,
+            BufferUsage::Stream,
+            BufferSource::slice(colors),
+        );
+        self.bindings.vertex_buffers.push(colors_buffer);
+        colors_buffer
+    }
+
+    fn render(
+        &self,
+        ctx: &mut dyn RenderingBackend,
+        positions: &[Vec3],
+        view_proj: Mat4,
+        background_color: (f32, f32, f32, f32),
+    ) {
+        let (r, g, b, a) = background_color;
+
+        // Clear the background
+        ctx.begin_default_pass(PassAction::clear_color(r, g, b, a));
+
+        // Draw the LEDs
+        ctx.apply_pipeline(&self.pipeline);
+        ctx.apply_bindings(&self.bindings);
+        ctx.apply_uniforms(UniformsSource::table(&shader::Uniforms { mvp: view_proj }));
+
+        ctx.draw(0, 24, positions.len() as i32);
+        ctx.end_render_pass();
+    }
+}
+
+/// The rendering stage that handles the miniquad window and OpenGL drawing.
+struct DesktopStage {
+    ctx: Box<dyn RenderingBackend>,
+    positions: Vec<Vec3>,
+    colors: Vec<LinearRgb>,
+    colors_buffer: Vec<Vec4>,
+    brightness: f32,
+    gamma: f32,
+    correction: ColorCorrection,
+    receiver: Receiver<LedMessage>,
+    camera: Camera,
+    config: DesktopConfig,
+    is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    mouse_down: bool,
+    last_mouse_x: f32,
+    last_mouse_y: f32,
+    ui_manager: UiManager,
+    led_picker: LedPicker,
+    renderer: Renderer,
+}
+
+impl DesktopStage {
+    /// Start the rendering loop.
+    pub fn start<F, H>(f: F)
+    where
+        F: 'static + FnOnce() -> H,
+        H: EventHandler + 'static,
+    {
+        let conf = conf::Conf {
+            window_title: "Blinksy".to_string(),
+            window_width: 800,
+            window_height: 600,
+            high_dpi: true,
+            ..Default::default()
+        };
+        miniquad::start(conf, move || Box::new(f()));
+    }
+
+    /// Create a new DesktopStage with the given LED positions, colors, and configuration.
+    pub fn new(
+        positions: Vec<Vec3>,
+        receiver: Receiver<LedMessage>,
+        config: DesktopConfig,
+        is_window_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    ) -> Self {
+        let mut ctx: Box<dyn RenderingBackend> = window::new_rendering_backend();
+
+        // Initialize UI manager
+        let ui_manager = UiManager::new(&mut *ctx);
+
+        // Initialize LED picker
+        let led_picker = LedPicker::new(positions.clone(), config.led_radius);
+
+        // Initialize renderer
+        let renderer = Renderer::new(&mut *ctx, config.led_radius);
+
+        // Initialize camera
         let (width, height) = window::screen_size();
         let camera = Camera::new(width / height, config.orthographic_view);
 
-        Self {
+        // Initialize colors buffer
+        let colors_buffer = (0..positions.len())
+            .map(|_| Vec4::new(0.0, 0.0, 0.0, 1.0))
+            .collect();
+
+        // Create the stage
+        let mut stage = Self {
             ctx,
-            pipeline,
-            bindings,
-            positions,
-            colors,
+            positions: positions.clone(),
+            colors: Vec::new(),
+            colors_buffer,
             brightness: 1.0,
+            gamma: 1.0,
+            correction: ColorCorrection::default(),
             receiver,
             camera,
             config,
@@ -603,7 +964,20 @@ impl DesktopStage {
             mouse_down: false,
             last_mouse_x: 0.0,
             last_mouse_y: 0.0,
-        }
+            ui_manager,
+            led_picker,
+            renderer,
+        };
+
+        // Setup buffers
+        stage
+            .renderer
+            .update_positions_buffer(&mut *stage.ctx, &positions);
+        stage
+            .renderer
+            .update_colors_buffer(&mut *stage.ctx, &stage.colors_buffer);
+
+        stage
     }
 
     /// Process any pending messages from the main thread.
@@ -611,19 +985,38 @@ impl DesktopStage {
         while let Ok(message) = self.receiver.try_recv() {
             match message {
                 LedMessage::UpdateColors(colors) => {
-                    assert!(
-                        colors.len() == self.colors.len(),
-                        "Uh oh, number of pixels changed!"
-                    );
                     self.colors = colors;
                 }
                 LedMessage::UpdateBrightness(brightness) => {
                     self.brightness = brightness;
                 }
+                LedMessage::UpdateGamma(gamma) => {
+                    self.gamma = gamma;
+                }
+                LedMessage::UpdateColorCorrection(correction) => {
+                    self.correction = correction;
+                }
                 LedMessage::Quit => {
                     window::quit();
                 }
             }
+        }
+    }
+
+    /// Handles input for camera controls
+    fn handle_camera_input(&mut self, keycode: KeyCode) {
+        match keycode {
+            KeyCode::R => {
+                self.camera.reset();
+            }
+            KeyCode::O => {
+                self.camera.toggle_projection_mode();
+            }
+            KeyCode::Escape => {
+                // Clear selection when Escape is pressed
+                self.led_picker.clear_selection();
+            }
+            _ => {}
         }
     }
 }
@@ -634,36 +1027,70 @@ impl EventHandler for DesktopStage {
     }
 
     fn draw(&mut self) {
-        let bright_colors: Vec<Vec4> = self
+        let colors_buffer: Vec<Vec4> = self
             .colors
             .iter()
-            .map(|c| {
-                Vec4::new(
-                    c.x * self.brightness,
-                    c.y * self.brightness,
-                    c.z * self.brightness,
-                    c.w,
-                )
+            .map(|color| {
+                let (red, green, blue) = (color.red, color.green, color.blue);
+
+                // Apply brightness
+                let (red, green, blue) = (
+                    red * self.brightness,
+                    green * self.brightness,
+                    blue * self.brightness,
+                );
+
+                // Apply color correction
+                let (red, green, blue) = (
+                    red * self.correction.red,
+                    green * self.correction.green,
+                    blue * self.correction.blue,
+                );
+
+                // Convert to sRGB
+                let (red, green, blue) = (srgb_encode(red), srgb_encode(green), srgb_encode(blue));
+
+                // Apply gamma
+                let (red, green, blue) = (
+                    gamma_encode(red, self.gamma),
+                    gamma_encode(green, self.gamma),
+                    gamma_encode(blue, self.gamma),
+                );
+
+                Vec4::new(red, green, blue, 1.)
             })
             .collect();
 
+        // Update colors buffer
+        self.colors_buffer = colors_buffer;
         self.ctx.buffer_update(
-            self.bindings.vertex_buffers[2],
-            BufferSource::slice(&bright_colors),
+            self.renderer.bindings.vertex_buffers[2],
+            BufferSource::slice(&self.colors_buffer),
         );
 
+        // Render the LEDs
         let view_proj = self.camera.view_projection_matrix();
-        let (r, g, b, a) = self.config.background_color;
+        self.renderer.render(
+            &mut *self.ctx,
+            &self.positions,
+            view_proj,
+            self.config.background_color,
+        );
 
-        self.ctx
-            .begin_default_pass(PassAction::clear_color(r, g, b, a));
-        self.ctx.apply_pipeline(&self.pipeline);
-        self.ctx.apply_bindings(&self.bindings);
-        self.ctx
-            .apply_uniforms(UniformsSource::table(&shader::Uniforms { mvp: view_proj }));
+        // Render UI with LED info if needed
+        self.ui_manager.render_led_info(
+            &mut *self.ctx,
+            &mut self.led_picker,
+            &self.positions,
+            &self.colors,
+            self.brightness,
+            self.gamma,
+            self.correction,
+        );
 
-        self.ctx.draw(0, 24, self.positions.len() as i32);
-        self.ctx.end_render_pass();
+        // Draw egui
+        self.ui_manager.draw(&mut *self.ctx);
+
         self.ctx.commit_frame();
     }
 
@@ -672,7 +1099,9 @@ impl EventHandler for DesktopStage {
     }
 
     fn mouse_motion_event(&mut self, x: f32, y: f32) {
-        if self.mouse_down {
+        self.ui_manager.mouse_motion_event(x, y);
+
+        if self.mouse_down && !self.ui_manager.want_mouse_capture {
             let dx = x - self.last_mouse_x;
             let dy = y - self.last_mouse_y;
             self.camera.rotate(dx, dy);
@@ -681,34 +1110,52 @@ impl EventHandler for DesktopStage {
         self.last_mouse_y = y;
     }
 
-    fn mouse_wheel_event(&mut self, _x: f32, y: f32) {
-        self.camera.zoom(y);
+    fn mouse_wheel_event(&mut self, x: f32, y: f32) {
+        self.ui_manager.mouse_wheel_event(x, y);
+
+        if !self.ui_manager.want_mouse_capture {
+            self.camera.zoom(y);
+        }
     }
 
     fn mouse_button_down_event(&mut self, button: MouseButton, x: f32, y: f32) {
-        if button == MouseButton::Left {
+        self.ui_manager.mouse_button_down_event(button, x, y);
+
+        if button == MouseButton::Left && !self.ui_manager.want_mouse_capture {
+            // Check for LED selection on click
+            if !self.mouse_down {
+                // Only do picking when button is first pressed
+                self.led_picker.try_select_at(x, y, &self.camera);
+            }
+
             self.mouse_down = true;
             self.last_mouse_x = x;
             self.last_mouse_y = y;
         }
     }
 
-    fn mouse_button_up_event(&mut self, button: MouseButton, _x: f32, _y: f32) {
+    fn mouse_button_up_event(&mut self, button: MouseButton, x: f32, y: f32) {
+        self.ui_manager.mouse_button_up_event(button, x, y);
+
         if button == MouseButton::Left {
             self.mouse_down = false;
         }
     }
 
-    fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
-        match keycode {
-            KeyCode::R => {
-                self.camera.reset();
-            }
-            KeyCode::O => {
-                self.camera.toggle_projection_mode();
-            }
-            _ => {}
+    fn key_down_event(&mut self, keycode: KeyCode, keymods: KeyMods, _repeat: bool) {
+        self.ui_manager.key_down_event(keycode, keymods);
+
+        if !self.ui_manager.want_mouse_capture {
+            self.handle_camera_input(keycode);
         }
+    }
+
+    fn key_up_event(&mut self, keycode: KeyCode, keymods: KeyMods) {
+        self.ui_manager.key_up_event(keycode, keymods);
+    }
+
+    fn char_event(&mut self, character: char, _keymods: KeyMods, _repeat: bool) {
+        self.ui_manager.char_event(character);
     }
 
     fn quit_requested_event(&mut self) {

@@ -27,10 +27,12 @@
 
 use core::marker::PhantomData;
 use embedded_hal::spi::SpiBus;
-use palette::FromColor;
 
 use super::{ClockedLed, ClockedWriter};
-use crate::driver::LedDriver;
+use crate::{
+    color::{ColorCorrection, OutputColor},
+    driver::LedDriver,
+};
 
 /// Driver for clocked LEDs using a hardware SPI peripheral.
 ///
@@ -79,7 +81,6 @@ where
     Spi: SpiBus<u8>,
 {
     type Error = <Spi as ClockedWriter>::Error;
-    type Color = Led::Color;
 
     /// Writes a sequence of colors to the LED chain using SPI.
     ///
@@ -93,12 +94,18 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if SPI transmission fails
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+    fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
-        Led::clocked_write(&mut self.writer, pixels, brightness)
+        Led::clocked_write(&mut self.writer, pixels, brightness, gamma, correction)
     }
 }
 

@@ -38,10 +38,12 @@
 //! }
 //! ```
 
-use crate::time::{Megahertz, Nanoseconds};
+use crate::{
+    color::{ColorCorrection, OutputColor},
+    time::{Megahertz, Nanoseconds},
+};
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
-use palette::FromColor;
 
 use super::{ClockedLed, ClockedWriter, LedDriver};
 
@@ -103,7 +105,6 @@ where
     Delay: DelayNs,
 {
     type Error = <ClockedDelayWriter<Data, Clock, Delay> as ClockedWriter>::Error;
-    type Color = Led::Color;
 
     /// Writes a sequence of colors to the LED chain.
     ///
@@ -113,16 +114,24 @@ where
     ///
     /// * `pixels` - Iterator over colors
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `gamma` - Gamma correction factor
+    /// * `correction` - Color correction factors
     ///
     /// # Returns
     ///
     /// Ok(()) on success or an error if transmission fails
-    fn write<I, C>(&mut self, pixels: I, brightness: f32) -> Result<(), Self::Error>
+    fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        gamma: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        C: OutputColor,
     {
-        Led::clocked_write(&mut self.writer, pixels, brightness)
+        Led::clocked_write(&mut self.writer, pixels, brightness, gamma, correction)
     }
 }
 

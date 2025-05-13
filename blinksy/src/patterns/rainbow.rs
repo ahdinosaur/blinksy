@@ -35,9 +35,8 @@
 //!     .build();
 //! ```
 
-use palette::Hsv;
-
 use crate::{
+    color::Hsi,
     dimension::{Dim1d, Dim2d},
     layout::{Layout1d, Layout2d},
     pattern::Pattern,
@@ -80,7 +79,7 @@ where
     Layout: Layout1d,
 {
     type Params = RainbowParams;
-    type Color = Hsv;
+    type Color = Hsi;
 
     /// Creates a new Rainbow pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -100,12 +99,12 @@ where
         } = params;
 
         let time = time_in_ms as f32 * time_scalar;
-        let step = 0.5 * 360. * position_scalar;
+        let step = 0.5 * position_scalar;
 
         Layout::points().map(move |x| {
             let hue = x * step + time;
             let saturation = 1.;
-            Hsv::new_srgb(hue, saturation, *brightness)
+            Hsi::new(hue, saturation, *brightness)
         })
     }
 }
@@ -115,7 +114,7 @@ where
     Layout: Layout2d,
 {
     type Params = RainbowParams;
-    type Color = Hsv;
+    type Color = Hsi;
 
     /// Creates a new Rainbow pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -135,12 +134,12 @@ where
         } = params;
 
         let time = time_in_ms as f32 * time_scalar;
-        let step = 0.5 * 360. * position_scalar;
+        let step = 0.5 * position_scalar;
 
         Layout::points().map(move |point| {
             let hue = point.x * step + time;
             let saturation = 1.;
-            Hsv::new_srgb(hue, saturation, *brightness)
+            Hsi::new(hue, saturation, *brightness)
         })
     }
 }

@@ -15,3 +15,10 @@ where
         U::from_color(self)
     }
 }
+
+impl<T> FromColor<T> for T {
+    #[inline]
+    fn from_color(color: T) -> T {
+        color
+    }
+}

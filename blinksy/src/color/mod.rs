@@ -1,6 +1,5 @@
 //! # Color Types and Utilities
 
-mod component;
 mod convert;
 mod correction;
 mod gamma_srgb;
@@ -13,7 +12,6 @@ mod oklab;
 mod srgb;
 mod xyz;
 
-pub use self::component::*;
 pub use self::convert::*;
 pub use self::correction::*;
 pub use self::gamma_srgb::*;

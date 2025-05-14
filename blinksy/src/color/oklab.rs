@@ -1,10 +1,7 @@
+use super::{FromColor, LinearSrgb};
 use crate::color::Lms;
 
-use super::{FromColor, LinearSrgb};
-
-/// Oklab color space representation.
-///
-/// https://bottosson.github.io/posts/oklab/
+/// # Oklab Color Space
 ///
 /// Oklab is a perceptual color space designed for improved uniformity and
 /// blending characteristics compared to traditional spaces like sRGB or
@@ -23,14 +20,14 @@ use super::{FromColor, LinearSrgb};
 ///   and positive values lean towards yellow. A value near zero is neutral grey
 ///   along this axis.
 ///
-/// The `a` and `b` components are theoretically unbounded, but practical
-/// colors within typical gamuts (like sRGB) will fall within a finite range
-/// (e.g., roughly -0.5 to +0.5).
+/// ## Properties
+///
+/// - **White Point**: D65 (6500K), same as sRGB
 ///
 /// Oklab, like many standard color spaces, is based on the D65 whitepoint,
 /// which represents average daylight.
 ///
-/// # Why Use Oklab?
+/// ## Why Use Oklab?
 ///
 /// The primary advantage of Oklab is its **perceptual uniformity**. This means
 /// that a small change in the Oklab coordinates (i.e., a small Euclidean
@@ -52,8 +49,7 @@ use super::{FromColor, LinearSrgb};
 /// - **Color Picking Interfaces:** Providing a more intuitive way for users
 ///   to select and manipulate colors based on how they are seen.
 ///
-/// Oklab is designed to be numerically stable and well-behaved for computations.
-/// It is a device-independent space, related to the CIE standard observer.
+/// Reference: https://bottosson.github.io/posts/oklab/
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Oklab {
     /// Lightness component [0.0, 1.0]
@@ -70,18 +66,28 @@ impl Oklab {
         Oklab { l, a, b }
     }
 
+    /// Converts from linear sRGB to Oklab color space.
+    ///
+    /// This conversion goes through the LMS color space, which models
+    /// the response of the three types of cones in the human eye.
     pub fn from_linear_srgb(linear_srgb: LinearSrgb) -> Self {
         let lms = Lms::from_linear_srgb(linear_srgb);
         Self::from_lms(lms)
     }
 
+    /// Converts from Oklab to linear sRGB color space.
+    ///
+    /// Note that the result may contain values outside the standard sRGB gamut.
     pub fn to_linear_srgb(self) -> LinearSrgb {
         let lms = self.to_lms();
         lms.to_linear_srgb()
     }
 
+    /// Converts from LMS cone responses to Oklab.
+    ///
+    /// This applies a non-linear transformation (cube root) to the LMS values
+    /// followed by a linear transformation to get the Oklab components.
     pub fn from_lms(lms: Lms) -> Self {
-        // LMS^(1/3) → OkLab
         const LMS_TO_OKLAB: [[f32; 3]; 3] = [
             [0.2104542553, 0.7936177850, -0.0040720468],
             [1.9779984951, -2.4285922050, 0.4505937099],
@@ -111,8 +117,11 @@ impl Oklab {
         }
     }
 
+    /// Converts from Oklab to LMS cone responses.
+    ///
+    /// This applies the inverse transformation from Oklab to LMS,
+    /// followed by cubing the result to undo the non-linearity.
     pub fn to_lms(self) -> Lms {
-        // OkLab → LMS^(1/3)
         const OKLAB_TO_LMS_CBRT: [[f32; 3]; 3] = [
             [1.0, 0.3963377774, 0.2158037573],
             [1.0, -0.1055613458, -0.0638541728],
@@ -145,5 +154,17 @@ impl FromColor<LinearSrgb> for Oklab {
 impl FromColor<Oklab> for LinearSrgb {
     fn from_color(color: Oklab) -> Self {
         color.to_linear_srgb()
+    }
+}
+
+impl FromColor<Lms> for Oklab {
+    fn from_color(color: Lms) -> Self {
+        Self::from_lms(color)
+    }
+}
+
+impl FromColor<Oklab> for Lms {
+    fn from_color(color: Oklab) -> Self {
+        color.to_lms()
     }
 }

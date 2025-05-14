@@ -29,14 +29,13 @@
 //!     .with_pattern::<Rainbow>(RainbowParams {
 //!         time_scalar: 0.1,
 //!         position_scalar: 1.0,
-//!         brightness: 1.0,
 //!     })
 //!     .with_driver(/* your driver */)
 //!     .build();
 //! ```
 
 use crate::{
-    color::Hsi,
+    color::Okhsv,
     dimension::{Dim1d, Dim2d},
     layout::{Layout1d, Layout2d},
     pattern::Pattern,
@@ -50,9 +49,6 @@ pub struct RainbowParams {
 
     /// Controls the spatial density of the rainbow (higher = more compressed)
     pub position_scalar: f32,
-
-    /// Base brightness before global brightness scaling
-    pub brightness: f32,
 }
 
 impl Default for RainbowParams {
@@ -60,7 +56,6 @@ impl Default for RainbowParams {
         Self {
             time_scalar: 0.1,
             position_scalar: 1.,
-            brightness: 1.,
         }
     }
 }
@@ -79,7 +74,7 @@ where
     Layout: Layout1d,
 {
     type Params = RainbowParams;
-    type Color = Hsi;
+    type Color = Okhsv;
 
     /// Creates a new Rainbow pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -95,7 +90,6 @@ where
         let RainbowParams {
             time_scalar,
             position_scalar,
-            brightness,
         } = params;
 
         let time = time_in_ms as f32 * time_scalar;
@@ -104,7 +98,8 @@ where
         Layout::points().map(move |x| {
             let hue = x * step + time;
             let saturation = 1.;
-            Hsi::new(hue, saturation, *brightness)
+            let value = 1.;
+            Okhsv::new(hue, saturation, value)
         })
     }
 }
@@ -114,7 +109,7 @@ where
     Layout: Layout2d,
 {
     type Params = RainbowParams;
-    type Color = Hsi;
+    type Color = Okhsv;
 
     /// Creates a new Rainbow pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -130,7 +125,6 @@ where
         let RainbowParams {
             time_scalar,
             position_scalar,
-            brightness,
         } = params;
 
         let time = time_in_ms as f32 * time_scalar;
@@ -139,7 +133,8 @@ where
         Layout::points().map(move |point| {
             let hue = point.x * step + time;
             let saturation = 1.;
-            Hsi::new(hue, saturation, *brightness)
+            let value = 1.;
+            Okhsv::new(hue, saturation, value)
         })
     }
 }

@@ -30,7 +30,7 @@ use embedded_hal::spi::SpiBus;
 
 use super::{ClockedLed, ClockedWriter};
 use crate::{
-    color::{ColorCorrection, OutputColor},
+    color::{ColorCorrection, FromColor},
     driver::LedDriver,
 };
 
@@ -81,6 +81,7 @@ where
     Spi: SpiBus<u8>,
 {
     type Error = <Spi as ClockedWriter>::Error;
+    type Color = Led::Color;
 
     /// Writes a sequence of colors to the LED chain using SPI.
     ///
@@ -98,14 +99,13 @@ where
         &mut self,
         pixels: I,
         brightness: f32,
-        gamma: f32,
         correction: ColorCorrection,
     ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        C: OutputColor,
+        Self::Color: FromColor<C>,
     {
-        Led::clocked_write(&mut self.writer, pixels, brightness, gamma, correction)
+        Led::clocked_write(&mut self.writer, pixels, brightness, correction)
     }
 }
 

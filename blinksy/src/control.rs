@@ -13,7 +13,7 @@
 use core::marker::PhantomData;
 
 use crate::{
-    color::ColorCorrection,
+    color::{ColorCorrection, FromColor},
     dimension::{Dim1d, Dim2d, LayoutForDim},
     driver::LedDriver,
     pattern::Pattern as PatternTrait,
@@ -66,7 +66,6 @@ pub struct Control<Dim, Layout, Pattern, Driver> {
     pattern: Pattern,
     driver: Driver,
     brightness: f32,
-    gamma: f32,
     correction: ColorCorrection,
 }
 
@@ -88,7 +87,6 @@ impl<Dim, Layout, Pattern, Driver> Control<Dim, Layout, Pattern, Driver> {
             pattern,
             driver,
             brightness: 1.,
-            gamma: 1.,
             correction: ColorCorrection::default(),
         }
     }
@@ -100,15 +98,6 @@ impl<Dim, Layout, Pattern, Driver> Control<Dim, Layout, Pattern, Driver> {
     /// * `brightness` - Brightness level from 0.0 (off) to 1.0 (full)
     pub fn set_brightness(&mut self, brightness: f32) {
         self.brightness = brightness;
-    }
-
-    /// Sets an additional gamma correction.
-    ///
-    /// # Arguments
-    ///
-    /// * `gamma` - Gamma correction factor
-    pub fn set_gamma(&mut self, gamma: f32) {
-        self.gamma = gamma;
     }
 
     /// Sets a color correction.
@@ -126,6 +115,7 @@ where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
     Driver: LedDriver,
+    Driver::Color: FromColor<Pattern::Color>,
 {
     /// Updates the LED state based on the current time.
     ///
@@ -142,8 +132,7 @@ where
     /// Result indicating success or an error from the driver
     pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
-        self.driver
-            .write(pixels, self.brightness, self.gamma, self.correction)
+        self.driver.write(pixels, self.brightness, self.correction)
     }
 }
 
@@ -274,6 +263,7 @@ where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
     Driver: LedDriver,
+    Driver::Color: FromColor<Pattern::Color>,
 {
     /// Builds the final [`Control`] struct.
     ///

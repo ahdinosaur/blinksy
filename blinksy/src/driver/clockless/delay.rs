@@ -35,7 +35,7 @@ use embedded_hal::{delay::DelayNs, digital::OutputPin};
 
 use super::ClocklessLed;
 use crate::{
-    color::{ColorCorrection, OutputColor},
+    color::{ColorCorrection, FromColor, LinearSrgb},
     driver::LedDriver,
 };
 
@@ -161,6 +161,7 @@ where
     Delay: DelayNs,
 {
     type Error = Pin::Error;
+    type Color = LinearSrgb;
 
     /// Writes a sequence of colors to the LED chain.
     ///
@@ -183,15 +184,15 @@ where
         &mut self,
         pixels: I,
         brightness: f32,
-        gamma: f32,
         correction: ColorCorrection,
     ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        C: OutputColor,
+        Self::Color: FromColor<C>,
     {
         for color in pixels {
-            let data = color.to_led(Led::LED_CHANNELS, brightness, gamma, correction);
+            let linear_srgb = LinearSrgb::from_color(color);
+            let data = linear_srgb.to_led(Led::LED_CHANNELS, brightness, correction);
             self.write_buffer(data.as_ref())?;
         }
         self.delay_for_reset();

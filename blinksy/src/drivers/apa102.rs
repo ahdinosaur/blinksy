@@ -29,10 +29,10 @@
 //! This implementation includes the "High Definition" color handling from FastLED, which
 //! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 
-use crate::color::{gamma_encode, ColorComponent, ColorCorrection, OutputColor};
 use crate::{
-    color::RgbChannels,
+    color::{ColorCorrection, FromColor, LinearSrgb, RgbChannels},
     driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
+    util::Component,
 };
 
 /// APA102 driver using GPIO bit-banging with delay timing.
@@ -60,6 +60,7 @@ pub struct Apa102Led;
 
 impl ClockedLed for Apa102Led {
     type Word = u8;
+    type Color = LinearSrgb;
 
     /// Writes the APA102 start frame (32 bits of zeros).
     fn start<Writer: ClockedWriter<Word = Self::Word>>(
@@ -72,14 +73,13 @@ impl ClockedLed for Apa102Led {
     ///
     /// Uses the "High Definition" color handling algorithm from FastLED to optimize
     /// the use of the 5-bit brightness and 8-bit per-channel color values.
-    fn color<Writer: ClockedWriter<Word = Self::Word>, C: OutputColor>(
+    fn color<Writer: ClockedWriter<Word = Self::Word>>(
         writer: &mut Writer,
-        color: C,
+        color: Self::Color,
         brightness: f32,
-        gamma: f32,
         correction: ColorCorrection,
     ) -> Result<(), Writer::Error> {
-        let linear = color.to_linear_rgb();
+        let linear = LinearSrgb::from_color(color);
         let (red, green, blue) = (linear.red, linear.green, linear.blue);
 
         // First color correct the linear RGB
@@ -87,19 +87,14 @@ impl ClockedLed for Apa102Led {
         let green = green * correction.red;
         let blue = blue * correction.red;
 
-        // Then, adjust additional gamma
-        let red = gamma_encode(red, gamma);
-        let green = gamma_encode(green, gamma);
-        let blue = gamma_encode(blue, gamma);
-
         // Then, convert to u16's
         let (red_u16, green_u16, blue_u16) = (
-            ColorComponent::from_normalized_f32(red),
-            ColorComponent::from_normalized_f32(green),
-            ColorComponent::from_normalized_f32(blue),
+            Component::from_normalized_f32(red),
+            Component::from_normalized_f32(green),
+            Component::from_normalized_f32(blue),
         );
 
-        let brightness: u8 = ColorComponent::from_normalized_f32(brightness);
+        let brightness: u8 = Component::from_normalized_f32(brightness);
 
         let ((red_u8, green_u8, blue_u8), brightness) =
             five_bit_bitshift(red_u16, green_u16, blue_u16, brightness);

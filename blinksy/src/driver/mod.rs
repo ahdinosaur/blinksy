@@ -10,7 +10,7 @@
 //! - [`clocked`]: Implementations for clocked protocols (like APA102)
 //! - [`clockless`]: Implementations for clockless protocols (like WS2812)
 
-use crate::color::{ColorCorrection, OutputColor};
+use crate::color::{ColorCorrection, FromColor};
 
 pub mod clocked;
 pub mod clockless;
@@ -26,11 +26,12 @@ pub use clockless::*;
 /// # Type Parameters
 ///
 /// * `Error` - The error type that may be returned by the driver
+/// * `Color` - The color type accepted by the driver
 ///
 /// # Example
 ///
 /// ```rust
-/// use blinksy::{color::{ColorCorrection, OutputColor}, driver::LedDriver};
+/// use blinksy::{color::{ColorCorrection, FromColor, LinearSrgb}, driver::LedDriver};
 ///
 /// struct MyDriver {
 ///     // Implementation details
@@ -38,11 +39,12 @@ pub use clockless::*;
 ///
 /// impl LedDriver for MyDriver {
 ///     type Error = ();
+///     type Color = LinearSrgb;
 ///
-///     fn write<I, C>(&mut self, pixels: I, brightness: f32, gamma: f32, correction: ColorCorrection) -> Result<(), Self::Error>
+///     fn write<I, C>(&mut self, pixels: I, brightness: f32, correction: ColorCorrection) -> Result<(), Self::Error>
 ///     where
 ///         I: IntoIterator<Item = C>,
-///         C: OutputColor
+///         Self::Color: FromColor<C>,
 ///     {
 ///         // Implementation of writing colors to the LED hardware
 ///         Ok(())
@@ -53,12 +55,16 @@ pub trait LedDriver {
     /// The error type that may be returned by the driver.
     type Error;
 
+    /// The color type accepted by the driver.
+    type Color;
+
     /// Writes a sequence of colors to the LED hardware.
     ///
     /// # Arguments
     ///
     /// * `pixels` - Iterator over colors
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
     ///
     /// # Returns
     ///
@@ -67,10 +73,9 @@ pub trait LedDriver {
         &mut self,
         pixels: I,
         brightness: f32,
-        gamma: f32,
         correction: ColorCorrection,
     ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        C: OutputColor;
+        Self::Color: FromColor<C>;
 }

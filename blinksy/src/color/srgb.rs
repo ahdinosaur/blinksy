@@ -1,25 +1,17 @@
+use super::{FromColor, LinearSrgb};
 #[allow(unused_imports)]
 use num_traits::Float;
 
-use super::{FromColor, LinearSrgb};
-
 /// # sRGB Color Space
 ///
-/// `Srgb` represents colors in the standard RGB (sRGB) color space, which is the most common
-/// color space used for digital displays and the web.
+/// `Srgb` represents colors in the standard RGB (sRGB) color space. When you think of "just RGB",
+/// you are probably thinking of `Srgb`.
 ///
 /// ## Color Space Properties
 ///
 /// - **Gamma Encoding**: Uses a non-linear transfer function (approximately gamma 2.2)
 /// - **RGB Primaries**: Uses the sRGB primaries as defined in IEC 61966-2-1
 /// - **White Point**: D65 (6500K)
-///
-/// ## When to Use
-///
-/// Use `Srgb` when:
-/// - Working with color values from typical image formats, web colors, or GUI applications
-/// - You need a perceptually uniform color space
-/// - You want to match colors as they appear on standard displays
 ///
 /// sRGB values are non-linear (gamma-encoded) to account for human perception. This means
 /// that arithmetic operations on sRGB values (like averaging or interpolation) will not
@@ -64,7 +56,7 @@ impl Srgb {
     ///
     /// This removes the gamma encoding, making the color values proportional to light intensity.
     /// Linear RGB is necessary for physically accurate color calculations.
-    pub fn to_linear_rgb(self) -> LinearSrgb {
+    pub fn to_linear_srgb(self) -> LinearSrgb {
         LinearSrgb {
             red: srgb_decode(self.red),
             green: srgb_decode(self.green),
@@ -72,6 +64,9 @@ impl Srgb {
         }
     }
 
+    /// Converts from linear RGB to sRGB color space
+    ///
+    /// This applies the sRGB gamma encoding to make the color values perceptually uniform.
     pub fn from_linear_srgb(linear_srgb: LinearSrgb) -> Self {
         Self {
             red: srgb_encode(linear_srgb.red),
@@ -83,7 +78,13 @@ impl Srgb {
 
 impl FromColor<LinearSrgb> for Srgb {
     fn from_color(color: LinearSrgb) -> Self {
-        color.to_srgb()
+        Srgb::from_linear_srgb(color)
+    }
+}
+
+impl FromColor<Srgb> for LinearSrgb {
+    fn from_color(color: Srgb) -> Self {
+        color.to_linear_srgb()
     }
 }
 

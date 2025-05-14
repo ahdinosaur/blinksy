@@ -48,7 +48,7 @@
 use noise::NoiseFn;
 
 use crate::{
-    color::Hsi,
+    color::Okhsv,
     dimension::{Dim1d, Dim2d},
     layout::{Layout1d, Layout2d},
     pattern::Pattern,
@@ -101,7 +101,7 @@ where
     Noise: NoiseFn<f64, 2> + Default,
 {
     type Params = NoiseParams;
-    type Color = Hsi;
+    type Color = Okhsv;
 
     /// Creates a new Noise1d pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -129,7 +129,7 @@ where
             let hue = noise as f32;
             let saturation = 1.;
             let value = 1.;
-            Hsi::new(hue, saturation, value)
+            Okhsv::new(hue, saturation, value)
         })
     }
 }
@@ -156,7 +156,7 @@ where
     Noise: NoiseFn<f64, 3> + Default,
 {
     type Params = NoiseParams;
-    type Color = Hsi;
+    type Color = Okhsv;
 
     /// Creates a new Noise2d pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -187,8 +187,8 @@ where
             ]);
             let hue = noise as f32;
             let saturation = 1.;
-            let intensity = 1.;
-            Hsi::new(hue, saturation, intensity)
+            let value = 1.;
+            Okhsv::new(hue, saturation, value)
         })
     }
 }

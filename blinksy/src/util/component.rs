@@ -1,11 +1,11 @@
-pub trait Component {
+pub trait Component: Copy {
     fn to_normalized_f32(self) -> f32;
     fn from_normalized_f32(value: f32) -> Self;
 }
 
 macro_rules! impl_component_for_uint {
     ($T:ident) => {
-        impl ColorComponent for $T {
+        impl Component for $T {
             fn to_normalized_f32(self) -> f32 {
                 self as f32 / ($T::MAX as f32)
             }

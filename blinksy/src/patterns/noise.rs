@@ -45,7 +45,7 @@
 //!     .build();
 //! ```
 
-use noise::NoiseFn;
+use noise::{NoiseFn, Seedable};
 
 use crate::{
     color::Okhsv,
@@ -88,8 +88,11 @@ pub struct Noise1d<Noise>
 where
     Noise: NoiseFn<f64, 2>,
 {
-    /// The noise function implementation
-    noise: Noise,
+    /// The noise function used to get hue
+    hue_noise: Noise,
+
+    /// The noise function used to get value
+    value_noise: Noise,
 
     /// Configuration parameters
     params: NoiseParams,
@@ -98,7 +101,7 @@ where
 impl<Layout, Noise> Pattern<Dim1d, Layout> for Noise1d<Noise>
 where
     Layout: Layout1d,
-    Noise: NoiseFn<f64, 2> + Default,
+    Noise: NoiseFn<f64, 2> + Seedable + Default,
 {
     type Params = NoiseParams;
     type Color = Okhsv;
@@ -106,7 +109,8 @@ where
     /// Creates a new Noise1d pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
         Self {
-            noise: Noise::default(),
+            hue_noise: Noise::default().set_seed(0),
+            value_noise: Noise::default().set_seed(1),
             params,
         }
     }
@@ -116,7 +120,11 @@ where
     /// The pattern uses the LED position and time as inputs to a 2D noise function,
     /// mapping the noise value to a hue in the HSV color space.
     fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
-        let Self { noise, params } = self;
+        let Self {
+            hue_noise,
+            value_noise,
+            params,
+        } = self;
         let NoiseParams {
             time_scalar,
             position_scalar,
@@ -125,10 +133,10 @@ where
         let noise_time = time_in_ms as f64 * time_scalar;
 
         Layout::points().map(move |x| {
-            let noise = noise.get([position_scalar * x as f64, noise_time]);
-            let hue = noise as f32;
+            let noise_args = [position_scalar * x as f64, noise_time];
+            let hue = hue_noise.get(noise_args) as f32;
             let saturation = 1.;
-            let value = 1.;
+            let value = 1. + value_noise.get(noise_args) as f32;
             Okhsv::new(hue, saturation, value)
         })
     }
@@ -143,8 +151,11 @@ pub struct Noise2d<Noise>
 where
     Noise: NoiseFn<f64, 3>,
 {
-    /// The noise function implementation
-    noise: Noise,
+    /// The noise function used to get hue
+    hue_noise: Noise,
+
+    /// The noise function used to get value
+    value_noise: Noise,
 
     /// Configuration parameters
     params: NoiseParams,
@@ -153,7 +164,7 @@ where
 impl<Layout, Noise> Pattern<Dim2d, Layout> for Noise2d<Noise>
 where
     Layout: Layout2d,
-    Noise: NoiseFn<f64, 3> + Default,
+    Noise: NoiseFn<f64, 3> + Seedable + Default,
 {
     type Params = NoiseParams;
     type Color = Okhsv;
@@ -161,7 +172,8 @@ where
     /// Creates a new Noise2d pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
         Self {
-            noise: Noise::default(),
+            hue_noise: Noise::default().set_seed(0),
+            value_noise: Noise::default().set_seed(1),
             params,
         }
     }
@@ -171,7 +183,11 @@ where
     /// The pattern uses the LED x,y position and time as inputs to a 3D noise function,
     /// mapping the noise value to a hue in the HSV color space.
     fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
-        let Self { noise, params } = self;
+        let Self {
+            hue_noise,
+            value_noise,
+            params,
+        } = self;
         let NoiseParams {
             time_scalar,
             position_scalar,
@@ -180,14 +196,14 @@ where
         let noise_time = time_in_ms as f64 * time_scalar;
 
         Layout::points().map(move |point| {
-            let noise = noise.get([
+            let noise_args = [
                 position_scalar * point.x as f64,
                 position_scalar * point.y as f64,
                 noise_time,
-            ]);
-            let hue = noise as f32;
+            ];
+            let hue = hue_noise.get(noise_args) as f32;
             let saturation = 1.;
-            let value = 1.;
+            let value = 1. + value_noise.get(noise_args) as f32;
             Okhsv::new(hue, saturation, value)
         })
     }

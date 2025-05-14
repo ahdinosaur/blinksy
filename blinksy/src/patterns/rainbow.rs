@@ -53,8 +53,9 @@ pub struct RainbowParams {
 
 impl Default for RainbowParams {
     fn default() -> Self {
+        const MILLISECONDS_PER_SECOND: f32 = 1e3;
         Self {
-            time_scalar: 0.1,
+            time_scalar: 0.3 / MILLISECONDS_PER_SECOND,
             position_scalar: 1.,
         }
     }

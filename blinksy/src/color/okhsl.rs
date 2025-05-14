@@ -44,7 +44,7 @@ impl Okhsl {
     }
 
     /// Converts Okhsl to linear RGB.
-    pub fn to_linear_rgb(&self) -> LinearSrgb {
+    pub fn to_linear_srgb(&self) -> LinearSrgb {
         self.to_oklab().to_linear_srgb()
     }
 }

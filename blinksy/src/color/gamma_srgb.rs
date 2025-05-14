@@ -1,4 +1,4 @@
-use super::{FromColor, LinearSrgb};
+use super::LinearSrgb;
 
 /// # Gamma-corrected RGB Color Space
 ///
@@ -76,12 +76,6 @@ impl GammaSrgb {
             green: gamma_decode(self.green, self.gamma),
             blue: gamma_decode(self.blue, self.gamma),
         }
-    }
-}
-
-impl FromColor<GammaSrgb> for LinearSrgb {
-    fn from_color(color: GammaSrgb) -> Self {
-        color.to_linear_srgb()
     }
 }
 

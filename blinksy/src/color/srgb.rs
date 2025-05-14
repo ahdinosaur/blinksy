@@ -1,4 +1,5 @@
-use super::{FromColor, LinearSrgb};
+use super::LinearSrgb;
+
 #[allow(unused_imports)]
 use num_traits::Float;
 
@@ -73,18 +74,6 @@ impl Srgb {
             green: srgb_encode(linear_srgb.green),
             blue: srgb_encode(linear_srgb.blue),
         }
-    }
-}
-
-impl FromColor<LinearSrgb> for Srgb {
-    fn from_color(color: LinearSrgb) -> Self {
-        Srgb::from_linear_srgb(color)
-    }
-}
-
-impl FromColor<Srgb> for LinearSrgb {
-    fn from_color(color: Srgb) -> Self {
-        color.to_linear_srgb()
     }
 }
 

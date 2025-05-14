@@ -1,6 +1,9 @@
 use crate::util::Component;
 
-use super::{ColorCorrection, GammaSrgb, LedChannels, LedColor, Srgb};
+use super::{
+    ColorCorrection, FromColor, GammaSrgb, LedChannels, LedColor, Lms, Okhsl, Okhsv, Oklab, Srgb,
+    Xyz,
+};
 
 /// # Linear RGB Color Space
 ///
@@ -68,5 +71,47 @@ impl LinearSrgb {
         correction: ColorCorrection,
     ) -> LedColor<C> {
         LedColor::from_linear_srgb(self, channels, brightness, correction)
+    }
+}
+
+impl FromColor<GammaSrgb> for LinearSrgb {
+    fn from_color(color: GammaSrgb) -> Self {
+        color.to_linear_srgb()
+    }
+}
+
+impl FromColor<Lms> for LinearSrgb {
+    fn from_color(color: Lms) -> Self {
+        color.to_linear_srgb()
+    }
+}
+
+impl FromColor<Okhsv> for LinearSrgb {
+    fn from_color(color: Okhsv) -> Self {
+        color.to_linear_srgb()
+    }
+}
+
+impl FromColor<Okhsl> for LinearSrgb {
+    fn from_color(color: Okhsl) -> Self {
+        color.to_linear_srgb()
+    }
+}
+
+impl FromColor<Oklab> for LinearSrgb {
+    fn from_color(color: Oklab) -> Self {
+        color.to_linear_srgb()
+    }
+}
+
+impl FromColor<Srgb> for LinearSrgb {
+    fn from_color(color: Srgb) -> Self {
+        color.to_linear_srgb()
+    }
+}
+
+impl FromColor<Xyz> for LinearSrgb {
+    fn from_color(color: Xyz) -> Self {
+        color.to_linear_srgb()
     }
 }

@@ -1,5 +1,4 @@
-use super::{FromColor, LinearSrgb};
-use crate::color::Lms;
+use super::{LinearSrgb, Lms};
 
 /// # Oklab Color Space
 ///
@@ -89,9 +88,9 @@ impl Oklab {
     /// followed by a linear transformation to get the Oklab components.
     pub fn from_lms(lms: Lms) -> Self {
         const LMS_TO_OKLAB: [[f32; 3]; 3] = [
-            [0.2104542553, 0.7936177850, -0.0040720468],
-            [1.9779984951, -2.4285922050, 0.4505937099],
-            [0.0259040371, 0.7827717662, -0.8086757660],
+            [0.210_454_26, 0.793_617_8, -0.004_072_047],
+            [1.977_998_5, -2.428_592_2, 0.450_593_7],
+            [0.025_904_037, 0.782_771_77, -0.808_675_77],
         ];
 
         let Lms {
@@ -123,9 +122,9 @@ impl Oklab {
     /// followed by cubing the result to undo the non-linearity.
     pub fn to_lms(self) -> Lms {
         const OKLAB_TO_LMS_CBRT: [[f32; 3]; 3] = [
-            [1.0, 0.3963377774, 0.2158037573],
-            [1.0, -0.1055613458, -0.0638541728],
-            [1.0, -0.0894841775, -1.2914855480],
+            [1.0, 0.396_337_78, 0.215_803_76],
+            [1.0, -0.105_561_346, -0.063_854_17],
+            [1.0, -0.089_484_18, -1.291_485_5],
         ];
 
         let Oklab { l, a, b } = self;
@@ -142,29 +141,5 @@ impl Oklab {
         let short = s_cbrt * s_cbrt * s_cbrt;
 
         Lms::new(long, medium, short)
-    }
-}
-
-impl FromColor<LinearSrgb> for Oklab {
-    fn from_color(color: LinearSrgb) -> Self {
-        Self::from_linear_srgb(color)
-    }
-}
-
-impl FromColor<Oklab> for LinearSrgb {
-    fn from_color(color: Oklab) -> Self {
-        color.to_linear_srgb()
-    }
-}
-
-impl FromColor<Lms> for Oklab {
-    fn from_color(color: Lms) -> Self {
-        Self::from_lms(color)
-    }
-}
-
-impl FromColor<Oklab> for Lms {
-    fn from_color(color: Oklab) -> Self {
-        color.to_lms()
     }
 }

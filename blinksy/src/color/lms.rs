@@ -1,5 +1,4 @@
-use super::FromColor;
-use crate::color::LinearSrgb;
+use super::LinearSrgb;
 
 /// # LMS Color Space
 ///
@@ -91,17 +90,5 @@ impl Lms {
             + LMS_TO_LINEAR_SRGB[2][2] * short;
 
         LinearSrgb::new(red, green, blue)
-    }
-}
-
-impl FromColor<LinearSrgb> for Lms {
-    fn from_color(color: LinearSrgb) -> Self {
-        Self::from_linear_srgb(color)
-    }
-}
-
-impl FromColor<Lms> for LinearSrgb {
-    fn from_color(color: Lms) -> Self {
-        color.to_linear_srgb()
     }
 }

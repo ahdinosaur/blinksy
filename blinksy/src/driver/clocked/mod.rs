@@ -27,7 +27,7 @@
 //! ## Example
 //!
 //! ```rust
-//! use blinksy::{color::{ColorCorrection, LinearSrgb}, driver::{ClockedLed, ClockedWriter}};
+//! use blinksy::{color::{ColorCorrection, FromColor, LedRgb, LinearSrgb}, driver::{ClockedLed, ClockedWriter}};
 //!
 //! // Define a new LED chipset with specific protocol requirements
 //! struct MyLed;
@@ -49,7 +49,7 @@
 //!     ) -> Result<(), W::Error> {
 //!         // Write color data for one LED
 //!         let linear_srgb = LinearSrgb::from_color(color);
-//!         let led_rgb = &LedRgb::from_linear_srgb(linear_srgb, brightness, correction);
+//!         let rgb = LedRgb::from_linear_srgb(linear_srgb, brightness, correction);
 //!         writer.write(&[0x80, rgb[0], rgb[1], rgb[2]])
 //!     }
 //!

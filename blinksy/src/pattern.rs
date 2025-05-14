@@ -36,7 +36,7 @@ use crate::dimension::LayoutForDim;
 /// # Example
 ///
 /// ```rust
-/// use blinksy::{color::Hsi, dimension::Dim1d, layout::Layout1d, pattern::Pattern};
+/// use blinksy::{color::Okhsv, dimension::Dim1d, layout::Layout1d, pattern::Pattern};
 ///
 /// struct RainbowParams {
 ///     speed: f32,

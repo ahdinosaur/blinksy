@@ -1,3 +1,5 @@
+use core::ops::Index;
+
 use crate::util::Component;
 
 use super::{ColorCorrection, LinearSrgb};
@@ -83,6 +85,14 @@ impl<C> AsRef<[C]> for LedRgb<C> {
     }
 }
 
+impl<C> Index<usize> for LedRgb<C> {
+    type Output = C;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
 /// RGBW color values ready for output to LED hardware
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LedRgbw<C>([C; 4]);
@@ -130,6 +140,14 @@ impl<C: Component> LedRgbw<C> {
 impl<C> AsRef<[C]> for LedRgbw<C> {
     fn as_ref(&self) -> &[C] {
         &self.0
+    }
+}
+
+impl<C> Index<usize> for LedRgbw<C> {
+    type Output = C;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
     }
 }
 

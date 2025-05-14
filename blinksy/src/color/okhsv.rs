@@ -19,9 +19,9 @@ impl Okhsv {
     /// All parameters are clamped to their valid ranges.
     pub fn new(h: f32, s: f32, v: f32) -> Self {
         Okhsv {
-            h: h.rem_euclid(1.0),
-            s: s.max(0.0).min(1.0),
-            v: v.max(0.0).min(1.0),
+            h: h.rem_euclid(1.),
+            s: s.clamp(0., 1.),
+            v: v.clamp(0., 1.),
         }
     }
 
@@ -44,7 +44,7 @@ impl Okhsv {
     }
 
     /// Converts Okhsv to linear RGB.
-    pub fn to_linear_rgb(&self) -> LinearSrgb {
+    pub fn to_linear_srgb(&self) -> LinearSrgb {
         self.to_oklab().to_linear_srgb()
     }
 }

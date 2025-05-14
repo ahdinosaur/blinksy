@@ -1,4 +1,4 @@
-use super::{FromColor, LinearSrgb};
+use super::LinearSrgb;
 
 /// # CIE XYZ color space
 ///
@@ -75,17 +75,5 @@ impl Xyz {
             + XYZ_TO_LINEAR_SRGB[2][2] * z;
 
         LinearSrgb::new(r, g, b)
-    }
-}
-
-impl FromColor<Xyz> for LinearSrgb {
-    fn from_color(color: Xyz) -> Self {
-        color.to_linear_srgb()
-    }
-}
-
-impl FromColor<LinearSrgb> for Xyz {
-    fn from_color(color: LinearSrgb) -> Self {
-        Xyz::from_linear_srgb(color)
     }
 }

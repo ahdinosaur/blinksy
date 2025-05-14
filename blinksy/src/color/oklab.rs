@@ -1,5 +1,8 @@
 use super::{LinearSrgb, Lms};
 
+#[allow(unused_imports)]
+use num_traits::Float;
+
 /// # Oklab Color Space
 ///
 /// Oklab is a perceptual color space designed for improved uniformity and

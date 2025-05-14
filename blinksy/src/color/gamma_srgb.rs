@@ -1,5 +1,8 @@
 use super::LinearSrgb;
 
+#[allow(unused_imports)]
+use num_traits::Float;
+
 /// # Gamma-corrected RGB Color Space
 ///
 /// `GammaSrgb` represents colors in a gamma-corrected RGB color space with a customizable

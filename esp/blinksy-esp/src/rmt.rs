@@ -18,7 +18,7 @@
 //! into the corresponding high/low pulse durations required by the specific LED protocol.
 
 use blinksy::{
-    color::{ColorCorrection, LedColor, OutputColor},
+    color::{ColorCorrection, FromColor, LedColor, LinearSrgb},
     driver::{clockless::ClocklessLed, LedDriver},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
@@ -175,15 +175,14 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn write_color_to_rmt<C: OutputColor>(
-        color: C,
+    fn write_color_to_rmt(
+        color: LinearSrgb,
         rmt_iter: &mut IterMut<u32>,
         pulses: &(u32, u32, u32),
         brightness: f32,
-        gamma: f32,
         correction: ColorCorrection,
     ) -> Result<(), ClocklessRmtDriverError> {
-        let led_color = color.to_led(Led::LED_CHANNELS, brightness, gamma, correction);
+        let led_color = color.to_led(Led::LED_CHANNELS, brightness, correction);
 
         match led_color {
             LedColor::Rgb(rgb) => {
@@ -217,24 +216,17 @@ where
         &mut self,
         pixels: I,
         brightness: f32,
-        gamma: f32,
         correction: ColorCorrection,
     ) -> Result<(), ClocklessRmtDriverError>
     where
         I: IntoIterator<Item = C>,
-        C: OutputColor,
+        LinearSrgb: FromColor<C>,
     {
         let mut rmt_iter = self.rmt_buffer.iter_mut();
 
         for color in pixels {
-            Self::write_color_to_rmt(
-                color,
-                &mut rmt_iter,
-                &self.pulses,
-                brightness,
-                gamma,
-                correction,
-            )?;
+            let color = LinearSrgb::from_color(color);
+            Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses, brightness, correction)?;
         }
 
         *rmt_iter
@@ -264,18 +256,18 @@ where
     Tx: TxChannel,
 {
     type Error = ClocklessRmtDriverError;
+    type Color = LinearSrgb;
 
     fn write<I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
-        gamma: f32,
         correction: ColorCorrection,
     ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        C: OutputColor,
+        Self::Color: FromColor<C>,
     {
-        self.write_pixels(pixels, brightness, gamma, correction)
+        self.write_pixels(pixels, brightness, correction)
     }
 }

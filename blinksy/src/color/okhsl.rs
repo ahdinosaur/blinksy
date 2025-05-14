@@ -1,5 +1,9 @@
 use super::{LinearSrgb, Oklab};
 
+use num_traits::Euclid;
+#[allow(unused_imports)]
+use num_traits::Float;
+
 /// Okhsl color space representation.
 ///
 /// A color space based on Oklab that uses the more intuitive
@@ -19,9 +23,9 @@ impl Okhsl {
     /// All parameters are clamped to their valid ranges.
     pub fn new(h: f32, s: f32, l: f32) -> Self {
         Okhsl {
-            h: h.rem_euclid(1.0),
-            s: s.max(0.0).min(1.0),
-            l: l.max(0.0).min(1.0),
+            h: Euclid::rem_euclid(&h, &1.),
+            s: s.clamp(0., 1.),
+            l: l.clamp(0., 1.),
         }
     }
 

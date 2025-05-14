@@ -136,7 +136,7 @@ where
             let noise_args = [position_scalar * x as f64, noise_time];
             let hue = hue_noise.get(noise_args) as f32;
             let saturation = 1.;
-            let value = 1. + value_noise.get(noise_args) as f32;
+            let value = 0.75 + 0.25 * value_noise.get(noise_args) as f32;
             Okhsv::new(hue, saturation, value)
         })
     }
@@ -203,7 +203,7 @@ where
             ];
             let hue = hue_noise.get(noise_args) as f32;
             let saturation = 1.;
-            let value = 1. + value_noise.get(noise_args) as f32;
+            let value = 0.75 + 0.25 * value_noise.get(noise_args) as f32;
             Okhsv::new(hue, saturation, value)
         })
     }

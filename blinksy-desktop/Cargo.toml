@@ -14,7 +14,5 @@ categories = ["multimedia", "rendering"]
 
 [dependencies]
 blinksy = { path = "../blinksy", version = "0.1" }
-egui = "0.28"
-egui-miniquad = "0.15.0"
-glam = { version = "0.30.1" }
-miniquad = "0.4"
+three-d = "0.18"
+egui = "0.29"

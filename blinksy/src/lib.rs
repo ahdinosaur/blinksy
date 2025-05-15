@@ -2,7 +2,7 @@
 
 //! # Blinksy
 //!
-//! Blinksy is a no-std, no-alloc LED control library designed for 1D, 2D, and 3D (audio-reactive)
+//! Blinksy is a no-std, no-alloc LED control library designed for 1D, 2D, and 3D
 //! LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 //!
 //! ## How Blinksy works

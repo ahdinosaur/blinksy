@@ -23,7 +23,7 @@ use num_traits::Float;
 ///
 /// - **White Point**: D65 (6500K), same as sRGB
 ///
-/// Reference: https://bottosson.github.io/posts/oklab/
+/// Reference: <https://bottosson.github.io/posts/oklab/>
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Oklab {
     /// Lightness component [0.0, 1.0]

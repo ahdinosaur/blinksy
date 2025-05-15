@@ -1,24 +1,25 @@
 //! # Pattern Interface
 //!
-//! This module defines the [`Pattern`] trait, which is the core abstraction for
-//! visual effects in Blinksy. Patterns generate colors for LEDs based on time and position.
+//! A pattern, most similar to [a WLED effect], generates colors for LEDs based on time and
+//! position.
 //!
-//! A pattern takes:
+//! A [`Pattern`] takes:
 //!
+//! - The layout of the LEDs (through its type parameters)
 //! - Configuration parameters during initialization
 //! - The current time during each update cycle
-//! - Information about the layout it's operating on (through its type parameters)
 //!
-//! It produces:
+//! And produces:
 //!
 //! - A sequence of colors for each LED in the layout
 //!
-//! Patterns are generic over both the dimension they operate in and the specific layout
-//! type, allowing compile-time enforcement of dimensional compatibility.
+//! For the library of built-in patterns, see [patterns](crate::patterns).
+//!
+//! [a WLED effect]: https://kno.wled.ge/features/effects/
 
 use crate::dimension::LayoutForDim;
 
-/// Trait for creating visual patterns on LED layouts.
+/// Trait for creating visual effects on LED layouts.
 ///
 /// Patterns generate colors for each LED in a layout based on time and position.
 /// They are generic over both the dimension they operate in and the specific layout type.

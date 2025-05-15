@@ -1,16 +1,14 @@
 //! # LED Layouts
 //!
-//! Layouts define the physical or logical positions of LEDs in your setup, as arrangements
-//! in 1D, 2D, and 3D space.
+//! A layout defines the physical or logical positions of the LEDs in your setup, as
+//! arrangements in 1D, 2D, and 3D space.
 //!
-//! The module supports various layout types through dedicated traits:
-//! - [`Layout1d`]: For linear LED strips
-//! - [`Layout2d`]: For 2D layouts like matrices, grids, and complex shapes
-//! - (Future) Layout3d: For 3D arrangements
+//! - For 1D, use [`layout1d!`] to define a type that implements [`Layout1d`]
+//! - For 2D, use [`layout2d!`] to define a type that implements [`Layout2d`]
 //!
 //! ## 1D Layouts
 //!
-//! For simple linear arrangements, use the [`layout1d!`](crate::layout1d!) macro:
+//! For simple linear arrangements, use the [`layout1d!`] macro:
 //!
 //! ```rust
 //! use blinksy::layout1d;
@@ -21,7 +19,7 @@
 //!
 //! ## 2D Layouts
 //!
-//! For 2D layouts, use the [`layout2d!`](crate::layout2d!) macro with one or more [`Shape2d`] definitions:
+//! For 2D layouts, use the [`layout2d!`] macro with one or more [`Shape2d`] definitions:
 //!
 //! ```rust
 //! use blinksy::{layout2d, layout::Shape2d, layout::Vec2};
@@ -39,6 +37,9 @@
 //!     }]
 //! );
 //! ```
+//!
+//! [`layout1d!`]: crate::layout1d!
+//! [`layout2d!`]: crate::layout2d!
 
 use core::{
     iter::{once, Once},
@@ -51,6 +52,8 @@ use num_traits::FromPrimitive;
 /// Trait for one-dimensional LED layouts.
 ///
 /// Implementors of this trait represent a linear arrangement of LEDs.
+///
+/// Use [`layout1d!`](crate::layout1d) to define a type that implements [`Layout1d`].
 pub trait Layout1d {
     /// The total number of LEDs in this layout.
     const PIXEL_COUNT: usize;
@@ -66,12 +69,16 @@ pub trait Layout1d {
     }
 }
 
-/// Creates a one-dimensional LED layout.
+/// Creates a one-dimensional LED layout from a pixel count.
 ///
 /// # Arguments
 ///
 /// * `$name` - The name of the layout type to create
 /// * `$pixel_count` - The number of LEDs in the layout
+///
+/// # Output
+///
+/// Macro output will be a type definition that implements [`Layout1d`].
 ///
 /// # Example
 ///
@@ -364,6 +371,8 @@ impl Shape2d {
 /// Trait for two-dimensional LED layouts.
 ///
 /// Implementors of this trait represent a 2D arrangement of LEDs using one or more shapes.
+///
+/// Use [`layout2d!`](crate::layout2d) to define a type that implements [`Layout2d`].
 pub trait Layout2d {
     /// The total number of LEDs in this layout.
     const PIXEL_COUNT: usize;
@@ -383,6 +392,10 @@ pub trait Layout2d {
 ///
 /// * `$name` - The name of the layout type to create
 /// * `[$($shape:expr),*]` - A list of Shape2d instances defining the layout
+///
+/// # Output
+///
+/// Macro output will be a type definition that implements [`Layout2d`].
 ///
 /// # Example
 ///
@@ -415,7 +428,3 @@ macro_rules! layout2d {
         }
     };
 }
-
-/// Placeholder for future 3D shape support.
-#[derive(Debug, Clone)]
-pub enum Shape3d {}

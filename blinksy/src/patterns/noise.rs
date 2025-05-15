@@ -1,7 +1,23 @@
 //! # Noise Patterns
 //!
-//! This module provides a noise-based effect pattern that creates smooth, organic, and flowing
-//! color transitions across the LED layout.
+//! The noise pattern creates flowing animations based on a noise function.
+//!
+//! # What is a noise function?
+//!
+//! A noise function is given a position in 1d, 2d, 3d, or 4d space and returns
+//! a random value between -1.0 and 1.0, where values between nearbly positions are
+//! smoothly interpolated.
+//!
+//! For example, a common use of noise functions is to procedurally generate terrain.
+//! You could give a 2d noise function an (x, y) position and use the resulting value
+//! as an elevation.
+//!
+//! In our case, we will use noise functions to generate `hue` and `value` for [Okhsv]
+//! colors. To animate through time, rather than adding time to our position, we will
+//! input the time to the noise function as an additonal dimension. So a 1d layout will
+//! use a 2d noise function, a 2d layout a 3d noise function, and so on.
+//!
+//! This pattern is the same concept as what you see on [mikey.nz](https://mikey.nz/).
 //!
 //! ## Example
 //!
@@ -36,6 +52,9 @@
 //!     .with_driver(/* your driver */)
 //!     .build();
 //! ```
+//!
+//! [`Okhsv`]: crate::color::Okhsv
+//! [mikey.nz]: https://mikey.nz
 
 use noise::{NoiseFn, Seedable};
 
@@ -72,7 +91,7 @@ impl Default for NoiseParams {
 
 /// One-dimensional noise pattern implementation.
 ///
-/// Creates flowing patterns based on a 2D noise function, using
+/// Creates flowing animations based on a 2D noise function, using
 /// time and the 1D position for the input coordinates.
 #[derive(Debug)]
 pub struct Noise1d<Noise>
@@ -134,7 +153,7 @@ where
 
 /// Two-dimensional noise pattern implementation.
 ///
-/// Creates flowing patterns based on a 3D noise function, using
+/// Creates flowing animations based on a 3D noise function, using
 /// time and the 2D position for the input coordinates.
 #[derive(Debug)]
 pub struct Noise2d<Noise>

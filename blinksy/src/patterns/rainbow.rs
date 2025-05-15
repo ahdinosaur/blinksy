@@ -1,8 +1,8 @@
 //! # Rainbow Pattern
 //!
-//! This module provides a rainbow effect pattern that creates smooth color transitions
-//! across the LED layout. The colors flow through the full Okhsv spectrum, creating a
-//! classic rainbow visual.
+//! The rainbow pattern creates smooth color transitions across the LED layout.
+//! The colors flow through the full Okhsv spectrum, creating a classic rainbow
+//! visual.
 //!
 //! ## Example
 //!

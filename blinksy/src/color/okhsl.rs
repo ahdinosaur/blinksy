@@ -4,10 +4,15 @@ use num_traits::Euclid;
 #[allow(unused_imports)]
 use num_traits::Float;
 
-/// Okhsl color space representation.
+/// # Okhsl Color Space
 ///
-/// A color space based on Oklab that uses the more intuitive
-/// hue, saturation, and lightness components.
+/// A color space based on Oklab that uses the more intuitive hue, saturation,
+/// and lightness components. This provides a perceptually uniform alternative
+/// to traditional HSL models.
+///
+/// - `h`: Hue component (0.0 to 1.0) representing the color's position on the color wheel
+/// - `s`: Saturation component (0.0 to 1.0) representing the color's intensity/purity
+/// - `l`: Lightness component (0.0 to 1.0) representing the color's brightness
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Okhsl {
     /// Hue component [0.0, 1.0) where 0 and 1 both represent red

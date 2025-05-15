@@ -5,8 +5,8 @@ use num_traits::Float;
 
 /// # sRGB Color Space
 ///
-/// `Srgb` represents colors in the standard RGB (sRGB) color space. When you think of "just RGB",
-/// you are probably thinking of `Srgb`.
+/// `Srgb` represents colors in the standard RGB (sRGB) color space, which is
+/// the most common color space used for displays, web content, and digital images.
 ///
 /// ## Color Space Properties
 ///

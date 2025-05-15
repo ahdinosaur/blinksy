@@ -64,6 +64,7 @@
 //!     }
 //! }
 //! ```
+
 use crate::color::{ColorCorrection, FromColor};
 
 use super::LedDriver;
@@ -218,7 +219,6 @@ pub trait ClockedLed {
 
         Self::reset(writer)?;
         Self::end(writer, pixel_count)?;
-
         Ok(())
     }
 }

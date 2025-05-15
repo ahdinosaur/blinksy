@@ -14,6 +14,18 @@ pub enum LedColor<C> {
 }
 
 impl<C: Component> LedColor<C> {
+    /// Creates an output-ready LED color from a linear sRGB color
+    ///
+    /// # Arguments
+    ///
+    /// * `linear_srgb` - Linear RGB color to convert
+    /// * `channels` - The LED channel format specification
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors for the LEDs
+    ///
+    /// # Returns
+    ///
+    /// A `LedColor` ready for output to hardware
     pub fn from_linear_srgb(
         linear_srgb: LinearSrgb,
         channels: LedChannels,
@@ -48,6 +60,17 @@ impl<C> AsRef<[C]> for LedColor<C> {
 pub struct LedRgb<C>([C; 3]);
 
 impl<C: Component> LedRgb<C> {
+    /// Creates RGB LED output values from a linear sRGB color
+    ///
+    /// # Arguments
+    ///
+    /// * `linear_srgb` - Linear RGB color to convert
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors for the LEDs
+    ///
+    /// # Returns
+    ///
+    /// A `LedRgb` with component values ready for output
     pub fn from_linear_srgb(
         linear_srgb: LinearSrgb,
         brightness: f32,
@@ -55,14 +78,17 @@ impl<C: Component> LedRgb<C> {
     ) -> Self {
         let LinearSrgb { red, green, blue } = linear_srgb;
 
+        // Apply color correction
         let red = red * correction.red;
         let green = green * correction.green;
         let blue = blue * correction.blue;
 
+        // Apply brightness
         let red = red * brightness;
         let green = green * brightness;
         let blue = blue * brightness;
 
+        // Clamp values
         let red = red.clamp(0., 1.);
         let green = green.clamp(0., 1.);
         let blue = blue.clamp(0., 1.);
@@ -74,6 +100,7 @@ impl<C: Component> LedRgb<C> {
         ])
     }
 
+    /// Reorders the RGB components according to the specified channel order
     pub fn reorder(self, channels: RgbChannels) -> Self {
         Self(channels.reorder(self.0))
     }
@@ -98,6 +125,21 @@ impl<C> Index<usize> for LedRgb<C> {
 pub struct LedRgbw<C>([C; 4]);
 
 impl<C: Component> LedRgbw<C> {
+    /// Creates RGBW LED output values from a linear sRGB color
+    ///
+    /// This performs white channel extraction using the common minimum method,
+    /// where the white component is the minimum of R,G,B, and those values are
+    /// then subtracted from the RGB components.
+    ///
+    /// # Arguments
+    ///
+    /// * `linear_srgb` - Linear RGB color to convert
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors for the LEDs
+    ///
+    /// # Returns
+    ///
+    /// A `LedRgbw` with component values ready for output
     pub fn from_linear_srgb(
         linear_srgb: LinearSrgb,
         brightness: f32,
@@ -105,20 +147,26 @@ impl<C: Component> LedRgbw<C> {
     ) -> Self {
         let LinearSrgb { red, green, blue } = linear_srgb;
 
+        // Extract white component (minimum of RGB)
         let white = red.min(green).min(blue);
+
+        // Subtract white from RGB to get true RGB components
         let red = red - white;
         let green = green - white;
         let blue = blue - white;
 
+        // Apply color correction
         let red = red * correction.red;
         let green = green * correction.green;
         let blue = blue * correction.blue;
 
+        // Apply brightness
         let red = red * brightness;
         let green = green * brightness;
         let blue = blue * brightness;
         let white = white * brightness;
 
+        // Clamp values
         let red = red.clamp(0., 1.);
         let green = green.clamp(0., 1.);
         let blue = blue.clamp(0., 1.);
@@ -132,6 +180,7 @@ impl<C: Component> LedRgbw<C> {
         ])
     }
 
+    /// Reorders the RGBW components according to the specified channel order
     pub fn reorder(self, channels: RgbwChannels) -> Self {
         Self(channels.reorder(self.0))
     }
@@ -305,92 +354,6 @@ impl RgbwChannels {
             BWGR => [rgbw[2], rgbw[3], rgbw[1], rgbw[0]],
             BGWR => [rgbw[2], rgbw[1], rgbw[3], rgbw[0]],
             BGRW => [rgbw[2], rgbw[1], rgbw[0], rgbw[3]],
-        }
-    }
-}
-
-/// # Linear RGBW Color Space
-///
-/// `LinearSrgbw` represents colors in a linear RGB color space with an additional
-/// white channel. This is particularly useful for RGBW LED strips.
-///
-/// The white channel represents a dedicated white LED that can be used to enhance
-/// brightness and efficiency for neutral/white colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct LinearSrgbw {
-    /// Red component (0.0 to 1.0)
-    pub red: f32,
-    /// Green component (0.0 to 1.0)
-    pub green: f32,
-    /// Blue component (0.0 to 1.0)
-    pub blue: f32,
-    /// White component (0.0 to 1.0)
-    pub white: f32,
-}
-
-impl LinearSrgbw {
-    /// Creates a new LinearSrgbw color
-    ///
-    /// # Arguments
-    ///
-    /// * `red` - Red component (0.0 to 1.0)
-    /// * `green` - Green component (0.0 to 1.0)
-    /// * `blue` - Blue component (0.0 to 1.0)
-    /// * `white` - White component (0.0 to 1.0)
-    pub fn new(red: f32, green: f32, blue: f32, white: f32) -> Self {
-        LinearSrgbw {
-            red: red.clamp(0.0, 1.0),
-            green: green.clamp(0.0, 1.0),
-            blue: blue.clamp(0.0, 1.0),
-            white: white.clamp(0.0, 1.0),
-        }
-    }
-
-    /// Applies brightness scaling to RGB components (not white)
-    pub fn apply_brightness(&mut self, brightness: f32) {
-        self.red *= brightness;
-        self.green *= brightness;
-        self.blue *= brightness;
-        self.white *= brightness;
-    }
-
-    /// Applies color correction factors to RGB components (not white)
-    pub fn apply_color_correction(&mut self, correction: ColorCorrection) {
-        self.red *= correction.red;
-        self.green *= correction.green;
-        self.blue *= correction.blue;
-    }
-
-    /// Clamps all components to the range [0.0, 1.0]
-    pub fn clamp(&mut self) {
-        self.red = self.red.clamp(0.0, 1.0);
-        self.green = self.green.clamp(0.0, 1.0);
-        self.blue = self.blue.clamp(0.0, 1.0);
-        self.white = self.white.clamp(0.0, 1.0);
-    }
-
-    /// Creates an RGBW color from RGB by extracting the white component
-    ///
-    /// This method extracts the minimum of R,G,B as the white component,
-    /// which is a common approach for converting RGB to RGBW.
-    pub fn from_linear_srgb(linear_srgb: LinearSrgb) -> Self {
-        let LinearSrgb { red, green, blue } = linear_srgb;
-        let white = red.min(green).min(blue);
-
-        LinearSrgbw {
-            red: red - white,
-            green: green - white,
-            blue: blue - white,
-            white,
-        }
-    }
-
-    /// Converts to LinearSrgb by combining white with RGB channels
-    pub fn to_linear_srgb(&self) -> LinearSrgb {
-        LinearSrgb {
-            red: self.red + self.white,
-            green: self.green + self.white,
-            blue: self.blue + self.white,
         }
     }
 }

@@ -1,5 +1,4 @@
 use super::LinearSrgb;
-
 #[allow(unused_imports)]
 use num_traits::Float;
 

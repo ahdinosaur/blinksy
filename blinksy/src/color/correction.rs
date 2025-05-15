@@ -11,7 +11,6 @@
 /// - You need a white point correction for your specific LEDs
 /// - Calibrating a display system for accurate color reproduction
 /// - Compensating for RGB LED intensity differences
-///
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ColorCorrection {
     /// Scaling factor for red channel
@@ -76,8 +75,6 @@ impl ColorCorrection {
     /// let cool = ColorCorrection::from_temperature(6500);
     /// ```
     pub fn from_temperature(temperature: u32) -> Self {
-        // Simple approximation of color temperature correction
-        // This is a very basic model and could be improved
         let temp = temperature.clamp(1000, 40000) as f32;
         let temp = (temp - 1000.0) / 39000.0;
 

@@ -4,12 +4,17 @@
 //! single-wire, timing-sensitive protocol. WS2812 LEDs are widely used due to their
 //! simplicity and low cost.
 //!
+//! # Drivers
+//!
+//! - [`Ws2812Delay`]: Uses bit-banged GPIO
+//! - [`blinksy-esp::drivers::Ws2812Rmt`]: On ESP devices, uses RMT peripheral
+//!
 //! ## Key Features
 //!
 //! - Single-wire protocol (data only, no clock)
 //! - 24-bit color (8 bits per channel)
-//! - Non-standard color order (GRB by default)
 //! - Timing-sensitive protocol
+//! - Fixed update rate: 30μs per pixel
 //!
 //! ## Protocol Details
 //!
@@ -22,6 +27,8 @@
 //! (References: [Datasheet](https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf))
 //!
 //! Each LED receives 24 bits (RGB) and then passes subsequent data to the next LED in the chain.
+//!
+//! [`blinksy-esp::drivers::
 
 use fugit::NanosDurationU32 as Nanoseconds;
 
@@ -62,4 +69,7 @@ impl ClocklessLed for Ws2812Led {
 ///
 /// * `Pin` - The data pin type
 /// * `Delay` - The delay implementation type
+///
+/// Note: This will not work unless your delay timer is able to handle microsecond
+/// precision, which most microcontrollers cannot do.
 pub type Ws2812Delay<Pin, Delay> = ClocklessDelayDriver<Ws2812Led, Pin, Delay>;

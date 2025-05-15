@@ -52,6 +52,7 @@ use crate::color::LedChannels;
 use crate::time::Nanoseconds;
 
 mod delay;
+
 pub use self::delay::*;
 
 /// Trait that defines the timing parameters and protocol specifics for a clockless LED chipset.

@@ -4,17 +4,18 @@
 //! clocked SPI-like protocol. APA102 LEDs offer high refresh rates and precise
 //! brightness control.
 //!
-//! The module implements two driver types:
+//! # Drivers
 //!
-//! - [`Apa102Delay`]: Uses bit-banged GPIO with precise timing
-//! - [`Apa102Spi`]: Uses a hardware SPI interface for improved performance
+//! - [`Apa102Delay`]: Uses bit-banged GPIO
+//! - [`Apa102Spi`]: Uses a hardware SPI interface (Recommended)
 //!
 //! ## Key Features
 //!
-//! - 8-bit global brightness control (0-255)
-//! - 8-bit per-channel color resolution
+//! - Two-wire protocol (data and clock)
+//! - 24-bit color (8 bits per channel)
+//! - 5-bit global brightness control (0-31)
+//! - Bring-your-own clock rate (unlike WS2812)
 //! - Supports high update rates
-//! - No strict timing requirements (unlike WS2812)
 //!
 //! ## Protocol Details
 //!
@@ -79,23 +80,24 @@ impl ClockedLed for Apa102Led {
         brightness: f32,
         correction: ColorCorrection,
     ) -> Result<(), Writer::Error> {
+        // Convert color to linear sRGB
         let linear = LinearSrgb::from_color(color);
         let (red, green, blue) = (linear.red, linear.green, linear.blue);
 
-        // First color correct the linear RGB
+        // Color correct
         let red = red * correction.red;
         let green = green * correction.red;
         let blue = blue * correction.red;
 
-        // Then, convert to u16's
+        // Convert color components to u16's
         let (red_u16, green_u16, blue_u16) = (
             Component::from_normalized_f32(red),
             Component::from_normalized_f32(green),
             Component::from_normalized_f32(blue),
         );
 
+        // Continue with APA102HD algorithm from FastLED
         let brightness: u8 = Component::from_normalized_f32(brightness);
-
         let ((red_u8, green_u8, blue_u8), brightness) =
             five_bit_bitshift(red_u16, green_u16, blue_u16, brightness);
 
@@ -202,6 +204,7 @@ fn brightness_bitshifter8(brightness_src: &mut u8, brightness_dst: &mut u8, max_
         if curr & 0b1000_0000 != 0 {
             break;
         }
+
         curr <<= 1;
         src >>= 1;
         shifts += 1;
@@ -239,8 +242,8 @@ fn brightness_bitshifter16(
         overflow_mask >>= 1;
         overflow_mask |= 0b1000_0000_0000_0000;
     }
-
     let underflow_mask: u8 = 0x1;
+
     let mut curr = *brightness_dst;
     let mut shifts = 0;
 
@@ -251,6 +254,7 @@ fn brightness_bitshifter16(
         if curr & overflow_mask != 0 {
             break;
         }
+
         curr <<= steps;
         src >>= 1;
         shifts += 1;

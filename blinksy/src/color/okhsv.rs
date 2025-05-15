@@ -4,10 +4,14 @@ use num_traits::Euclid;
 #[allow(unused_imports)]
 use num_traits::Float;
 
-/// Okhsv color space representation.
+/// # Okhsv Color Space
 ///
-/// A color space based on Oklab that uses hue, saturation,
-/// and value (brightness) components.
+/// A color space based on Oklab that uses hue, saturation, and value (brightness) components.
+/// This provides a perceptually uniform way to represent colors in the familiar HSV model.
+///
+/// - `h`: Hue component (0.0 to 1.0) representing the color's position on the color wheel
+/// - `s`: Saturation component (0.0 to 1.0) representing the color's intensity/purity
+/// - `v`: Value/brightness component (0.0 to 1.0) representing the color's luminosity
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Okhsv {
     /// Hue component [0.0, 1.0] where 0 and 1 both represent red
@@ -32,14 +36,8 @@ impl Okhsv {
     /// Converts Okhsv to Oklab.
     pub fn to_oklab(&self) -> Oklab {
         let v = self.v;
-
-        // Calculate max chroma for this value
         let max_c = 0.4 * v;
-
-        // Calculate chroma
         let c = self.s * max_c;
-
-        // Convert hue and chroma to a, b components
         let angle = 2.0 * core::f32::consts::PI * self.h;
         let a = c * angle.cos();
         let b = c * angle.sin();

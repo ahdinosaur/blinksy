@@ -9,11 +9,10 @@ use super::LinearSrgb;
 /// - M (Medium) cones: Most sensitive to medium wavelengths (greenish)
 /// - S (Short) cones: Most sensitive to short wavelengths (bluish)
 ///
-/// ## Properties
+/// ## Color Space Properties
 ///
-/// - **Device-independent**: Based on human perception
+/// - **Device-Independent**: Based on human perception
 /// - **White Point**: D65 (6500K), same as sRGB
-/// - **Use Cases**: Color adaptation, vision deficiency simulation
 ///
 /// LMS is primarily used as an intermediate space for color processing algorithms,
 /// particularly those that simulate or account for human color vision characteristics.
@@ -49,7 +48,6 @@ impl Lms {
         ];
 
         let LinearSrgb { red, green, blue } = linear_srgb;
-
         let long = LINEAR_SRGB_TO_LMS[0][0] * red
             + LINEAR_SRGB_TO_LMS[0][1] * green
             + LINEAR_SRGB_TO_LMS[0][2] * blue;
@@ -78,7 +76,6 @@ impl Lms {
             medium,
             short,
         } = self;
-
         let red = LMS_TO_LINEAR_SRGB[0][0] * long
             + LMS_TO_LINEAR_SRGB[0][1] * medium
             + LMS_TO_LINEAR_SRGB[0][2] * short;

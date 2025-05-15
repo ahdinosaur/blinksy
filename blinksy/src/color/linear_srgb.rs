@@ -64,6 +64,17 @@ impl LinearSrgb {
         GammaSrgb::from_linear_srgb(self, gamma)
     }
 
+    /// Converts to LED output color values
+    ///
+    /// # Arguments
+    ///
+    /// * `channels` - The LED channel format specification
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors for the LEDs
+    ///
+    /// # Returns
+    ///
+    /// A `LedColor` in the specified component type, ready for output to hardware
     pub fn to_led<C: Component>(
         self,
         channels: LedChannels,

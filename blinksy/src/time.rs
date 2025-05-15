@@ -1,18 +1,11 @@
-//! # Timing Utilities
+//! # Time Library
 //!
-//! This module provides time-related types for precise timing control in LED animations.
-//! It re-exports types from the `fugit` crate for convenient time handling in a no-std environment.
+//! Types to represent time are provided by the [`fugit`] crate:
 //!
-//! The primary types are:
+//! - [`Megahertz`]: For specifying clock rates in MHz
+//! - [`Nanoseconds`]: For specifying timing durations in nanoseconds
 //!
-//! - [`Megahertz`]: For specifying clock frequencies in MHz
-//! - [`Nanoseconds`]: For precise timing durations in nanoseconds
-//!
-//! These types are used throughout the library for:
-//!
-//! - Configuring driver timing parameters
-//! - Controlling animation speed and transitions
-//! - Managing timing-sensitive LED protocols
+//! [`fugit`]: https://docs.rs/fugit
 
 /// Represents a frequency in megahertz (MHz).
 ///

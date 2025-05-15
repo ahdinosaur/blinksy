@@ -4,8 +4,6 @@
 //! It provides traits and implementations for interfacing with different
 //! LED chipsets and protocols.
 //!
-//! The main components are:
-//!
 //! - [`LedDriver`]: The core trait for all LED drivers
 //! - [`clocked`]: Implementations for clocked protocols (like APA102)
 //! - [`clockless`]: Implementations for clockless protocols (like WS2812)

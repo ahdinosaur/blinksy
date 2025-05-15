@@ -8,8 +8,6 @@
 //!
 //! - Hardware-accelerated LED control
 //! - Precise timing for WS2812 and similar protocols
-//! - Compatible with the Blinksy LedDriver trait
-//! - Configurable buffer size for different LED strip lengths
 //!
 //! ## Technical Details
 //!

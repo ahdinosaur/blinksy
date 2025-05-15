@@ -42,6 +42,7 @@ use crate::{
     color::{ColorCorrection, FromColor},
     time::{Megahertz, Nanoseconds},
 };
+
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 
@@ -65,7 +66,6 @@ where
 {
     /// Marker for the LED protocol type
     led: PhantomData<Led>,
-
     /// Writer implementation for the clocked protocol
     writer: ClockedDelayWriter<Data, Clock, Delay>,
 }
@@ -148,13 +148,10 @@ where
 {
     /// GPIO pin for data transmission
     data: Data,
-
     /// GPIO pin for clock signal
     clock: Clock,
-
     /// Delay provider for timing control
     delay: Delay,
-
     /// Half-cycle duration in nanoseconds
     t_half_cycle_ns: u32,
 }
@@ -203,7 +200,6 @@ where
 {
     /// Error from the data pin
     Data(Data::Error),
-
     /// Error from the clock pin
     Clock(Clock::Error),
 }
@@ -248,6 +244,7 @@ where
                 self.clock.set_low().map_err(ClockedDelayError::Clock)?;
             }
         }
+
         Ok(())
     }
 }

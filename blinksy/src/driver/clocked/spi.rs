@@ -28,11 +28,12 @@
 use core::marker::PhantomData;
 use embedded_hal::spi::SpiBus;
 
-use super::{ClockedLed, ClockedWriter};
 use crate::{
     color::{ColorCorrection, FromColor},
     driver::LedDriver,
 };
+
+use super::{ClockedLed, ClockedWriter};
 
 /// Driver for clocked LEDs using a hardware SPI peripheral.
 ///

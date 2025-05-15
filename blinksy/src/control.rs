@@ -3,8 +3,6 @@
 //! This module provides the central control system for Blinksy, connecting layouts, patterns,
 //! and drivers together to form a complete LED control pipeline.
 //!
-//! The main components are:
-//!
 //! - [`Control`]: The core struct that manages the LED control pipeline
 //! - [`ControlBuilder`]: A builder for creating Control instances
 //!

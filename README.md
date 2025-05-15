@@ -14,7 +14,7 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 
 - **No-std, No-alloc:** Designed to run on embedded targets.
 - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
 - **Pattern (Effect) Library:**
-  - **Rainbow**:
+  - **Rainbow**
   - **Noise**
   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
 - **Multi‑Chipset Support:**
@@ -24,8 +24,11 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 
 - **Board Support Packages**:
   - **Gledopto**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
   - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
+- **RGBW Support:** Supports RGB + White color channels
 - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
-- (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns.
+- (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns. ([#9](https://github.com/ahdinosaur/blinksy/issues/9))
+- (TODO) **Advanced LED Calibration**: Supports color correction based on LED-specific spectrometer data. ([#24](https://github.com/ahdinosaur/blinksy/issues/24))
+- (TODO) **Multi-LED Solver**: Supports LEDs with color channels beyond RGB or RGBW. ([#23](https://github.com/ahdinosaur/blinksy/issues/23))
 
 ## Modules
 

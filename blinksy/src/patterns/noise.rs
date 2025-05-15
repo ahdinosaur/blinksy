@@ -1,15 +1,7 @@
 //! # Noise Patterns
 //!
-//! This module provides noise-based visual effects that use noise functions to create
-//! organic, flowing patterns. Noise patterns are useful for creating fire, clouds, water,
-//! and other natural-looking animations.
-//!
-//! ## Features
-//!
-//! - Multiple noise function options (Perlin, Simplex, OpenSimplex)
-//! - Configurable animation speed and scale
-//! - 1D and 2D variants for different layout types
-//! - Creates flowing, organic patterns
+//! This module provides a noise-based effect pattern that creates smooth, organic, and flowing
+//! color transitions across the LED layout.
 //!
 //! ## Example
 //!
@@ -64,7 +56,6 @@ pub mod noise_fns {
 pub struct NoiseParams {
     /// Controls the speed of animation (higher = faster)
     pub time_scalar: f64,
-
     /// Controls the spatial scale of the noise (higher = more compressed)
     pub position_scalar: f64,
 }
@@ -90,10 +81,8 @@ where
 {
     /// The noise function used to get hue
     hue_noise: Noise,
-
     /// The noise function used to get value
     value_noise: Noise,
-
     /// Configuration parameters
     params: NoiseParams,
 }
@@ -125,6 +114,7 @@ where
             value_noise,
             params,
         } = self;
+
         let NoiseParams {
             time_scalar,
             position_scalar,
@@ -153,10 +143,8 @@ where
 {
     /// The noise function used to get hue
     hue_noise: Noise,
-
     /// The noise function used to get value
     value_noise: Noise,
-
     /// Configuration parameters
     params: NoiseParams,
 }
@@ -188,6 +176,7 @@ where
             value_noise,
             params,
         } = self;
+
         let NoiseParams {
             time_scalar,
             position_scalar,

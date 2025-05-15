@@ -1,6 +1,7 @@
-//! # LED Layout Abstractions
+//! # LED Layouts
 //!
-//! This module provides traits and types for defining LED arrangements in 1D, 2D, and 3D space.
+//! Layouts define the physical or logical positions of LEDs in your setup, as arrangements
+//! in 1D, 2D, and 3D space.
 //!
 //! The module supports various layout types through dedicated traits:
 //! - [`Layout1d`]: For linear LED strips
@@ -61,7 +62,6 @@ pub trait Layout1d {
         } else {
             0.0
         };
-
         (0..Self::PIXEL_COUNT).map(move |index| -1.0 + (index as f32 * spacing))
     }
 }
@@ -85,6 +85,7 @@ pub trait Layout1d {
 macro_rules! layout1d {
     ($name:ident, $pixel_count:expr) => {
         struct $name;
+
         impl $crate::layout::Layout1d for $name {
             const PIXEL_COUNT: usize = $pixel_count;
         }
@@ -402,10 +403,12 @@ pub trait Layout2d {
 /// ```
 #[macro_export]
 macro_rules! layout2d {
-    ($name:ident, [$($shape:expr),*$(,)?]) => {
+    ($name:ident, [$($shape:expr),* $(,)?]) => {
         struct $name;
+
         impl $crate::layout::Layout2d for $name {
             const PIXEL_COUNT: usize = 0 $(+ $shape.pixel_count())*;
+
             fn shapes() -> impl Iterator<Item = $crate::layout::Shape2d> {
                 [$($shape),*].into_iter()
             }

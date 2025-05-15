@@ -1,16 +1,9 @@
 //! # Dimension Type Markers
 //!
-//! This module provides type-level markers for representing the dimensionality of LED layouts.
-//! It allows the compiler to enforce correct combinations of layouts and patterns based on
-//! their dimensional compatibility.
-//!
-//! The core types are:
+//! Dimension markers are type-level markers to represent dimensionality.
 //!
 //! - [`Dim1d`]: Marker for one-dimensional layouts
 //! - [`Dim2d`]: Marker for two-dimensional layouts
-//!
-//! These are used as type parameters in various parts of the API to ensure
-//! dimensionally compatible combinations.
 
 use crate::layout::{Layout1d, Layout2d};
 

@@ -1,5 +1,4 @@
 use super::{LinearSrgb, Lms};
-
 #[allow(unused_imports)]
 use num_traits::Float;
 
@@ -9,8 +8,6 @@ use num_traits::Float;
 /// blending characteristics compared to traditional spaces like sRGB or
 /// CIELAB. Its goal is to make mathematical color operations align more
 /// closely with how humans perceive color differences.
-///
-/// It represents colors using three components:
 ///
 /// - `l`: **Perceptual Lightness**. This value typically ranges from 0.0 (black)
 ///   to 1.0 (white). Changes in `l` are intended to correspond linearly
@@ -22,34 +19,9 @@ use num_traits::Float;
 ///   and positive values lean towards yellow. A value near zero is neutral grey
 ///   along this axis.
 ///
-/// ## Properties
+/// ## Color Space Properties
 ///
 /// - **White Point**: D65 (6500K), same as sRGB
-///
-/// Oklab, like many standard color spaces, is based on the D65 whitepoint,
-/// which represents average daylight.
-///
-/// ## Why Use Oklab?
-///
-/// The primary advantage of Oklab is its **perceptual uniformity**. This means
-/// that a small change in the Oklab coordinates (i.e., a small Euclidean
-/// distance in the 3D Oklab space) corresponds more closely to a small,
-/// equally perceived difference in color by a human observer, regardless
-/// of the color's initial hue, lightness, or chroma.
-///
-/// This property makes Oklab excellent for:
-///
-/// - **Color Gradients and Interpolation:** Blending colors in Oklab
-///   often results in smoother, more natural-looking transitions without
-///   undesirable "greyish" or "muddy" intermediate colors sometimes seen
-///   when blending in sRGB.
-/// - **Image Processing:** Operations like desaturation, adjusting
-///   lightness, or manipulating contrast can be performed in Oklab with
-///   less risk of affecting the perceived hue or introducing artifacts.
-///   For example, simply setting `a` and `b` to zero effectively grayscales
-///   a color while preserving its *perceived* lightness.
-/// - **Color Picking Interfaces:** Providing a more intuitive way for users
-///   to select and manipulate colors based on how they are seen.
 ///
 /// Reference: https://bottosson.github.io/posts/oklab/
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -101,7 +73,6 @@ impl Oklab {
             medium,
             short,
         } = lms;
-
         let l_cbrt = long.cbrt();
         let m_cbrt = medium.cbrt();
         let s_cbrt = short.cbrt();
@@ -131,7 +102,6 @@ impl Oklab {
         ];
 
         let Oklab { l, a, b } = self;
-
         let l_cbrt =
             OKLAB_TO_LMS_CBRT[0][0] * l + OKLAB_TO_LMS_CBRT[0][1] * a + OKLAB_TO_LMS_CBRT[0][2] * b;
         let m_cbrt =

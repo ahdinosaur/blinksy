@@ -1,16 +1,19 @@
 use super::LinearSrgb;
 
-/// # CIE XYZ color space
+/// # CIE XYZ Color Space
 ///
 /// The CIE XYZ color space is a device-independent color space that models human color
-/// perception. It serves as a standard reference space for other color spaces.
+/// perception. It serves as a standard reference space for other color spaces and
+/// is often used as an intermediate step in color conversions.
 ///
-/// ## Color Space Assumptions
+/// ## Color Space Properties
 ///
 /// - **White Point**: D65 (6500K)
+/// - **Device-Independent**: Based on human perception
+/// - **Linear**: Values are proportional to light intensity
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Xyz {
-    /// X component (mix of cone responses, roughly red)
+    /// X component (mix of cone responses, roughly corresponds to red)
     pub x: f32,
     /// Y component (luminance, matches human brightness perception)
     pub y: f32,
@@ -36,7 +39,6 @@ impl Xyz {
         ];
 
         let LinearSrgb { red, green, blue } = linear_srgb;
-
         let x = LINEAR_SRGB_TO_XYZ[0][0] * red
             + LINEAR_SRGB_TO_XYZ[0][1] * green
             + LINEAR_SRGB_TO_XYZ[0][2] * blue;
@@ -54,6 +56,7 @@ impl Xyz {
     ///
     /// Uses the standard XYZ to RGB transformation matrix defined in the sRGB specification.
     /// This assumes the D65 white point used in the sRGB standard.
+    ///
     /// Note that the resulting RGB values may be outside the displayable sRGB gamut.
     pub fn to_linear_srgb(self) -> LinearSrgb {
         const XYZ_TO_LINEAR_SRGB: [[f32; 3]; 3] = [
@@ -63,7 +66,6 @@ impl Xyz {
         ];
 
         let Xyz { x, y, z } = self;
-
         let r = XYZ_TO_LINEAR_SRGB[0][0] * x
             + XYZ_TO_LINEAR_SRGB[0][1] * y
             + XYZ_TO_LINEAR_SRGB[0][2] * z;

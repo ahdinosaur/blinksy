@@ -43,9 +43,9 @@ impl Lms {
     /// to accurately model the cone responses of the human eye.
     pub fn from_linear_srgb(linear_srgb: LinearSrgb) -> Self {
         const LINEAR_SRGB_TO_LMS: [[f32; 3]; 3] = [
-            [0.4122214708, 0.5363325363, 0.0514459929],
-            [0.2119034982, 0.6806995451, 0.1073969566],
-            [0.0883024619, 0.2817188376, 0.6299787005],
+            [0.412_221_46, 0.536_332_55, 0.051_445_995],
+            [0.211_903_5, 0.680_699_5, 0.107_396_96],
+            [0.088_302_46, 0.281_718_85, 0.629_978_7],
         ];
 
         let LinearSrgb { red, green, blue } = linear_srgb;
@@ -68,9 +68,9 @@ impl Lms {
     /// Applies the inverse of the CAT02 transformation matrix.
     pub fn to_linear_srgb(self) -> LinearSrgb {
         const LMS_TO_LINEAR_SRGB: [[f32; 3]; 3] = [
-            [4.0767416621, -3.3077115913, 0.2309699292],
-            [-1.2684380046, 2.6097574011, -0.3413193965],
-            [-0.0041960863, -0.7034186147, 1.7076147010],
+            [4.076_741_7, -3.307_711_6, 0.230_969_94],
+            [-1.268_438, 2.609_757_4, -0.341_319_38],
+            [-0.0041960863, -0.703_418_6, 1.707_614_7],
         ];
 
         let Self {

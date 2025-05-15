@@ -30,9 +30,9 @@ impl Xyz {
     /// This assumes the D65 white point used in the sRGB standard.
     pub fn from_linear_srgb(linear_srgb: LinearSrgb) -> Self {
         const LINEAR_SRGB_TO_XYZ: [[f32; 3]; 3] = [
-            [0.4124564, 0.3575761, 0.1804375],
-            [0.2126729, 0.7151522, 0.0721750],
-            [0.0193339, 0.1191920, 0.9503041],
+            [0.412_456_4, 0.357_576_1, 0.180_437_5],
+            [0.212_672_9, 0.715_152_2, 0.072_175_0],
+            [0.019_333_9, 0.119_192, 0.950_304_1],
         ];
 
         let LinearSrgb { red, green, blue } = linear_srgb;
@@ -57,9 +57,9 @@ impl Xyz {
     /// Note that the resulting RGB values may be outside the displayable sRGB gamut.
     pub fn to_linear_srgb(self) -> LinearSrgb {
         const XYZ_TO_LINEAR_SRGB: [[f32; 3]; 3] = [
-            [3.2404542, -1.5371385, -0.4985314],
-            [-0.9692660, 1.8760108, 0.0415560],
-            [0.0556434, -0.2040259, 1.0572252],
+            [3.240_454_2, -1.537_138_5, -0.498_531_4],
+            [-0.969_266, 1.876_010_8, 0.041_556_0],
+            [0.055_643_4, -0.204_025_9, 1.057_225_2],
         ];
 
         let Xyz { x, y, z } = self;

@@ -19,7 +19,7 @@
 //!     ControlBuilder,
 //!     layout2d,
 //!     layout::{Shape2d, Vec2},
-//!     patterns::{Rainbow, RainbowParams}
+//!     patterns::rainbow::{Rainbow, RainbowParams}
 //! };
 //! use blinksy_desktop::{drivers::Desktop, time::elapsed_in_ms};
 //!

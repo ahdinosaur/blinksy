@@ -1,7 +1,7 @@
 //! # Desktop Simulation Driver
 //!
 //! This module provides a graphical simulation of LED layouts and patterns for desktop development
-//! and debugging. It implements the `LedDriver` trait, allowing it to be used as a drop-in
+//! and debugging. It implements the `Driver` trait, allowing it to be used as a drop-in
 //! replacement for physical LED hardware.
 //!
 //! The simulator creates a 3D visualization window where:
@@ -23,7 +23,7 @@
 //!     ControlBuilder,
 //!     layout2d,
 //!     layout::{Shape2d, Vec2},
-//!     patterns::{Rainbow, RainbowParams}
+//!     patterns::rainbow::{Rainbow, RainbowParams}
 //! };
 //! use blinksy_desktop::{drivers::Desktop, time::elapsed_in_ms};
 //!
@@ -57,7 +57,7 @@
 use blinksy::{
     color::{ColorCorrection, FromColor, LinearSrgb, Srgb},
     dimension::{Dim1d, Dim2d, LayoutForDim},
-    driver::LedDriver,
+    driver::Driver,
     layout::{Layout1d, Layout2d},
 };
 use core::{fmt, marker::PhantomData};
@@ -109,7 +109,7 @@ impl Default for DesktopConfig {
 
 /// Desktop driver for simulating LED layouts in a desktop window.
 ///
-/// This struct implements the `LedDriver` trait and renders a visual
+/// This struct implements the `Driver` trait and renders a visual
 /// representation of your LED layout using miniquad.
 ///
 /// # Type Parameters
@@ -305,7 +305,7 @@ enum LedMessage {
     Quit,
 }
 
-impl<Dim, Layout> LedDriver for Desktop<Dim, Layout>
+impl<Dim, Layout> Driver for Desktop<Dim, Layout>
 where
     Layout: LayoutForDim<Dim>,
 {

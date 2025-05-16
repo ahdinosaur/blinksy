@@ -1,41 +1,36 @@
-//! # Clocked SPI-based LED Driver
-//!
-//! This module provides an implementation of the LedDriver trait for clocked LEDs
-//! using hardware SPI for data transmission. This allows for efficient, high-speed
-//! LED updates using dedicated SPI peripherals.
-//!
-//! ## Benefits of SPI-based implementation
-//!
-//! - Higher data rates than bit-banging
-//! - More efficient CPU usage
-//! - Better timing precision
-//!
-//! ## Usage
-//!
-//! ```rust
-//! use embedded_hal::spi::SpiBus;
-//! use blinksy::{driver::ClockedSpiDriver, drivers::Apa102Led};
-//!
-//! fn setup_leds<S>(spi: S) -> ClockedSpiDriver<Apa102Led, S>
-//! where
-//!     S: SpiBus<u8>,
-//! {
-//!     // Create a new APA102 driver using SPI
-//!     ClockedSpiDriver::<Apa102Led, _>::new(spi)
-//! }
-//! ```
-
 use core::marker::PhantomData;
 use embedded_hal::spi::SpiBus;
 
 use crate::{
     color::{ColorCorrection, FromColor},
-    driver::LedDriver,
+    driver::Driver,
 };
 
 use super::{ClockedLed, ClockedWriter};
 
 /// Driver for clocked LEDs using a hardware SPI peripheral.
+///
+/// - Separate GPIO pins for data and clock
+/// - A dedicated hardware SPI perhipheral for data transmission
+///   - Higher data rates than bit-banging
+///   - More efficient CPU usage
+///   - Better timing precision
+/// - Parameters defined by a ClockedLed implementation
+///
+/// ## Usage
+///
+/// ```rust
+/// use embedded_hal::spi::SpiBus;
+/// use blinksy::{driver::ClockedSpiDriver, drivers::Apa102Led};
+///
+/// fn setup_leds<S>(spi: S) -> ClockedSpiDriver<Apa102Led, S>
+/// where
+///     S: SpiBus<u8>,
+/// {
+///     // Create a new APA102 driver using SPI
+///     ClockedSpiDriver::<Apa102Led, _>::new(spi)
+/// }
+/// ```
 ///
 /// # Type Parameters
 ///
@@ -76,7 +71,7 @@ where
     }
 }
 
-impl<Led, Spi> LedDriver for ClockedSpiDriver<Led, Spi>
+impl<Led, Spi> Driver for ClockedSpiDriver<Led, Spi>
 where
     Led: ClockedLed<Word = u8>,
     Spi: SpiBus<u8>,

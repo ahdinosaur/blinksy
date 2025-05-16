@@ -17,7 +17,7 @@
 
 use blinksy::{
     color::{ColorCorrection, FromColor, LedColor, LinearSrgb},
-    driver::{clockless::ClocklessLed, LedDriver},
+    driver::{clockless::ClocklessLed, Driver},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
 use esp_hal::{
@@ -245,10 +245,10 @@ where
     }
 }
 
-/// Implementation of LedDriver trait for ClocklessRmtDriver.
+/// Implementation of Driver trait for ClocklessRmtDriver.
 ///
 /// This allows the RMT driver to be used with the Blinksy control system.
-impl<Led, Tx, const BUFFER_SIZE: usize> LedDriver for ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> Driver for ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
     Tx: TxChannel,

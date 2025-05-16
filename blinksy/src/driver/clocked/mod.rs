@@ -22,7 +22,7 @@
 //! ## Drivers
 //!
 //! - [`ClockedDelayDriver`]: Driver using GPIO bit-banging with a delay timer
-//! - [`ClockedSpiDriver`]: Driver using a hardware SPI peripheral
+//! - [`ClockedSpiDriver`]: (Recommended) Driver using a hardware SPI peripheral
 //!
 //! ## Example
 //!
@@ -67,7 +67,7 @@
 
 use crate::color::{ColorCorrection, FromColor};
 
-use super::LedDriver;
+use super::Driver;
 
 mod delay;
 mod spi;

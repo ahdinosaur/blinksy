@@ -1,6 +1,6 @@
 use blinksy::{
     layout1d,
-    patterns::{Rainbow, RainbowParams},
+    patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
 use blinksy_desktop::{

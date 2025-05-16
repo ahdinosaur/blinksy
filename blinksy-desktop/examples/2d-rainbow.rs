@@ -1,7 +1,7 @@
 use blinksy::{
     layout::{Shape2d, Vec2},
     layout2d,
-    patterns::{Rainbow, RainbowParams},
+    patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
 use blinksy_desktop::{

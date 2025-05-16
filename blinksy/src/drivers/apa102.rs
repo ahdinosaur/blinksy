@@ -7,7 +7,7 @@
 //! # Drivers
 //!
 //! - [`Apa102Delay`]: Uses bit-banged GPIO
-//! - [`Apa102Spi`]: Uses a hardware SPI interface (Recommended)
+//! - [`Apa102Spi`]: (Recommended) Uses a hardware SPI interface
 //!
 //! ## Key Features
 //!

@@ -26,7 +26,7 @@
 //!     ControlBuilder,
 //!     layout2d,
 //!     layout::{Shape2d, Vec2},
-//!     patterns::{Noise2d, noise_fns, NoiseParams}
+//!     patterns::noise::{Noise2d, noise_fns, NoiseParams}
 //! };
 //!
 //! // Define a 2D layout

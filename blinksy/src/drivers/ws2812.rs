@@ -28,7 +28,7 @@
 //!
 //! Each LED receives 24 bits (RGB) and then passes subsequent data to the next LED in the chain.
 //!
-//! [`blinksy-esp::drivers::
+//! [`blinksy-esp::drivers::Ws2812Rmt`]: https://docs.rs/blinksy-esp/latest/blinksy-esp/drivers/type.Ws2812Rmt.html
 
 use fugit::NanosDurationU32 as Nanoseconds;
 

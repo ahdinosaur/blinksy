@@ -3,7 +3,7 @@
 //! A pattern, most similar to [a WLED effect], generates colors for LEDs based on time and
 //! position.
 //!
-//! A [`Pattern`] takes:
+//! A [`Pattern`] receives:
 //!
 //! - The layout of the LEDs (through its type parameters)
 //! - Configuration parameters during initialization

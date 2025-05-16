@@ -21,7 +21,7 @@
 //! use blinksy::{
 //!     layout::Layout1d,
 //!     layout1d,
-//!     patterns::{Rainbow, RainbowParams},
+//!     patterns::rainbow::{Rainbow, RainbowParams},
 //!     ControlBuilder,
 //! };
 //! use gledopto::{board, elapsed, main, ws2812};

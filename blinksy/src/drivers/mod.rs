@@ -1,7 +1,7 @@
 //! # LED Driver Implementations
+//!
+//! - [`apa102`]: APA102 (DotStar) LEDs
+//! - [`ws2812`]: WS2812 (NeoPixel) LEDs
 
-mod apa102;
-mod ws2812;
-
-pub use self::apa102::*;
-pub use self::ws2812::*;
+pub mod apa102;
+pub mod ws2812;

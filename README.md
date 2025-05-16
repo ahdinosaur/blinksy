@@ -1,10 +1,10 @@
-# Blinksy
+# Blinksy 🟥🟩🟦
 
-Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 1D, 2D, and 3D (audio-reactive) LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
+Blinksy is a **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, and soon 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 
 ## How Blinksy works
 
-- Define LED layouts in 1D, 2D, or 3D space
+- Define LED layouts in 1D, 2D, or soon 3D space
 - Create your visual pattern (effect), or choose from our built-in library
   - The pattern will compute colors for each LED based on its position
 - Drive various LED chipsets with each frame of colors
@@ -12,7 +12,7 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library designed for 
 ## Features
 
 - **No-std, No-alloc:** Designed to run on embedded targets.
-- **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
+- **Layout Abstraction:** Define 1D, 2D, or soon 3D LED positions with shapes (grids, lines, arcs, points, etc).
 - **Pattern (Effect) Library:**
   - **Rainbow**
   - **Noise**
@@ -55,7 +55,7 @@ https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
 use blinksy::{
     layout::{Shape2d, Vec2},
     layout2d,
-    patterns::{noise_fns, Noise2d, NoiseParams},
+    patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
 use gledopto::{apa102, board, elapsed, main};
@@ -103,7 +103,7 @@ https://github.com/user-attachments/assets/703fe31d-e7ca-4e08-ae2b-7829c0d4d52e
 use blinksy::{
     layout::Layout1d,
     layout1d,
-    patterns::{Rainbow, RainbowParams},
+    patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
 use gledopto::{board, elapsed, main, ws2812};

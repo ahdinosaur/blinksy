@@ -1,43 +1,3 @@
-//! # Clocked Delay-based LED Driver
-//!
-//! This module provides an implementation of the LedDriver trait for clocked LEDs
-//! using GPIO bit-banging with a delay timer. It handles both data and clock lines
-//! to generate the protocol timing.
-//!
-//! The implementation uses:
-//!
-//! - Separate GPIO pins for data and clock
-//! - A delay provider for timing control
-//! - Parameters defined by a ClockedLed implementation
-//!
-//! ## Usage
-//!
-//! ```rust
-//! use embedded_hal::digital::OutputPin;
-//! use embedded_hal::delay::DelayNs;
-//! use blinksy::{driver::ClockedDelayDriver, drivers::Apa102Led};
-//! use blinksy::time::Megahertz;
-//!
-//! fn setup_leds<D, C, Delay>(
-//!     data_pin: D,
-//!     clock_pin: C,
-//!     delay: Delay
-//! ) -> ClockedDelayDriver<Apa102Led, D, C, Delay>
-//! where
-//!     D: OutputPin,
-//!     C: OutputPin,
-//!     Delay: DelayNs,
-//! {
-//!     // Create a new APA102 driver with 2 MHz data rate
-//!     ClockedDelayDriver::<Apa102Led, _, _, _>::new(
-//!         data_pin,
-//!         clock_pin,
-//!         delay,
-//!         Megahertz::MHz(2)
-//!     )
-//! }
-//! ```
-
 use crate::{
     color::{ColorCorrection, FromColor},
     time::{Megahertz, Nanoseconds},
@@ -46,9 +6,41 @@ use crate::{
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 
-use super::{ClockedLed, ClockedWriter, LedDriver};
+use super::{ClockedLed, ClockedWriter, Driver};
 
 /// Driver for clocked LEDs using GPIO bit-banging with a delay timer.
+///
+/// - Separate GPIO pins for data and clock
+/// - A delay provider for timing control
+/// - Parameters defined by a ClockedLed implementation
+///
+/// ## Usage
+///
+/// ```rust
+/// use embedded_hal::digital::OutputPin;
+/// use embedded_hal::delay::DelayNs;
+/// use blinksy::{driver::ClockedDelayDriver, drivers::Apa102Led};
+/// use blinksy::time::Megahertz;
+///
+/// fn setup_leds<D, C, Delay>(
+///     data_pin: D,
+///     clock_pin: C,
+///     delay: Delay
+/// ) -> ClockedDelayDriver<Apa102Led, D, C, Delay>
+/// where
+///     D: OutputPin,
+///     C: OutputPin,
+///     Delay: DelayNs,
+/// {
+///     // Create a new APA102 driver with 2 MHz data rate
+///     ClockedDelayDriver::<Apa102Led, _, _, _>::new(
+///         data_pin,
+///         clock_pin,
+///         delay,
+///         Megahertz::MHz(2)
+///     )
+/// }
+/// ```
 ///
 /// # Type Parameters
 ///
@@ -97,7 +89,7 @@ where
     }
 }
 
-impl<Led, Data, Clock, Delay> LedDriver for ClockedDelayDriver<Led, Data, Clock, Delay>
+impl<Led, Data, Clock, Delay> Driver for ClockedDelayDriver<Led, Data, Clock, Delay>
 where
     Led: ClockedLed<Word = u8>,
     Data: OutputPin,

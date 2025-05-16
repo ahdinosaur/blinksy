@@ -4,7 +4,7 @@
 use blinksy::{
     layout::{Shape2d, Vec2},
     layout2d,
-    patterns::{noise_fns, Noise2d, NoiseParams},
+    patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
 use gledopto::{apa102, board, elapsed, main};

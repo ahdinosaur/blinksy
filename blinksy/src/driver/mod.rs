@@ -1,12 +1,10 @@
-//! # LED Driver Interface
+//! # Driver Interface
 //!
-//! This module defines the core abstractions for driving LED hardware.
-//! It provides traits and implementations for interfacing with different
-//! LED chipsets and protocols.
+//! A driver is what tells the LED hardware how to be the colors you want.
 //!
-//! - [`LedDriver`]: The core trait for all LED drivers
-//! - [`clocked`]: Implementations for clocked protocols (like APA102)
-//! - [`clockless`]: Implementations for clockless protocols (like WS2812)
+//! - [`Driver`] is the core trait for all drivers
+//! - The [`clocked`] module provides re-usable implementations for clocked (two-wire) protocols (like APA102)
+//! - The [`clockless`] module provides re-usable implementations for clockless (one-wire) protocols (like WS2812)
 
 use crate::color::{ColorCorrection, FromColor};
 
@@ -29,13 +27,13 @@ pub use clockless::*;
 /// # Example
 ///
 /// ```rust
-/// use blinksy::{color::{ColorCorrection, FromColor, LinearSrgb}, driver::LedDriver};
+/// use blinksy::{color::{ColorCorrection, FromColor, LinearSrgb}, driver::Driver};
 ///
 /// struct MyDriver {
 ///     // Implementation details
 /// }
 ///
-/// impl LedDriver for MyDriver {
+/// impl Driver for MyDriver {
 ///     type Error = ();
 ///     type Color = LinearSrgb;
 ///
@@ -49,7 +47,7 @@ pub use clockless::*;
 ///     }
 /// }
 /// ```
-pub trait LedDriver {
+pub trait Driver {
     /// The error type that may be returned by the driver.
     type Error;
 

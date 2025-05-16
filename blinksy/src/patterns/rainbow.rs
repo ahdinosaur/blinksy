@@ -10,7 +10,7 @@
 //! use blinksy::{
 //!     ControlBuilder,
 //!     layout1d,
-//!     patterns::{Rainbow, RainbowParams}
+//!     patterns::rainbow::{Rainbow, RainbowParams}
 //! };
 //!
 //! // Define a 1D layout

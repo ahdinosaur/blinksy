@@ -1,45 +1,40 @@
-//! # Clockless Delay-based LED Driver
-//!
-//! This module provides an implementation of the LedDriver trait for clockless LEDs
-//! using GPIO bit-banging with a delay timer.
-//!
-//! The implementation uses:
-//!
-//! - A single GPIO output pin for data transmission
-//! - A delay provider for timing control
-//! - Timing parameters defined by a [`ClocklessLed`] implementation
-//!
-//! Note: This will not work unless your delay timer is able to handle microsecond
-//! precision, which most microcontrollers cannot do.
-//!
-//! ## Usage
-//!
-//! ```rust
-//! use embedded_hal::digital::OutputPin;
-//! use embedded_hal::delay::DelayNs;
-//! use blinksy::{driver::ClocklessDelayDriver, drivers::Ws2812Led};
-//!
-//! fn setup_leds<P, D>(data_pin: P, delay: D) -> ClocklessDelayDriver<Ws2812Led, P, D>
-//! where
-//!     P: OutputPin,
-//!     D: DelayNs,
-//! {
-//!     // Create a new WS2812 driver
-//!     ClocklessDelayDriver::<Ws2812Led, _, _>::new(data_pin, delay)
-//!         .expect("Failed to initialize LED driver")
-//! }
-//! ```
-
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 
 use super::ClocklessLed;
 use crate::{
     color::{ColorCorrection, FromColor, LinearSrgb},
-    driver::LedDriver,
+    driver::Driver,
 };
 
 /// Driver for clockless LEDs using GPIO bit-banging with a delay timer.
+///
+/// The implementation uses:
+///
+/// - A single GPIO output pin for data transmission
+/// - A delay provider for timing control
+/// - Timing parameters defined by a [`ClocklessLed`] implementation
+///
+/// Note: This will not work unless your delay timer is able to handle microsecond
+/// precision, which most microcontrollers cannot do.
+///
+/// ## Usage
+///
+/// ```rust
+/// use embedded_hal::digital::OutputPin;
+/// use embedded_hal::delay::DelayNs;
+/// use blinksy::{driver::ClocklessDelayDriver, drivers::Ws2812Led};
+///
+/// fn setup_leds<P, D>(data_pin: P, delay: D) -> ClocklessDelayDriver<Ws2812Led, P, D>
+/// where
+///     P: OutputPin,
+///     D: DelayNs,
+/// {
+///     // Create a new WS2812 driver
+///     ClocklessDelayDriver::<Ws2812Led, _, _>::new(data_pin, delay)
+///         .expect("Failed to initialize LED driver")
+/// }
+/// ```
 ///
 /// # Type Parameters
 ///
@@ -154,7 +149,7 @@ where
     }
 }
 
-impl<Led, Pin, Delay> LedDriver for ClocklessDelayDriver<Led, Pin, Delay>
+impl<Led, Pin, Delay> Driver for ClocklessDelayDriver<Led, Pin, Delay>
 where
     Led: ClocklessLed,
     Pin: OutputPin,

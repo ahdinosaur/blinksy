@@ -1,26 +1,33 @@
 //! # Control System
 //!
-//! This module provides the central control system for Blinksy, connecting layouts, patterns,
-//! and drivers together to form a complete LED control pipeline.
+//! [`Control`] is the central control system for Blinksy: connecting a layout, pattern,
+//! and driver together to form a complete LED control pipeline.
 //!
-//! - [`Control`]: The core struct that manages the LED control pipeline
-//! - [`ControlBuilder`]: A builder for creating Control instances
-//!
-//! The control system is generic over dimension, layout, pattern, and driver types.
+//! As [`Control`] has a complex generic type signature, [`ControlBuilder`] is a builder to help
+//! you create [`Control`] instances.
 
 use core::marker::PhantomData;
 
 use crate::{
     color::{ColorCorrection, FromColor},
     dimension::{Dim1d, Dim2d, LayoutForDim},
-    driver::LedDriver,
+    driver::Driver as DriverTrait,
     pattern::Pattern as PatternTrait,
 };
 
 /// Central LED control system.
 ///
-/// This struct orchestrates the flow of data from patterns to LED drivers,
-/// handling timing, color conversion, and brightness control.
+/// A [`Control`] is made up of:
+///
+/// - A [`layout`](crate::layout)
+/// - A [`pattern`](crate::pattern)
+/// - A [`driver`](crate::driver)
+///
+/// You can use [`Control`] to
+///
+/// - Set a global brightness
+/// - Set a global color correction.
+/// - Send a frame of colors from the pattern to the driver.
 ///
 /// Tip: Use [`ControlBuilder`] to build your [`Control`] struct.
 ///
@@ -37,7 +44,7 @@ use crate::{
 /// use blinksy::{
 ///     ControlBuilder,
 ///     layout1d,
-///     patterns::{Rainbow, RainbowParams}
+///     patterns::rainbow::{Rainbow, RainbowParams}
 /// };
 ///
 /// // Define a 1d layout of 60 LEDs
@@ -112,7 +119,7 @@ impl<Dim, Layout, Pattern, Driver> Control<Dim, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
-    Driver: LedDriver,
+    Driver: DriverTrait,
     Driver::Color: FromColor<Pattern::Color>,
 {
     /// Updates the LED state based on the current time.
@@ -245,7 +252,7 @@ impl<Dim, Layout, Pattern> ControlBuilder<Dim, Layout, Pattern, ()> {
     /// Builder with driver specified
     pub fn with_driver<Driver>(self, driver: Driver) -> ControlBuilder<Dim, Layout, Pattern, Driver>
     where
-        Driver: LedDriver,
+        Driver: DriverTrait,
     {
         ControlBuilder {
             dim: self.dim,
@@ -260,7 +267,7 @@ impl<Dim, Layout, Pattern, Driver> ControlBuilder<Dim, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
-    Driver: LedDriver,
+    Driver: DriverTrait,
     Driver::Color: FromColor<Pattern::Color>,
 {
     /// Builds the final [`Control`] struct.

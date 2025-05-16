@@ -7,7 +7,7 @@
 //! # Drivers
 //!
 //! - [`Ws2812Delay`]: Uses bit-banged GPIO
-//! - [`blinksy-esp::drivers::Ws2812Rmt`]: On ESP devices, uses RMT peripheral
+//! - [`blinksy-esp::Ws2812Rmt`]: On ESP devices, uses RMT peripheral
 //!
 //! ## Key Features
 //!
@@ -28,7 +28,7 @@
 //!
 //! Each LED receives 24 bits (RGB) and then passes subsequent data to the next LED in the chain.
 //!
-//! [`blinksy-esp::drivers::Ws2812Rmt`]: https://docs.rs/blinksy-esp/latest/blinksy-esp/drivers/type.Ws2812Rmt.html
+//! [`blinksy-esp::Ws2812Rmt`]: https://docs.rs/blinksy-esp/latest/blinksy-esp/type.Ws2812Rmt.html
 
 use fugit::NanosDurationU32 as Nanoseconds;
 

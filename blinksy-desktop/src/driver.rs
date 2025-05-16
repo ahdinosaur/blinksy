@@ -1,10 +1,11 @@
 //! # Desktop Simulation Driver
 //!
 //! This module provides a graphical simulation of LED layouts and patterns for desktop development
-//! and debugging. It implements the `Driver` trait, allowing it to be used as a drop-in
+//! and debugging. It implements the [`Driver`] trait, allowing it to be used as a drop-in
 //! replacement for physical LED hardware.
 //!
 //! The simulator creates a 3D visualization window where:
+//!
 //! - LEDs are represented as small 3D objects
 //! - LED positions match the layout's physical arrangement
 //! - Colors and brightness updates are displayed in real-time
@@ -25,7 +26,7 @@
 //!     layout::{Shape2d, Vec2},
 //!     patterns::rainbow::{Rainbow, RainbowParams}
 //! };
-//! use blinksy_desktop::{drivers::Desktop, time::elapsed_in_ms};
+//! use blinksy_desktop::{driver::Desktop, time::elapsed_in_ms};
 //!
 //! // Define your layout
 //! layout2d!(
@@ -53,6 +54,8 @@
 //!     std::thread::sleep(std::time::Duration::from_millis(16));
 //! }
 //! ```
+//!
+//! [`Driver`]: blinksy::driver::Driver
 
 use blinksy::{
     color::{ColorCorrection, FromColor, LinearSrgb, Srgb},

@@ -1,8 +1,6 @@
 //! # Time Utilities
 //!
-//! This module provides timing utilities for the desktop simulation environment.
-//! It enables consistent time tracking for animation updates, allowing simulations
-//! to run at the correct speed.
+//! This module helps you with time in the desktop simulation environment.
 //!
 //! ## Example
 //!

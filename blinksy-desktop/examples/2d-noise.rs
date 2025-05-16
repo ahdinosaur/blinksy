@@ -5,7 +5,7 @@ use blinksy::{
     ControlBuilder,
 };
 use blinksy_desktop::{
-    drivers::{Desktop, DesktopError},
+    driver::{Desktop, DesktopError},
     time::elapsed_in_ms,
 };
 use std::{thread::sleep, time::Duration};

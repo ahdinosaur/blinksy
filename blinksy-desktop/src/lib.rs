@@ -4,14 +4,6 @@
 //! It allows you to visualize LED layouts and patterns in a 3D graphical window,
 //! making development and testing possible without physical LED hardware.
 //!
-//! ## Features
-//!
-//! - 3D visualization of LED layouts
-//! - Real-time display of patterns and animations
-//! - Interactive camera controls for viewing from different angles
-//! - Drop-in replacement for physical LED drivers
-//! - Compatible with all Blinksy layouts and patterns
-//!
 //! ## Usage
 //!
 //! ```rust,no_run
@@ -21,7 +13,7 @@
 //!     layout::{Shape2d, Vec2},
 //!     patterns::rainbow::{Rainbow, RainbowParams}
 //! };
-//! use blinksy_desktop::{drivers::Desktop, time::elapsed_in_ms};
+//! use blinksy_desktop::{driver::Desktop, time::elapsed_in_ms};
 //!
 //! // Define your layout
 //! layout2d!(
@@ -49,18 +41,9 @@
 //!     std::thread::sleep(std::time::Duration::from_millis(16));
 //! }
 //! ```
-//!
-//! ## Modules
-//!
-//! - [`drivers`]: Desktop LED simulation
-//! - [`time`]: Time utilities
 
-mod driver;
+/// Desktop LED simulation
+pub mod driver;
 
 /// Time utilities
 pub mod time;
-
-/// Desktop LED simulation
-pub mod drivers {
-    pub use crate::driver::*;
-}

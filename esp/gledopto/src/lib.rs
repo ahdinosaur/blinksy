@@ -140,7 +140,7 @@ macro_rules! apa102 {
         .with_sck(clock_pin)
         .with_mosi(data_pin);
 
-        $crate::blinksy::drivers::Apa102Spi::new(spi)
+        $crate::blinksy::drivers::apa102::Apa102Spi::new(spi)
     }};
 }
 
@@ -162,11 +162,11 @@ macro_rules! ws2812 {
         let rmt = $crate::hal::rmt::Rmt::new($peripherals.RMT, freq).unwrap();
 
         const CHANNEL_COUNT: usize = <
-                        $crate::blinksy::drivers::Ws2812Led as $crate::blinksy::driver::ClocklessLed
+                        $crate::blinksy::drivers::ws2812::Ws2812Led as $crate::blinksy::driver::ClocklessLed
                     >::LED_CHANNELS.channel_count();
 
         let rmt_buffer = $crate::blinksy_esp::create_rmt_buffer!($num_leds, CHANNEL_COUNT);
 
-        $crate::blinksy_esp::drivers::Ws2812Rmt::new(rmt.channel0, led_pin, rmt_buffer)
+        $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin, rmt_buffer)
     }};
 }

@@ -19,7 +19,7 @@ use super::{ClockedLed, ClockedWriter, Driver};
 /// ```rust
 /// use embedded_hal::digital::OutputPin;
 /// use embedded_hal::delay::DelayNs;
-/// use blinksy::{driver::ClockedDelayDriver, drivers::Apa102Led};
+/// use blinksy::{driver::ClockedDelayDriver, drivers::apa102::Apa102Led};
 /// use blinksy::time::Megahertz;
 ///
 /// fn setup_leds<D, C, Delay>(

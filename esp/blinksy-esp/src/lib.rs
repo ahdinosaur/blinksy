@@ -44,26 +44,17 @@
 //! }
 //! ```
 
-mod rmt;
+pub mod rmt;
 
-/// RMT-based LED driver
-pub mod driver {
-    pub use crate::rmt::*;
-}
+use crate::rmt::ClocklessRmtDriver;
+use blinksy::drivers::ws2812::Ws2812Led;
 
-/// Concrete driver implementations
-pub mod drivers {
-    use crate::rmt::ClocklessRmtDriver;
-    use blinksy::drivers::Ws2812Led;
-
-    /// WS2812 LED driver using the ESP32 RMT peripheral.
-    ///
-    /// This driver provides efficient, hardware-accelerated control of WS2812 LEDs.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `Tx` - RMT transmit channel type
-    /// * `BUFFER_SIZE` - Size of the RMT buffer
-    pub type Ws2812Rmt<Tx, const BUFFER_SIZE: usize> =
-        ClocklessRmtDriver<Ws2812Led, Tx, BUFFER_SIZE>;
-}
+/// WS2812 LED driver using the ESP32 RMT peripheral.
+///
+/// This driver provides efficient, hardware-accelerated control of WS2812 LEDs.
+///
+/// # Type Parameters
+///
+/// * `Tx` - RMT transmit channel type
+/// * `BUFFER_SIZE` - Size of the RMT buffer
+pub type Ws2812Rmt<Tx, const BUFFER_SIZE: usize> = ClocklessRmtDriver<Ws2812Led, Tx, BUFFER_SIZE>;

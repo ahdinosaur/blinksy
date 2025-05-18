@@ -4,31 +4,42 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, a
 
 ## How Blinksy works
 
-- Define LED layouts in 1D, 2D, or soon 3D space
-- Create your visual pattern (effect), or choose from our built-in library
+- Define your LED [`layout`][layout] in 1D, 2D, or 3D space
+- Create your visual [`pattern`][pattern] (effect), or choose from our built-in [`patterns`][patterns] library
   - The pattern will compute colors for each LED based on its position
-- Drive various LED chipsets with each frame of colors
+- Setup a [`driver`][driver] to send each frame of colors to your LEDs, using our built-in [`drivers`][drivers] library.
+
+[layout]: https://docs.rs/blinksy/0.2/blinksy/layout/index.html
+[pattern]: https://docs.rs/blinksy/0.2/blinksy/pattern/index.html
+[patterns]: https://docs.rs/blinksy/0.2/blinksy/patterns/index.html
+[driver]: https://docs.rs/blinksy/0.2/blinksy/driver/index.html
+[drivers]: https://docs.rs/blinksy/0.2/blinksy/drivers/index.html
 
 ## Features
 
 - **No-std, No-alloc:** Designed to run on embedded targets.
-- **Layout Abstraction:** Define 1D, 2D, or soon 3D LED positions with shapes (grids, lines, arcs, points, etc).
+- **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
 - **Pattern (Effect) Library:**
-  - **Rainbow**
-  - **Noise**
+  - **[Rainbow][rainbow]**
+  - **[Noise][noise]**
   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
 - **Multi‑Chipset Support:**
-  - **APA102**
-  - **WS2812B**
+  - **[APA102][apa102]**
+  - **[WS2812B][ws2812]**
   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
 - **Board Support Packages**:
-  - **Gledopto**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
+  - **[Gledopto][gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
   - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
-- **RGBW Support:** Supports RGB + White color channels
 - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
 - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns. ([#9](https://github.com/ahdinosaur/blinksy/issues/9))
 - (TODO) **Advanced LED Calibration**: Supports color correction based on LED-specific spectrometer data. ([#24](https://github.com/ahdinosaur/blinksy/issues/24))
 - (TODO) **Multi-LED Solver**: Supports LEDs with color channels beyond RGB or RGBW. ([#23](https://github.com/ahdinosaur/blinksy/issues/23))
+
+[rainbow]: https://docs.rs/blinksy/0.2/blinksy/rainbow/index.html
+[noise]: https://docs.rs/blinksy/0.2/blinksy/noise/index.html
+[apa102]: https://docs.rs/blinksy/0.2/blinksy/apa102/index.html
+[ws2812]: https://docs.rs/blinksy/0.2/blinksy/ws2812/index.html
+[gledopto]: https://docs.rs/blinksy/0.2/blinksy/gledopto/index.html
 
 ## Modules
 

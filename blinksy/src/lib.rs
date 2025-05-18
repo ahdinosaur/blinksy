@@ -17,15 +17,15 @@
 //! - **No-std, No-alloc:** Designed to run on embedded targets.
 //! - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
 //! - **Pattern (Effect) Library:**
-//!   - **Rainbow**
-//!   - **Noise**
+//!   - **[Rainbow]**
+//!   - **[Noise]**
 //!   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
 //! - **Multi‑Chipset Support:**
-//!   - **APA102**
-//!   - **WS2812B**
+//!   - **[APA102]**
+//!   - **[WS2812B]**
 //!   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
 //! - **Board Support Packages**:
-//!   - **Gledopto**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
+//!   - **[Gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
 //!   - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
 //! - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
 //! - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns.
@@ -88,6 +88,12 @@
 //!     control.tick(/* current time in milliseconds */).unwrap();
 //! }
 //! ```
+//!
+//! [Rainbow]: patterns::rainbow
+//! [Noise]: patterns::noise
+//! [APA102]: drivers::apa102
+//! [WS2812B]: drivers::ws2812
+//! [Gledopto]: https://docs.rs/gledopto/
 
 pub mod color;
 pub mod control;

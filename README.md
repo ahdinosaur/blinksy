@@ -35,11 +35,11 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, a
 - (TODO) **Advanced LED Calibration**: Supports color correction based on LED-specific spectrometer data. ([#24](https://github.com/ahdinosaur/blinksy/issues/24))
 - (TODO) **Multi-LED Solver**: Supports LEDs with color channels beyond RGB or RGBW. ([#23](https://github.com/ahdinosaur/blinksy/issues/23))
 
-[rainbow]: https://docs.rs/blinksy/0.2/blinksy/rainbow/index.html
-[noise]: https://docs.rs/blinksy/0.2/blinksy/noise/index.html
-[apa102]: https://docs.rs/blinksy/0.2/blinksy/apa102/index.html
-[ws2812]: https://docs.rs/blinksy/0.2/blinksy/ws2812/index.html
-[gledopto]: https://docs.rs/blinksy/0.2/blinksy/gledopto/index.html
+[rainbow]: https://docs.rs/blinksy/0.2/blinksy/patterns/rainbow/index.html
+[noise]: https://docs.rs/blinksy/0.2/blinksy/patterns/noise/index.html
+[apa102]: https://docs.rs/blinksy/0.2/blinksy/drivers/apa102/index.html
+[ws2812]: https://docs.rs/blinksy/0.2/blinksy/drivers/ws2812/index.html
+[gledopto]: https://docs.rs/gledopto/0.2/gledopto
 
 ## Modules
 

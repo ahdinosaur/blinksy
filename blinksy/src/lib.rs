@@ -28,7 +28,15 @@
 //!   - **[Gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
 //!   - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
 //! - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
-//! - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns.
+//! - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns. ([#9](https://github.com/ahdinosaur/blinksy/issues/9))
+//! - (TODO) **Advanced LED Calibration**: Supports color correction based on LED-specific spectrometer data. ([#24](https://github.com/ahdinosaur/blinksy/issues/24))
+//! - (TODO) **Multi-LED Solver**: Supports LEDs with color channels beyond RGB or RGBW. ([#23](https://github.com/ahdinosaur/blinksy/issues/23))
+//!
+//! [Rainbow]: patterns::rainbow
+//! [Noise]: patterns::noise
+//! [APA102]: drivers::apa102
+//! [WS2812B]: drivers::ws2812
+//! [Gledopto]: https://docs.rs/gledopto/0.2/gledopto
 //!
 //! ## Quick Start
 //!
@@ -88,12 +96,6 @@
 //!     control.tick(/* current time in milliseconds */).unwrap();
 //! }
 //! ```
-//!
-//! [Rainbow]: patterns::rainbow
-//! [Noise]: patterns::noise
-//! [APA102]: drivers::apa102
-//! [WS2812B]: drivers::ws2812
-//! [Gledopto]: https://docs.rs/gledopto/
 
 pub mod color;
 pub mod control;

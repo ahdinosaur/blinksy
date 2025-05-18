@@ -53,7 +53,7 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, a
 For all examples, see:
 
 - [Desktop examples in `./blinksy-desktop/examples`](./blinksy-desktop/examples)
-- [Gledopto examples in `./gledopto/examples`](./gledopto/examples)
+- [Gledopto examples in `./esp/gledopto/examples`](./esp/gledopto/examples)
 
 ### 2D APA102 Grid with Noise Pattern
 

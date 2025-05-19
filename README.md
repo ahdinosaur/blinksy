@@ -2,6 +2,8 @@
 
 Blinksy is a **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, and soon 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 
+![Blinksy simulation of 2D grid with noise pattern](https://i.imgur.com/0FQeTbC.gif)
+
 ## How Blinksy works
 
 - Define your LED [`layout`][layout] in 1D, 2D, or 3D space

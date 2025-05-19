@@ -53,9 +53,61 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, a
 For all examples, see:
 
 - [Desktop examples in `./blinksy-desktop/examples`](./blinksy-desktop/examples)
-- [Gledopto examples in `./esp/gledopto/examples`](./esp/gledopto/examples)
+- [Embedded (with Gledopto) examples in `./esp/gledopto/examples`](./esp/gledopto/examples)
 
-### 2D APA102 Grid with Noise Pattern
+### Desktop examples
+
+<details>
+<summary><h1>2D Grid with Noise Pattern</h1></summary>
+
+```rust
+use blinksy::{
+    layout::{Shape2d, Vec2},
+    layout2d,
+    patterns::noise::{noise_fns, Noise2d, NoiseParams},
+    ControlBuilder,
+};
+use blinksy_desktop::{
+    driver::{Desktop, DesktopError},
+    time::elapsed_in_ms,
+};
+use std::{thread::sleep, time::Duration};
+
+fn main() {
+    layout2d!(
+        Layout,
+        [Shape2d::Grid {
+            start: Vec2::new(-1., -1.),
+            row_end: Vec2::new(-1., 1.),
+            col_end: Vec2::new(1., -1.),
+            row_pixel_count: 16,
+            col_pixel_count: 16,
+            serpentine: true,
+        }]
+    );
+    let mut control = ControlBuilder::new_2d()
+        .with_layout::<Layout>()
+        .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
+            ..Default::default()
+        })
+        .with_driver(Desktop::new_2d::<Layout>())
+        .build();
+
+    loop {
+        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+            break;
+        }
+
+        sleep(Duration::from_millis(16));
+    }
+}
+```
+</details>
+
+### Embedded (with Gledopto) examples
+
+<details>
+<summary><h1>2D APA102 Grid with Noise Pattern</h1></summary>
 
 https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
 
@@ -103,7 +155,9 @@ fn main() -> ! {
 }
 ```
 
-### 1D WS2812 Strip with Rainbow Pattern
+</details>
+
+<summary><h1>1D WS2812 Strip with Rainbow Pattern</h1></summary>
 
 https://github.com/user-attachments/assets/703fe31d-e7ca-4e08-ae2b-7829c0d4d52e
 
@@ -141,6 +195,8 @@ fn main() -> ! {
     }
 }
 ```
+
+</details>
 
 ## Contributing
 

@@ -14,28 +14,40 @@
 //!
 //! ## Features
 //!
-//! - **No-std, No-alloc:** Designed to run on embedded targets.
-//! - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
-//! - **Pattern (Effect) Library:**
-//!   - **[Rainbow]**
-//!   - **[Noise]**
-//!   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
-//! - **Multi‑Chipset Support:**
-//!   - **[APA102]**
-//!   - **[WS2812B]**
-//!   - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
-//! - **Board Support Packages**:
-//!   - **[Gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
-//!   - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
-//! - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
-//! - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns. ([#9](https://github.com/ahdinosaur/blinksy/issues/9))
-//! - (TODO) **Advanced LED Calibration**: Supports color correction based on LED-specific spectrometer data. ([#24](https://github.com/ahdinosaur/blinksy/issues/24))
-//! - (TODO) **Multi-LED Solver**: Supports LEDs with color channels beyond RGB or RGBW. ([#23](https://github.com/ahdinosaur/blinksy/issues/23))
+//! - **No-std, no-alloc**: Designed for embedded targets.
+//! - **Spatial in 1D, 2D, or 3D**: Map out the shape of your LEDs in space.
+//! - **Full color support**: Supports modern and classic color spaces.
+//! - **Global settings**: Control overall brightness and color correction.
+//! - **Desktop simulation**: Simulate your LEDs on your desktop to play with ideas.
+//! - **RGB+W support**: Supports RGB + White color channels
+//!
+//! ### Multi‑Chipset Support
+//!
+//! - **[APA102]**
+//! - **[WS2812B]**
+//!
+//! If you want help to support a new chipset, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
+//!
+//! [APA102]: drivers::apa102
+//! [WS2812B]: drivers::ws2812
+//!
+//! ### Pattern (Effect) Library:
+//!
+//! - **[Rainbow]**
+//! - **[Noise]**
+//!
+//! If you want help to port a pattern from FastLED / WLED to Rust, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 //!
 //! [Rainbow]: patterns::rainbow
 //! [Noise]: patterns::noise
-//! [APA102]: drivers::apa102
-//! [WS2812B]: drivers::ws2812
+//!
+//! ### Board Support Packages
+//!
+//! - **[Gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
+//! - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
+//!
+//! If you want help to support a new target, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
+//!
 //! [Gledopto]: https://docs.rs/gledopto/0.2/gledopto
 //!
 //! ## Quick Start

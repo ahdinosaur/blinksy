@@ -54,12 +54,12 @@
 
 ## Features
 
-- **No-std, No-alloc**: Designed for embedded targets.
+- **No-std, no-alloc**: Designed for embedded targets.
 - **Spatial in 1D, 2D, or 3D**: Map out the shape of your LEDs in space.
 - **Full color support**: Supports modern and classic color spaces.
 - **Global settings**: Control overall brightness and color correction.
-- **Desktop Simulator**: Run a simulation of your LEDs to play with ideas.
-- **RGB+W Support**: Supports RGB + White color channels
+- **Desktop simulation**: Simulate your LEDs on your desktop to play with ideas.
+- **RGB+W support**: Supports RGB + White color channels
 
 ### Multi‑Chipset Support
 

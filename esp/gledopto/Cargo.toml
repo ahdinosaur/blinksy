@@ -33,6 +33,7 @@ fugit = "0.3.7"
 # Gledopto GL-C-016WL-D
 gl_c_016wl_d = [
   "blinksy-esp/esp32",
+  "esp-hal/esp32",
   "esp-println/esp32",
   "esp-backtrace/esp32",
 ]
@@ -40,6 +41,7 @@ gl_c_016wl_d = [
 # Mock for tests, builds, and docs
 mock = [
   "blinksy-esp/esp32c6",
+  "esp-hal/esp32",
   "esp-println/esp32c6",
   "esp-backtrace/esp32c6",
 ]

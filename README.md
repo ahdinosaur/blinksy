@@ -62,6 +62,8 @@ For all examples, see:
 <details>
 <summary><h1>2D Grid with Noise Pattern</h1></summary>
 
+https://github.com/user-attachments/assets/22f388d0-189e-44bd-acbf-186a142b956d
+
 ```rust
 use blinksy::{
     layout::{Shape2d, Vec2},
@@ -209,8 +211,6 @@ If you want to help, the best thing to do is use Blinksy for your own LED projec
 ## License
 
 Blinksy is licensed under the [**European Union Public License (EUPL)**](./LICENSE).
-
-We chose the EUPL, a copyleft license which combines reciprocity and share-alike, to ensure that Blinksy remains free and open.
 
 You are free to use, modify, and share Blinksy freely. Whether for personal projects, art installations, or commercial products.
 

@@ -15,11 +15,11 @@
 </h1>
 
 <div align="center">
-  A <em>Rust</em> <em>no-std</em> <em>no-alloc</em> LED control library.
+  A <strong>Rust</strong> <em>no-std</em> <em>no-alloc</em> LED control library.
 </div>
 
 <div align="center">
-  For <em>1D</em>, <em>2D</em>, and soon <em>3D</em> layouts.
+  For <strong>1D</strong>, <strong>2D</strong>, and soon <strong>3D</strong> layouts.
 </div>
 
 <div align="center">
@@ -54,17 +54,19 @@
 
 ## Features
 
-- **No-std, No-alloc**: Designed to run on embedded targets.
-- **1D, 2D, or 3D**: Map out the shape of your LEDs in space.
-- **Desktop Simulation**: Run a simulation of your LEDs to play with ideas.
-- **RGBW Support**: Supports RGB + White color channels
+- **No-std, No-alloc**: Designed for embedded targets.
+- **Spatial in 1D, 2D, or 3D**: Map out the shape of your LEDs in space.
+- **Full color support**: Supports modern and classic color spaces.
+- **Global settings**: Control overall brightness and color correction.
+- **Desktop Simulator**: Run a simulation of your LEDs to play with ideas.
+- **RGB+W Support**: Supports RGB + White color channels
 
 ### Multi‑Chipset Support
 
 - **[APA102][apa102]**
 - **[WS2812B][ws2812]**
 
-[Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
+If you want help to support a new chipset, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
 [apa102]: https://docs.rs/blinksy/0.2/blinksy/drivers/apa102/index.html
 [ws2812]: https://docs.rs/blinksy/0.2/blinksy/drivers/ws2812/index.html
@@ -74,7 +76,7 @@
 - **[Rainbow][rainbow]**
 - **[Noise][noise]**
 
-[Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
+If you want help to port a pattern from FastLED / WLED to Rust, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
 [rainbow]: https://docs.rs/blinksy/0.2/blinksy/patterns/rainbow/index.html
 [noise]: https://docs.rs/blinksy/0.2/blinksy/patterns/noise/index.html
@@ -83,6 +85,8 @@
 
 - **[Gledopto][gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
 - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
+
+If you want help to support a new target, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
 [gledopto]: https://docs.rs/gledopto/0.2/gledopto
 

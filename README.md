@@ -1,8 +1,32 @@
-# Blinksy 🟥🟩🟦
+<div align="center">
+  <img
+    src="https://i.imgur.com/0FQeTbC.gif"
+    alt="Blinksy simulation of 2D grid with noise pattern"
+    width="320px"
+    height="313px"
+  />
+</div>
 
-Blinksy is a **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, and soon 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
+<h1 align="center">
+  <a href="https://github.com/ahdinosaur/blinksy">
+    Blinksy
+  </a>
+  🟥🟩🟦
+</h1>
 
-![Blinksy simulation of 2D grid with noise pattern](https://i.imgur.com/0FQeTbC.gif)
+<div align="center">
+  A **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, and soon 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
+</div>
+
+<br />
+
+<div align="center">
+
+[![crates.io version](https://img.shields.io/crates/v/blinksy.svg?style=flat-square)](https://crates.io/crates/blinksy)
+[![ci status](https://img.shields.io/github/checks-status/ahdinosaur/blinksy/main?style=flat-square)](https://github.com/ahdinosaur/blinksy/actions/workflows/ci.yml?query=branch%3Amain)
+[![chat](https://img.shields.io/matrix/blinksy:matrix.org?style=flat-square&label=chat)](https://matrix.to/#/#blinksy:matrix.org)
+
+</div>
 
 ## How Blinksy works
 

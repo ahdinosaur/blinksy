@@ -6,6 +6,10 @@
 //! - For 1D, use [`layout1d!`] to define a type that implements [`Layout1d`]
 //! - For 2D, use [`layout2d!`] to define a type that implements [`Layout2d`]
 //!
+//! The layout traits provide a `PIXEL_COUNT` constant, which is the number of LEDs, and a
+//! `.points()`. method, which maps each LED pixel into a 1D, 2D, or soon 3D space between -1.0 and
+//! 1.0.
+//!
 //! ## 1D Layouts
 //!
 //! For simple linear arrangements, use the [`layout1d!`] macro:
@@ -54,6 +58,8 @@ use num_traits::FromPrimitive;
 /// Implementors of this trait represent a linear arrangement of LEDs.
 ///
 /// Use [`layout1d!`](crate::layout1d) to define a type that implements [`Layout1d`].
+///
+/// For our 1D space, the first LED pixel will be at -1.0 and the last LED pixel will be at 1.0.
 pub trait Layout1d {
     /// The total number of LEDs in this layout.
     const PIXEL_COUNT: usize;
@@ -373,6 +379,13 @@ impl Shape2d {
 /// Implementors of this trait represent a 2D arrangement of LEDs using one or more shapes.
 ///
 /// Use [`layout2d!`](crate::layout2d) to define a type that implements [`Layout2d`].
+///
+/// For our 2D space, we can think of:
+///
+/// - `(-1.0, -1.0)` as the bottom left
+/// - `(1.0, -1.0)` as the bottom right
+/// - `(-1.0, 1.0)` as the top left
+/// - `(1.0, 1.0)` as the top right
 pub trait Layout2d {
     /// The total number of LEDs in this layout.
     const PIXEL_COUNT: usize;

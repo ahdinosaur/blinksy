@@ -17,30 +17,40 @@ Blinksy is a **Rust** **no-std**, **no-alloc** LED control library for 1D, 2D, a
 [driver]: https://docs.rs/blinksy/0.2/blinksy/driver/index.html
 [drivers]: https://docs.rs/blinksy/0.2/blinksy/drivers/index.html
 
-## Features
+### Features
 
 - **No-std, No-alloc:** Designed to run on embedded targets.
 - **Layout Abstraction:** Define 1D, 2D, or 3D LED positions with shapes (grids, lines, arcs, points, etc).
-- **Pattern (Effect) Library:**
-  - **[Rainbow][rainbow]**
-  - **[Noise][noise]**
-  - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
-- **Multi‑Chipset Support:**
-  - **[APA102][apa102]**
-  - **[WS2812B][ws2812]**
-  - [Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
-- **Board Support Packages**:
-  - **[Gledopto][gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
-  - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
 - **Desktop Simulation:** Run a simulation of a layout and pattern on your computer to experiment with ideas.
 - (TODO) **Audio-Reactive**: Easily integrate audio reactivity into visual patterns. ([#9](https://github.com/ahdinosaur/blinksy/issues/9))
 - (TODO) **Advanced LED Calibration**: Supports color correction based on LED-specific spectrometer data. ([#24](https://github.com/ahdinosaur/blinksy/issues/24))
 - (TODO) **Multi-LED Solver**: Supports LEDs with color channels beyond RGB or RGBW. ([#23](https://github.com/ahdinosaur/blinksy/issues/23))
 
-[rainbow]: https://docs.rs/blinksy/0.2/blinksy/patterns/rainbow/index.html
-[noise]: https://docs.rs/blinksy/0.2/blinksy/patterns/noise/index.html
+#### Multi‑Chipset Support
+
+- **[APA102][apa102]**
+- **[WS2812B][ws2812]**
+
+[Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to support a new chipset!
+
 [apa102]: https://docs.rs/blinksy/0.2/blinksy/drivers/apa102/index.html
 [ws2812]: https://docs.rs/blinksy/0.2/blinksy/drivers/ws2812/index.html
+
+#### Pattern (Effect) Library:
+
+- **[Rainbow][rainbow]**
+- **[Noise][noise]**
+
+[Make an issue](https://github.com/ahdinosaur/blinksy/issues) if you want help to port a pattern from FastLED / WLED to Rust!
+
+[rainbow]: https://docs.rs/blinksy/0.2/blinksy/patterns/rainbow/index.html
+[noise]: https://docs.rs/blinksy/0.2/blinksy/patterns/noise/index.html
+
+#### Board Support Packages
+
+- **[Gledopto][gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
+- (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
+
 [gledopto]: https://docs.rs/gledopto/0.2/gledopto
 
 ## Modules
@@ -57,12 +67,14 @@ For all examples, see:
 - [Desktop examples in `./blinksy-desktop/examples`](./blinksy-desktop/examples)
 - [Embedded (with Gledopto) examples in `./esp/gledopto/examples`](./esp/gledopto/examples)
 
-### Desktop examples
-
-<details>
-<summary><h1>2D Grid with Noise Pattern</h1></summary>
+### Desktop Simulation: 2D Grid with Noise Pattern
 
 https://github.com/user-attachments/assets/22f388d0-189e-44bd-acbf-186a142b956d
+
+<details>
+<summary>
+    Click to see code
+</summary>
 
 ```rust
 use blinksy::{
@@ -106,14 +118,17 @@ fn main() {
     }
 }
 ```
+
 </details>
 
-### Embedded (with Gledopto) examples
-
-<details>
-<summary><h1>2D APA102 Grid with Noise Pattern</h1></summary>
+### Embedded Gledopto: 2D APA102 Grid with Noise Pattern
 
 https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
+
+<details>
+<summary>
+    Click to see code
+</summary>
 
 ```rust
 #![no_std]
@@ -161,9 +176,14 @@ fn main() -> ! {
 
 </details>
 
-<summary><h1>1D WS2812 Strip with Rainbow Pattern</h1></summary>
+### Embedded Gledopto: 1D WS2812 Strip with Rainbow Pattern
 
 https://github.com/user-attachments/assets/703fe31d-e7ca-4e08-ae2b-7829c0d4d52e
+
+<details>
+<summary>
+    Click to see code
+</summary>
 
 ```rust
 #![no_std]

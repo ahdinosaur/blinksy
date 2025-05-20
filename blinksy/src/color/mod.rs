@@ -8,17 +8,30 @@
 //! - [`Srgb`] - Standard RGB color space (gamma-corrected)
 //! - [`LinearSrgb`] - Linear RGB color space (no gamma correction)
 //! - [`GammaSrgb`] - RGB with custom gamma correction
-//! - [`Xyz`] - CIE XYZ color space
-//! - [`Lms`] - LMS cone response space
+//! - [`Hsv`] - HSV color space
 //! - [`Oklab`] - Perceptually uniform LAB space
 //! - [`Okhsl`] - Perceptual HSL color space based on Oklab
 //! - [`Okhsv`] - Perceptual HSV color space based on Oklab
+//! - [`Xyz`] - CIE XYZ color space
+//! - [`Lms`] - LMS cone response space
 //!
-//! ## LED Color Handling
+//! ## Conversion Traits
+//!
+//! - [`FromColor`] - Convert from a color type
+//! - [`IntoColor`] - Convert to a color type
+//!
+//! ## LED Output Modifiers
+//!
+//! - [`ColorCorrection`] - Correction factors for LED output
+//!
+//! ## LED Output
 //!
 //! - [`LedColor`] - Output-ready color data for LED hardware
-//! - [`ColorCorrection`] - Correction factors for LED output
+//!   - [`LedRgb`]
+//!   - [`LedRgbw`]
 //! - [`LedChannels`] - Color channel formats for different LED chipsets
+//!   - [`RgbChannels`]
+//!   - [`RgbwChannels`]
 
 mod convert;
 mod correction;

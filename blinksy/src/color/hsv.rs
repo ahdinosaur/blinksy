@@ -7,15 +7,20 @@ use num_traits::Euclid;
 
 use super::{FromColor, LinearSrgb};
 
-/// HSV color model (HsvHue, Saturation, Value)
+/// HSV color model (Hue, Saturation, Value)
 ///
 /// HSV is a color model that separates color into:
+///
 /// - Hue: The color type (red, green, blue, etc.)
 /// - Saturation: The purity of the color (0.0 = grayscale, 1.0 = pure color)
 /// - Value: The brightness of the color (0.0 = black, 1.0 = maximum brightness)
 ///
-/// This implementation allows different hue mapping algorithms to be used through
-/// the type parameter M.
+/// Inspired by [FastLED's HSV], [`Hsv`] receives a generic `M` which implements [`HsvHueMap`], so
+/// you can control how a hue is mapped to a color. The default mapping [`HsvHueRainbow`] provides
+/// more evenly-spaced color bands, including a band of 'yellow' which is the same width as other
+/// colors, and which has an appropriately high inherent brightness.
+///
+/// [FastLED's HSV]: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Hsv<M: HsvHueMap = HsvHueRainbow> {
     /// HsvHue component
@@ -95,29 +100,15 @@ impl<M: HsvHueMap> FromColor<Hsv<M>> for LinearSrgb {
     }
 }
 
-/// Create a balanced HSV color spectrum for animation
-///
-/// This function provides a convenient way to create a hue-rotating HSV color
-/// with full saturation and value.
-///
-/// # Arguments
-///
-/// * `phase` - A phase value from 0.0 to 1.0 that will be mapped to the full color spectrum
-///
-/// # Returns
-///
-/// An HSV color with the specified hue mapping type M
-pub fn rainbow_hue<M: HsvHueMap>(phase: f32) -> Hsv<M> {
-    Hsv::new(phase % 1.0, 1.0, 1.0)
-}
-
 /// Representation of a color hue with a specific mapping method
 ///
-/// The `HsvHue` type represents a position on the color wheel using a mapping
-/// method (M) to convert between hue values and RGB.
+/// The [`HsvHue`] type represents a position on the color wheel using a mapping
+/// method (M) to convert between hue values and colors.
 ///
 /// Different hue maps produce different color distributions when rotating
-/// through the entire hue range.
+/// through the entire hue range. See [FastLED's HSV].
+///
+/// [FastLED's HSV]: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HsvHue<M: HsvHueMap = HsvHueRainbow> {
     /// Phantom data to track the hue mapping type
@@ -150,11 +141,13 @@ impl<M: HsvHueMap> HsvHue<M> {
     }
 }
 
-/// Trait for hue mapping algorithms
+/// Trait for hue mapping algorithms, inspired by [FastLED's HSV].
 ///
 /// A hue map defines how a numerical hue value (0.0 to 1.0) is converted
-/// to RGB colors. Different mapping approaches produce different visual
-/// effects when animating through the hue range.
+/// to RGB colors. Different mapping approaches produce different color
+/// distributions when rotating through the entire hue range.
+///
+/// [FastLED's HSV]: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
 pub trait HsvHueMap: Sized {
     /// Convert a hue value to RGB
     ///
@@ -171,11 +164,10 @@ pub trait HsvHueMap: Sized {
 /// Spectrum hue mapping as used in FastLED's hsv2rgb_spectrum
 ///
 /// This hue mapping produces a mathematically straight spectrum with
-/// equal distribution of hues. It has more green and blue, and less
-/// yellow and orange.
+/// equal distribution of hues. It has wide red, green and blue bands, with
+/// a narrow and muddy yellow band.
 ///
 /// ![Spectrum hue mapping](https://raw.githubusercontent.com/FastLED/FastLED/gh-pages/images/HSV-spectrum-with-desc.jpg)
-///
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HsvHueSpectrum;
 
@@ -202,7 +194,7 @@ impl HsvHueMap for HsvHueSpectrum {
 /// Rainbow hue mapping as used in FastLED's hsv2rgb_rainbow
 ///
 /// This hue mapping produces a visually balanced rainbow effect with
-/// enhanced yellow region and other perceptual adjustments.
+/// enhanced yellow and deep purple.
 ///
 /// ![Rainbow hue mapping](https://raw.githubusercontent.com/FastLED/FastLED/gh-pages/images/HSV-rainbow-with-desc.jpg)
 #[derive(Debug, Clone, Copy, PartialEq)]

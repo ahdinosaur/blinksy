@@ -17,8 +17,7 @@ use super::{FromColor, LinearSrgb};
 ///
 /// Inspired by [FastLED's HSV], [`Hsv`] receives a generic `M` which implements [`HsvHueMap`], so
 /// you can control how a hue is mapped to a color. The default mapping [`HsvHueRainbow`] provides
-/// more evenly-spaced color bands, including a band of 'yellow' which is the same width as other
-/// colors, and which has an appropriately high inherent brightness.
+/// more evenly-spaced color bands, including enhanced yellow and deep purple bands.
 ///
 /// [FastLED's HSV]: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -36,7 +35,7 @@ impl<M: HsvHueMap> Hsv<M> {
     ///
     /// # Arguments
     ///
-    /// * `hue` - HsvHue component (0.0 to 1.0)
+    /// * `hue` - Hue component (0.0 to 1.0)
     /// * `saturation` - Saturation component (0.0 to 1.0)
     /// * `value` - Value component (0.0 to 1.0)
     pub fn new(hue: f32, saturation: f32, value: f32) -> Self {
@@ -148,6 +147,12 @@ impl<M: HsvHueMap> HsvHue<M> {
 /// distributions when rotating through the entire hue range.
 ///
 /// [FastLED's HSV]: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
+///
+/// ## Implementators
+///
+/// - [`HsvHueRainbow`]: Visually balanced rainbow
+/// - [`HsvHueSpectrum`]: Mathematically straight spectrum
+///
 pub trait HsvHueMap: Sized {
     /// Convert a hue value to RGB
     ///

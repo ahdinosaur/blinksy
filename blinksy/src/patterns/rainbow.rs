@@ -1,7 +1,7 @@
 //! # Rainbow Pattern
 //!
 //! The rainbow pattern creates smooth color transitions across the LED layout.
-//! The colors flow through the full Hsv spectrum, creating a classic rainbow
+//! The colors flow through the full [`Hsv`] spectrum, creating a classic rainbow
 //! visual.
 //!
 //! ## Example
@@ -28,7 +28,7 @@
 //! ```
 
 use crate::{
-    color::Hsv,
+    color::{Hsv, HsvHueRainbow},
     dimension::{Dim1d, Dim2d},
     layout::{Layout1d, Layout2d},
     pattern::Pattern,
@@ -67,7 +67,7 @@ where
     Layout: Layout1d,
 {
     type Params = RainbowParams;
-    type Color = Hsv;
+    type Color = Hsv<HsvHueRainbow>;
 
     /// Creates a new Rainbow pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -92,7 +92,7 @@ where
             let hue = x * step + time;
             let saturation = 1.;
             let value = 1.;
-            Hsv::new(hue, saturation, value)
+            Self::Color::new(hue, saturation, value)
         })
     }
 }
@@ -102,7 +102,7 @@ where
     Layout: Layout2d,
 {
     type Params = RainbowParams;
-    type Color = Hsv;
+    type Color = Hsv<HsvHueRainbow>;
 
     /// Creates a new Rainbow pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
@@ -127,7 +127,7 @@ where
             let hue = point.x * step + time;
             let saturation = 1.;
             let value = 1.;
-            Hsv::new(hue, saturation, value)
+            Self::Color::new(hue, saturation, value)
         })
     }
 }

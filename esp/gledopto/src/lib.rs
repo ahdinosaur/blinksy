@@ -1,18 +1,35 @@
 //! # Gledopto Board Support Package
 //!
-//! This module provides a board support package (BSP) for the Gledopto GL-C-016WL-D
-//! LED controller, which is based on the ESP32 microcontroller. It integrates
-//! Blinksy with ESP32-specific functionality for a streamlined development experience.
+//! Rust **no-std** [embedded](https://github.com/rust-embedded/awesome-embedded-rust) board support crate for Gledopto ESP32 Digital LED controllers.
+//!
+//! Uses [Blinksy](https://github.com/ahdinosaur/blinksy): an LED control library for 1D, 2D, and soon 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
+//!
+//! ## Supported Boards
+//!
+//! Currently this library only supports one board:
+//!
+//! - [x] [Gledopto GL-C-016WL-D](https://www.gledopto.eu/gledopto-esp32-wled-uart_1), `gl_c_016wl_d`
+//!
+//! Select the board by using its respective feature.
 //!
 //! ## Features
 //!
-//! - Integration with ESP32 HAL for hardware access
-//! - Convenient macros for board initialization and peripheral setup
-//! - Support for common LED drivers
-//! - Function button handling
-//! - Time management utilities
+//! - [x] LED control using [`blinksy`](https://github.com/ahdinosaur/blinksy)
+//! - [x] Built-in "Function" button
+//! - [ ] Alternative "IO33" button
+//! - [ ] Built-in microphone
 //!
-//! ## Usage Examples
+//!
+//!
+//! ## Getting started
+//!
+//! For help to get started, see ["Getting Started"][getting-started] section in README.
+//!
+//! [getting-started]: https://github.com/ahdinosaur/blinksy/blob/gledopto/v0.3.1/esp/gledopto/README.md
+//!
+//! ## Examples
+//!
+//! ### 1D WS2812 Strip with Rainbow Pattern
 //!
 //! ```rust,no-run
 //! #![no_std]
@@ -41,6 +58,52 @@
 //!         .build();
 //!
 //!     control.set_brightness(0.2);
+//!
+//!     loop {
+//!         let elapsed_in_ms = elapsed().as_millis();
+//!         control.tick(elapsed_in_ms).unwrap();
+//!     }
+//! }
+//! ```
+//!
+//! ### 2D APA102 Grid with Noise Pattern
+//!
+//! ```rust,no-run
+//! #![no_std]
+//! #![no_main]
+//!
+//! use blinksy::{
+//!     layout::{Shape2d, Vec2},
+//!     layout2d,
+//!     patterns::noise::{noise_fns, Noise2d, NoiseParams},
+//!     ControlBuilder,
+//! };
+//! use gledopto::{apa102, board, elapsed, main};
+//!
+//! #[main]
+//! fn main() -> ! {
+//!     let p = board!();
+//!
+//!     layout2d!(
+//!         Layout,
+//!         [Shape2d::Grid {
+//!             start: Vec2::new(-1., -1.),
+//!             row_end: Vec2::new(1., -1.),
+//!             col_end: Vec2::new(-1., 1.),
+//!             row_pixel_count: 16,
+//!             col_pixel_count: 16,
+//!             serpentine: true,
+//!         }]
+//!     );
+//!     let mut control = ControlBuilder::new_2d()
+//!         .with_layout::<Layout>()
+//!         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
+//!             ..Default::default()
+//!         })
+//!         .with_driver(apa102!(p))
+//!         .build();
+//!
+//!     control.set_brightness(0.1);
 //!
 //!     loop {
 //!         let elapsed_in_ms = elapsed().as_millis();

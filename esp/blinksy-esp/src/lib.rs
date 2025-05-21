@@ -17,29 +17,23 @@
 //! #![no_std]
 //! #![no_main]
 //!
-//! // Required for panic handling
-//! use esp_backtrace as _;
-//!
 //! use esp_hal as hal;
 //!
 //! use blinksy::{
+//!     driver::ClocklessLed,
+//!     drivers::ws2812::Ws2812Led,
+//!     layout::Layout1d,
 //!     layout1d,
 //!     patterns::rainbow::{Rainbow, RainbowParams},
 //!     ControlBuilder,
-//!     driver::ClocklessLed,
-//!     drivers::ws2812::Ws2812Led,
 //! };
-//! use blinksy_esp::{
-//!     create_rmt_buffer,
-//!     time::elapsed,
-//!     Ws2812Rmt,
-//! };
+//! use blinksy_esp::{create_rmt_buffer, time::elapsed, Ws2812Rmt};
 //!
 //! #[hal::main]
 //! fn main() -> ! {
 //!     let cpu_clock = hal::clock::CpuClock::max();
 //!     let config = hal::Config::default().with_cpu_clock(cpu_clock);
-//!     let p = hal::init(config)
+//!     let p = hal::init(config);
 //!
 //!     // Define the LED layout (1D strip of 300 pixels)
 //!     layout1d!(Layout, 60 * 5);
@@ -52,20 +46,18 @@
 //!         let data_pin = p.GPIO16;
 //!
 //!         // RMT peripheral frequency, typically 80MHz for WS2812 on ESP32.
-//!         let rmt_clk_freq = Rate::from_mhz(80);
+//!         let rmt_clk_freq = hal::time::Rate::from_mhz(80);
 //!
 //!         // Initialize RMT peripheral.
-//!         let rmt = Rmt::new(p.RMT, rmt_clk_freq).unwrap();
+//!         let rmt = hal::rmt::Rmt::new(p.RMT, rmt_clk_freq).unwrap();
 //!         let rmt_channel = rmt.channel0;
 //!
 //!         // Create RMT buffer
 //!         const NUM_LEDS: usize = Layout::PIXEL_COUNT;
-//!         const CHANNELS_PER_LED: usize =
-//!             <Ws2812Led as ClocklessLed>::LED_CHANNELS.channel_count(); // Usually 3 (RGB)
+//!         const CHANNELS_PER_LED: usize = <Ws2812Led as ClocklessLed>::LED_CHANNELS.channel_count(); // Usually 3 (RGB)
 //!         let rmt_buffer = create_rmt_buffer!(NUM_LEDS, CHANNELS_PER_LED);
 //!
 //!         Ws2812Rmt::new(rmt_channel, data_pin, rmt_buffer)
-//!             .expect("Failed to create WS2812 RMT driver")
 //!     };
 //!
 //!     // Build the Blinky controller

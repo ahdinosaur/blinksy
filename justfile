@@ -25,7 +25,13 @@ test-core:
   cargo test
 
 check-esp:
-  cd esp && cargo check
+  cd esp && cargo check -F esp32 -F gl_c_016wl_d
+
+test-esp: check-esp
+  cd esp && cargo test --doc -F esp32 -F gl_c_016wl_d
+
+doc-esp:
+  cd esp && cargo doc -F esp32 -F gl_c_016wl_d --open
 
 ##
 # Releasing

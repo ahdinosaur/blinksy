@@ -31,7 +31,7 @@
 //!
 //! ### 1D WS2812 Strip with Rainbow Pattern
 //!
-//! ```rust,no-run
+//! ```rust,no_run
 //! #![no_std]
 //! #![no_main]
 //!
@@ -68,7 +68,7 @@
 //!
 //! ### 2D APA102 Grid with Noise Pattern
 //!
-//! ```rust,no-run
+//! ```rust,no_run
 //! #![no_std]
 //! #![no_main]
 //!

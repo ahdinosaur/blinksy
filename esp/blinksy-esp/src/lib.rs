@@ -11,38 +11,93 @@
 //!
 //! [RMT]: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/rmt.html
 //!
-//! ## Usage
-//!
-//! This crate is typically used via the gledopto board support package:
+//! ## Example
 //!
 //! ```rust
-//! use gledopto::{board, ws2812, main};
-//! use blinksy::ControlBuilder;
+//! #![no_std]
+//! #![no_main]
 //!
-//! #[main]
+//! // Required for panic handling
+//! use esp_backtrace as _;
+//!
+//! use esp_hal as hal;
+//!
+//! use blinksy::{
+//!     layout1d,
+//!     patterns::rainbow::{Rainbow, RainbowParams},
+//!     ControlBuilder,
+//!     driver::ClocklessLed,
+//!     drivers::ws2812::Ws2812Led,
+//! };
+//! use blinksy_esp::{
+//!     create_rmt_buffer,
+//!     time::elapsed,
+//!     Ws2812Rmt,
+//! };
+//!
+//! #[hal::main]
 //! fn main() -> ! {
-//!     let p = board!();
+//!     let cpu_clock = hal::clock::CpuClock::max();
+//!     let config = hal::Config::default().with_cpu_clock(cpu_clock);
+//!     let p = hal::init(config)
 //!
+//!     // Define the LED layout (1D strip of 300 pixels)
 //!     layout1d!(Layout, 60 * 5);
 //!
+//!     // Setup the WS2812 driver using RMT.
+//!     let ws2812_driver = {
+//!         // IMPORTANT: Change `p.GPIO16` to the GPIO pin connected to your WS2812 data line.
+//!         // For example, if using GPIO2, change to `p.GPIO2`.
+//!         // Ensure the chosen pin is not used for other critical functions (e.g., strapping, JTAG).
+//!         let data_pin = p.GPIO16;
+//!
+//!         // RMT peripheral frequency, typically 80MHz for WS2812 on ESP32.
+//!         let rmt_clk_freq = Rate::from_mhz(80);
+//!
+//!         // Initialize RMT peripheral.
+//!         let rmt = Rmt::new(p.RMT, rmt_clk_freq).unwrap();
+//!         let rmt_channel = rmt.channel0;
+//!
+//!         // Create RMT buffer
+//!         const NUM_LEDS: usize = Layout::PIXEL_COUNT;
+//!         const CHANNELS_PER_LED: usize =
+//!             <Ws2812Led as ClocklessLed>::LED_CHANNELS.channel_count(); // Usually 3 (RGB)
+//!         let rmt_buffer = create_rmt_buffer!(NUM_LEDS, CHANNELS_PER_LED);
+//!
+//!         Ws2812Rmt::new(rmt_channel, data_pin, rmt_buffer)
+//!             .expect("Failed to create WS2812 RMT driver")
+//!     };
+//!
+//!     // Build the Blinky controller
 //!     let mut control = ControlBuilder::new_1d()
 //!         .with_layout::<Layout>()
 //!         .with_pattern::<Rainbow>(RainbowParams {
 //!             ..Default::default()
 //!         })
-//!         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+//!         .with_driver(ws2812_driver)
 //!         .build();
 //!
-//!     control.set_brightness(0.2);
+//!     control.set_brightness(0.2); // Set initial brightness (0.0 to 1.0)
 //!
 //!     loop {
 //!         let elapsed_in_ms = elapsed().as_millis();
 //!         control.tick(elapsed_in_ms).unwrap();
+//!
+//!         // Optional: Add a delay to control the update rate and reduce CPU usage.
+//!         // Without an explicit delay, the loop will run as fast as possible.
 //!     }
 //! }
 //! ```
+//!
+//! ## Getting started
+//!
+//! For more help to get started, see ["Getting Started"][getting-started] section in [`gledopto`][gledopto] README.
+//!
+//! [gledopto]: https://crates.io/crates/gledopto
+//! [getting-started]: https://github.com/ahdinosaur/blinksy/blob/gledopto/v0.3.1/esp/gledopto/README.md#getting-started
 
 pub mod rmt;
+pub mod time;
 
 use crate::rmt::ClocklessRmtDriver;
 use blinksy::drivers::ws2812::Ws2812Led;

@@ -119,11 +119,10 @@ pub use blinksy;
 
 /// Re-export of the ESP32-specific Blinksy extensions
 pub use blinksy_esp;
+pub use blinksy_esp::time::elapsed;
 
 /// Re-export of the ESP32 HAL
 pub use esp_hal as hal;
-
-use esp_hal::time::{Duration, Instant};
 
 /// Re-export the main macro from esp_hal for entry point definition
 pub use hal::main;
@@ -158,13 +157,6 @@ macro_rules! board {
         let config = $crate::hal::Config::default().with_cpu_clock(cpu_clock);
         $crate::hal::init(config)
     }};
-}
-
-/// Returns the elapsed time since system boot.
-///
-/// This function provides a consistent timing reference for animations and patterns.
-pub fn elapsed() -> Duration {
-    Instant::now().duration_since_epoch()
 }
 
 /// Creates a function button instance connected to GPIO0.

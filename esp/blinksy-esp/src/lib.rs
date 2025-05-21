@@ -2,16 +2,14 @@
 
 //! # ESP32 Blinksy Extensions
 //!
-//! This crate provides ESP32-specific extensions for the Blinksy LED control library.
-//! It adapts the generic Blinksy abstractions to the specific hardware capabilities
-//! of the ESP32, particularly focusing on efficient LED driving using the RMT
-//! (Remote Control Module) peripheral.
+//! ESP32-specific extensions for the [Blinksy][blinksy] LED control library using [`esp-hal`][esp_hal].
 //!
 //! ## Features
 //!
-//! - ESP32 RMT-based driver for clockless (e.g. WS2812) LEDs
-//! - Hardware-accelerated LED driving for improved performance
-//! - Convenient API matching the core Blinksy interface
+//! - ESP-specific driver for clockless (e.g. WS2812) LEDs, using [RMT (Remote Control Module)][RMT] peripheral
+//! - ESP-specific elapsed time helper
+//!
+//! [RMT]: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/rmt.html
 //!
 //! ## Usage
 //!

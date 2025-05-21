@@ -79,6 +79,8 @@ pub trait Layout1d {
 ///
 /// # Arguments
 ///
+/// * `#[$attr]` - Optional attributes to apply to the struct (e.g., `#[derive(Debug)]`)
+/// * `$vis` - Optional visibility modifier (e.g., `pub`)
 /// * `$name` - The name of the layout type to create
 /// * `$pixel_count` - The number of LEDs in the layout
 ///
@@ -93,11 +95,23 @@ pub trait Layout1d {
 ///
 /// // Define a strip with 60 LEDs
 /// layout1d!(Layout, 60);
+///
+/// // Define a public strip with 60 LEDs
+/// layout1d!(pub PubLayout, 60);
+///
+/// // Define a layout with attributes
+/// layout1d!(
+///     #[doc = "A strip of 60 LEDs for the main display"]
+///     #[derive(Debug)]
+///     pub AttrsLayout,
+///     60
+/// );
 /// ```
 #[macro_export]
 macro_rules! layout1d {
-    ($name:ident, $pixel_count:expr) => {
-        struct $name;
+    ($(#[$attr:meta])* $vis:vis $name:ident, $pixel_count:expr) => {
+        $(#[$attr])*
+        $vis struct $name;
 
         impl $crate::layout::Layout1d for $name {
             const PIXEL_COUNT: usize = $pixel_count;
@@ -403,6 +417,8 @@ pub trait Layout2d {
 ///
 /// # Arguments
 ///
+/// * `#[$attr]` - Optional attributes to apply to the struct (e.g., `#[derive(Debug)]`)
+/// * `$vis` - Optional visibility modifier (e.g., `pub`)
 /// * `$name` - The name of the layout type to create
 /// * `[$($shape:expr),*]` - A list of Shape2d instances defining the layout
 ///
@@ -429,8 +445,9 @@ pub trait Layout2d {
 /// ```
 #[macro_export]
 macro_rules! layout2d {
-    ($name:ident, [$($shape:expr),* $(,)?]) => {
-        struct $name;
+    ($(#[$attr:meta])* $vis:vis $name:ident, [$($shape:expr),* $(,)?]) => {
+        $(#[$attr])*
+        $vis struct $name;
 
         impl $crate::layout::Layout2d for $name {
             const PIXEL_COUNT: usize = 0 $(+ $shape.pixel_count())*;

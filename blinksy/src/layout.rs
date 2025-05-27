@@ -33,10 +33,10 @@
 //!     Layout,
 //!     [Shape2d::Grid {
 //!         start: Vec2::new(-1., -1.),
-//!         row_end: Vec2::new(-1., 1.),
-//!         col_end: Vec2::new(1., -1.),
-//!         row_pixel_count: 16,
-//!         col_pixel_count: 16,
+//!         horizontal_end: Vec2::new(1., -1.),
+//!         vertical_end: Vec2::new(-1., 1.),
+//!         horizontal_pixel_count: 16,
+//!         vertical_pixel_count: 16,
 //!         serpentine: true,
 //!     }]
 //! );
@@ -141,15 +141,15 @@ pub enum Shape2d {
     Grid {
         /// Starting point (origin) of the grid
         start: Vec2,
-        /// Ending point for rows (defines the horizontal axis)
-        row_end: Vec2,
-        /// Ending point for columns (defines the vertical axis)
-        col_end: Vec2,
-        /// Number of LEDs along each row
-        row_pixel_count: usize,
-        /// Number of LEDs along each column
-        col_pixel_count: usize,
-        /// Whether rows of LEDs are wired in a zigzag pattern
+        /// Ending point for first horizontal row (defines the horizontal axis)
+        horizontal_end: Vec2,
+        /// Ending point for first vertical column (defines the vertical axis)
+        vertical_end: Vec2,
+        /// Number of LEDs along each horizontal row
+        horizontal_pixel_count: usize,
+        /// Number of LEDs along each vertical column
+        vertical_pixel_count: usize,
+        /// Whether horizontal rows of LEDs are wired in a zigzag pattern
         serpentine: bool,
     },
 
@@ -254,13 +254,13 @@ impl From<StepIterator<Vec2, f32>> for Shape2dPointsIterator {
 #[derive(Debug)]
 pub struct GridStepIterator<Item, Scalar> {
     start: Item,
-    row_step: Item,
-    col_step: Item,
-    row_pixel_count: usize,
-    col_pixel_count: usize,
+    vertical_step: Item,
+    horizontal_step: Item,
+    horizontal_pixel_count: usize,
+    vertical_pixel_count: usize,
     serpentine: bool,
-    row_index: usize,
-    col_index: usize,
+    horizontal_index: usize,
+    vertical_index: usize,
     scalar: PhantomData<Scalar>,
 }
 
@@ -270,28 +270,28 @@ impl<Item, Scalar> GridStepIterator<Item, Scalar> {
     /// # Arguments
     ///
     /// * `start` - The starting point (origin) of the grid
-    /// * `row_step` - The step between rows
-    /// * `col_step` - The step between columns
-    /// * `row_pixel_count` - Number of rows
-    /// * `col_pixel_count` - Number of columns
+    /// * `vertical_step` - The vertical step between horizontal rows
+    /// * `horizontal_step` - The horizontal step between vertical columns
+    /// * `horizontal_pixel_count` - Number of pixels in a horizontal row
+    /// * `vertical_pixel_count` - Number of pixels in a vertical column
     /// * `serpentine` - Whether to use zigzag pattern
     pub fn new(
         start: Item,
-        row_step: Item,
-        col_step: Item,
-        row_pixel_count: usize,
-        col_pixel_count: usize,
+        vertical_step: Item,
+        horizontal_step: Item,
+        horizontal_pixel_count: usize,
+        vertical_pixel_count: usize,
         serpentine: bool,
     ) -> Self {
         Self {
             start,
-            row_step,
-            col_step,
-            row_pixel_count,
-            col_pixel_count,
+            vertical_step,
+            horizontal_step,
+            horizontal_pixel_count,
+            vertical_pixel_count,
             serpentine,
-            row_index: 0,
-            col_index: 0,
+            horizontal_index: 0,
+            vertical_index: 0,
             scalar: PhantomData,
         }
     }
@@ -305,21 +305,23 @@ where
     type Item = Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.row_index >= self.row_pixel_count {
+        if self.vertical_index >= self.vertical_pixel_count {
             return None;
         }
-        let row_index = Scalar::from_usize(self.row_index)?;
-        let col_index = if self.serpentine && (self.row_index % 2 == 1) {
-            self.col_pixel_count - 1 - self.col_index
+        let vertical_index = Scalar::from_usize(self.vertical_index)?;
+        let horizontal_index = if self.serpentine && (self.vertical_index % 2 == 1) {
+            self.horizontal_pixel_count - 1 - self.horizontal_index
         } else {
-            self.col_index
+            self.horizontal_index
         };
-        let col_index = Scalar::from_usize(col_index)?;
-        let point = self.start + row_index * self.row_step + col_index * self.col_step;
-        self.col_index += 1;
-        if self.col_index >= self.col_pixel_count {
-            self.col_index = 0;
-            self.row_index += 1;
+        let horizontal_index = Scalar::from_usize(horizontal_index)?;
+        let point = self.start
+            + vertical_index * self.vertical_step
+            + horizontal_index * self.horizontal_step;
+        self.horizontal_index += 1;
+        if self.horizontal_index >= self.horizontal_pixel_count {
+            self.horizontal_index = 0;
+            self.vertical_index += 1;
         }
         Some(point)
     }
@@ -338,10 +340,10 @@ impl Shape2d {
             Shape2d::Point(_) => 1,
             Shape2d::Line { pixel_count, .. } => pixel_count,
             Shape2d::Grid {
-                row_pixel_count,
-                col_pixel_count,
+                horizontal_pixel_count,
+                vertical_pixel_count,
                 ..
-            } => row_pixel_count * col_pixel_count,
+            } => horizontal_pixel_count * vertical_pixel_count,
             Shape2d::Arc { pixel_count, .. } => pixel_count,
         }
     }
@@ -360,20 +362,22 @@ impl Shape2d {
             }
             Shape2d::Grid {
                 start,
-                row_end,
-                col_end,
-                row_pixel_count,
-                col_pixel_count,
+                horizontal_end,
+                vertical_end,
+                horizontal_pixel_count,
+                vertical_pixel_count,
                 serpentine,
             } => {
-                let row_step = (row_end - start) / (row_pixel_count as f32 - 1.).max(1.);
-                let col_step = (col_end - start) / (col_pixel_count as f32 - 1.).max(1.);
+                let horizontal_step =
+                    (horizontal_end - start) / (horizontal_pixel_count as f32 - 1.).max(1.);
+                let vertical_step =
+                    (vertical_end - start) / (vertical_pixel_count as f32 - 1.).max(1.);
                 GridStepIterator::new(
                     start,
-                    row_step,
-                    col_step,
-                    row_pixel_count,
-                    col_pixel_count,
+                    vertical_step,
+                    horizontal_step,
+                    horizontal_pixel_count,
+                    vertical_pixel_count,
                     serpentine,
                 )
                 .into()
@@ -435,10 +439,10 @@ pub trait Layout2d {
 ///     Layout,
 ///     [Shape2d::Grid {
 ///         start: Vec2::new(-1., -1.),
-///         row_end: Vec2::new(1., -1.),
-///         col_end: Vec2::new(-1., 1.),
-///         row_pixel_count: 16,
-///         col_pixel_count: 16,
+///         horizontal_end: Vec2::new(1., -1.),
+///         vertical_end: Vec2::new(-1., 1.),
+///         horizontal_pixel_count: 16,
+///         vertical_pixel_count: 16,
 ///         serpentine: true,
 ///     }]
 /// );

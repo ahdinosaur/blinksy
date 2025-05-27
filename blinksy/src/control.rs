@@ -31,39 +31,33 @@ use crate::{
 ///
 /// Tip: Use [`ControlBuilder`] to build your [`Control`] struct.
 ///
-/// # Type Parameters
+/// ## Type Parameters
 ///
 /// * `Dim` - The dimension marker ([`Dim1d`] or [`Dim2d`])
 /// * `Layout` - The [`layout`](crate::layout) type
 /// * `Pattern` - The [`pattern`](crate::pattern) type
 /// * `Driver` - The LED [`driver`](crate::driver) type
 ///
-/// # Example
+/// ## Examples
+///
+/// For 1D:
 ///
 /// ```rust,ignore
-/// use blinksy::{
-///     ControlBuilder,
-///     layout1d,
-///     patterns::rainbow::{Rainbow, RainbowParams}
-/// };
-///
-/// // Define a 1d layout of 60 LEDs
-/// layout1d!(Layout, 60);
-///
-/// // Create a control system
 /// let mut control = ControlBuilder::new_1d()
-///     .with_layout::<Layout>()
-///     .with_pattern::<Rainbow>(RainbowParams::default())
-///     .with_driver(/* LED driver */)
+///     .with_layout::< /* layout type */ >()
+///     .with_pattern::< /* pattern type */ >(/* pattern params */)
+///     .with_driver(/* driver */)
 ///     .build();
+/// ```
 ///
-/// // Use the control system
-/// control.set_brightness(0.5);
+/// For 2D:
 ///
-/// // Main control loop
-/// loop {
-///     control.tick(/* current time in milliseconds */).unwrap();
-/// }
+/// ```rust,ignore
+/// let mut control = ControlBuilder::new_2d()
+///     .with_layout::< /* layout type */ >()
+///     .with_pattern::< /* pattern type */ >(/* pattern params */)
+///     .with_driver(/* driver */)
+///     .build();
 /// ```
 pub struct Control<Dim, Layout, Pattern, Driver> {
     dim: PhantomData<Dim>,

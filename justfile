@@ -17,6 +17,9 @@ gledopto-ws2812-strip:
 gledopto-apa102-grid:
   cd esp && cargo run --release -p gledopto --example apa102-grid --features gl_c_016wl_d
 
+gledopto-ws2812-cube:
+  cd esp && cargo run --release -p gledopto --example ws2812-cube --features gl_c_016wl_d
+
 ##
 # Testing
 ##

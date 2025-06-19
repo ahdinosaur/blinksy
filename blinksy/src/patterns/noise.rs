@@ -56,12 +56,13 @@
 //! [`Okhsv`]: crate::color::Okhsv
 //! [mikey.nz]: https://mikey.nz
 
+use defmt::info;
 use noise::{NoiseFn, Seedable};
 
 use crate::{
     color::Okhsv,
-    dimension::{Dim1d, Dim2d},
-    layout::{Layout1d, Layout2d},
+    dimension::{Dim1d, Dim2d, Dim3d},
+    layout::{Layout1d, Layout2d, Layout3d},
     pattern::Pattern,
 };
 
@@ -212,6 +213,75 @@ where
             let hue = hue_noise.get(noise_args) as f32;
             let saturation = 1.;
             let value = 0.75 + 0.25 * value_noise.get(noise_args) as f32;
+            Okhsv::new(hue, saturation, value)
+        })
+    }
+}
+
+/// Three-dimensional noise pattern implementation.
+///
+/// Creates flowing animations based on a 4D noise function, using
+/// time and the 3D position for the input coordinates.
+#[derive(Debug)]
+pub struct Noise3d<Noise>
+where
+    Noise: NoiseFn<f64, 4>,
+{
+    /// The noise function used to get hue
+    hue_noise: Noise,
+    /// The noise function used to get value
+    value_noise: Noise,
+    /// Configuration parameters
+    params: NoiseParams,
+}
+
+impl<Layout, Noise> Pattern<Dim3d, Layout> for Noise3d<Noise>
+where
+    Layout: Layout3d,
+    Noise: NoiseFn<f64, 4> + Seedable + Default,
+{
+    type Params = NoiseParams;
+    type Color = Okhsv;
+
+    /// Creates a new Noise2d pattern with the specified parameters.
+    fn new(params: Self::Params) -> Self {
+        Self {
+            hue_noise: Noise::default().set_seed(0),
+            value_noise: Noise::default().set_seed(1),
+            params,
+        }
+    }
+
+    /// Generates colors for a 3D layout using noise.
+    ///
+    /// The pattern uses the LED x,y,z position and time as inputs to a 4D noise function,
+    /// mapping the noise value to a hue in the HSV color space.
+    fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
+        let Self {
+            hue_noise,
+            value_noise,
+            params,
+        } = self;
+
+        let NoiseParams {
+            time_scalar,
+            position_scalar,
+        } = params;
+
+        let noise_time = time_in_ms as f64 * time_scalar;
+
+        Layout::points().map(move |point| {
+            let noise_args = [
+                position_scalar * point.x as f64,
+                position_scalar * point.y as f64,
+                position_scalar * point.z as f64,
+                noise_time,
+            ];
+            //let hue = hue_noise.get(noise_args) as f32;
+            let hue = 0.;
+            let saturation = 1.;
+            //let value = 0.75 + 0.25 * value_noise.get(noise_args) as f32;
+            let value = 0.75;
             Okhsv::new(hue, saturation, value)
         })
     }

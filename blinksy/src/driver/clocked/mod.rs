@@ -65,10 +65,7 @@
 //! }
 //! ```
 
-use core::marker::PhantomData;
-
 use crate::color::{ColorCorrection, FromColor};
-use crate::driver::DriverAsync;
 
 use super::Driver;
 
@@ -93,40 +90,12 @@ pub trait ClockedWriter {
     ///
     /// # Arguments
     ///
-    /// * `words` - Iterator of words to write
+    /// * `words` - Slice of words to write
     ///
     /// # Returns
     ///
     /// Ok(()) on success or an error if the write fails
-    fn write<I>(&mut self, words: I) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = Self::Word>;
-}
-
-/// Trait for types that can write data words to a clocked protocol, async.
-///
-/// This trait abstracts over different implementation methods for writing data
-/// to a clocked protocol, such as bit-banging with GPIOs or using hardware SPI.
-pub trait ClockedWriterAsync {
-    /// The word type (typically u8).
-    type Word: Copy + 'static;
-
-    /// The error type that may be returned by write operations.
-    type Error;
-
-    /// Writes a slice of words to the protocol.
-    ///
-    /// # Arguments
-    ///
-    /// * `words` - Iterator of words to write
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if the write fails
-    #[allow(async_fn_in_trait)]
-    async fn write<I>(&mut self, words: I) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = Self::Word>;
+    fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error>;
 }
 
 /// Trait that defines the protocol specifics for a clocked LED chipset.
@@ -150,109 +119,106 @@ pub trait ClockedLed {
     /// This typically sends some form of header that identifies the beginning
     /// of an LED update sequence.
     ///
+    /// # Arguments
+    ///
+    /// * `writer` - The writer implementation to use
+    ///
     /// # Returns
     ///
-    /// Iterator of words to write
-    fn start() -> impl IntoIterator<Item = Self::Word>;
+    /// Ok(()) on success or an error if the write fails
+    fn start<Writer: ClockedWriter<Word = Self::Word>>(
+        writer: &mut Writer,
+    ) -> Result<(), Writer::Error>;
 
     /// Writes a single color frame for one LED.
     ///
     /// # Arguments
     ///
+    /// * `writer` - The writer implementation to use
     /// * `color` - The color to write
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
     /// * `correction` - Color correction factors
     ///
     /// # Returns
     ///
-    /// Iterator of words to write
-    fn color(
+    /// Ok(()) on success or an error if the write fails
+    fn color<Writer: ClockedWriter<Word = Self::Word>>(
+        writer: &mut Writer,
         color: Self::Color,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> impl IntoIterator<Item = Self::Word>;
+    ) -> Result<(), Writer::Error>;
+
+    /// Performs any necessary reset operations mid-transmission.
+    ///
+    /// Some protocols may require special handling between LED data frames.
+    ///
+    /// # Arguments
+    ///
+    /// * `writer` - The writer implementation to use
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if the write fails
+    fn reset<Writer: ClockedWriter<Word = Self::Word>>(
+        writer: &mut Writer,
+    ) -> Result<(), Writer::Error>;
 
     /// Writes an end frame to conclude a transmission.
     ///
     /// # Arguments
     ///
+    /// * `writer` - The writer implementation to use
     /// * `pixel_count` - The number of LEDs that were written
     ///
     /// # Returns
     ///
-    /// Iterator of words to write
-    fn end(pixel_count: usize) -> impl IntoIterator<Item = Self::Word>;
-}
+    /// Ok(()) on success or an error if the write fails
+    fn end<Writer: ClockedWriter<Word = Self::Word>>(
+        writer: &mut Writer,
+        pixel_count: usize,
+    ) -> Result<(), Writer::Error>;
 
-#[derive(Debug)]
-struct ClockedLedDriver<Led: ClockedLed, Writer> {
-    led: PhantomData<Led>,
-    writer: Writer,
-}
-
-impl<Led, Writer> Driver for ClockedLedDriver<Led, Writer>
-where
-    Led: ClockedLed,
-    Writer: ClockedWriter<Word = Led::Word>,
-{
-    type Error = Writer::Error;
-    type Color = Led::Color;
-
-    fn write<I, C>(
-        &mut self,
+    /// Writes a complete sequence of colors to the LED chain.
+    ///
+    /// This method orchestrates the process of:
+    /// 1. Writing the start frame
+    /// 2. Writing each LED color
+    /// 3. Performing any reset operations
+    /// 4. Writing the end frame
+    ///
+    /// # Arguments
+    ///
+    /// * `writer` - The writer implementation to use
+    /// * `pixels` - Iterator over colors
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if any write operation fails
+    fn clocked_write<Writer, I, C>(
+        writer: &mut Writer,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
+    ) -> Result<(), Writer::Error>
     where
-        Self::Color: FromColor<C>,
+        Writer: ClockedWriter<Word = Self::Word>,
         I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
     {
-        self.writer.write(Led::start())?;
+        Self::start(writer)?;
 
         let mut pixel_count = 0;
         for color in pixels.into_iter() {
-            let color = Led::Color::from_color(color);
-            self.writer
-                .write(Led::color(color, brightness, correction))?;
+            let color = Self::Color::from_color(color);
+            Self::color(writer, color, brightness, correction)?;
             pixel_count += 1;
         }
 
-        self.writer.write(Led::end(pixel_count))?;
-        Ok(())
-    }
-}
-
-impl<Led, Writer> DriverAsync for ClockedLedDriver<Led, Writer>
-where
-    Led: ClockedLed,
-    Writer: ClockedWriterAsync<Word = Led::Word>,
-{
-    type Error = Writer::Error;
-    type Color = Led::Color;
-
-    async fn write<I, C>(
-        &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
-    where
-        Self::Color: FromColor<C>,
-        I: IntoIterator<Item = C>,
-    {
-        self.writer.write(Led::start()).await?;
-
-        let mut pixel_count = 0;
-        for color in pixels.into_iter() {
-            let color = Led::Color::from_color(color);
-            self.writer
-                .write(Led::color(color, brightness, correction))
-                .await?;
-            pixel_count += 1;
-        }
-
-        self.writer.write(Led::end(pixel_count)).await?;
+        Self::reset(writer)?;
+        Self::end(writer, pixel_count)?;
         Ok(())
     }
 }

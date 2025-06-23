@@ -14,7 +14,6 @@ categories.workspace = true
 [dependencies]
 defmt = "0.3.10"
 embedded-hal = "1.0.0"
-embedded-hal-async = "1.0.0"
 fugit = "0.3.7"
 glam = { version = "0.30.1", default-features = false, features = ["libm"] }
 heapless = "0.8.0"

@@ -18,6 +18,8 @@ esp-hal = { version = "1.0.0-beta.0", default-features = false, features = ["def
 defmt = "0.3.10"
 
 [features]
+default = ["async"]
+async = []
 
 # Chip Support Feature Flags
 # Target the ESP32-C2.
@@ -51,4 +53,4 @@ esp32s3 = [
 
 [package.metadata.docs.rs]
 default-target = "riscv32imac-unknown-none-elf"
-features       = ["esp32c6"]
+features = ["esp32c6"]

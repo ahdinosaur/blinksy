@@ -61,6 +61,7 @@ version = "0.4.0"
 dependencies = [
  "defmt 0.3.100",
  "embedded-hal 1.0.0",
+ "embedded-hal-async",
  "fugit",
  "glam",
  "heapless",

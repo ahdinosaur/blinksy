@@ -15,11 +15,15 @@
 //! match the protocol requirements. This implementation converts each bit of color data
 //! into the corresponding high/low pulse durations required by the specific LED protocol.
 
+#[cfg(feature = "async")]
+use blinksy::driver::DriverAsync;
 use blinksy::{
     color::{ColorCorrection, FromColor, LedColor, LinearSrgb},
     driver::{clockless::ClocklessLed, Driver},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
+#[cfg(feature = "async")]
+use esp_hal::rmt::{TxChannelAsync, TxChannelCreatorAsync};
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
@@ -71,7 +75,6 @@ macro_rules! create_rmt_buffer {
 pub struct ClocklessRmtDriver<Led, Tx, const BUFFER_SIZE: usize>
 where
     Led: ClocklessLed,
-    Tx: TxChannel,
 {
     led: PhantomData<Led>,
     channel: Option<Tx>,
@@ -134,7 +137,70 @@ where
             ),
         }
     }
+}
 
+#[cfg(feature = "async")]
+impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+where
+    Led: ClocklessLed,
+    Tx: TxChannelAsync,
+{
+    /// Create a new adapter object that drives the pin using the RMT channel.
+    ///
+    /// # Arguments
+    ///
+    /// * `channel` - RMT transmit channel
+    /// * `pin` - GPIO pin connected to the LED data line
+    /// * `rmt_buffer` - Buffer for RMT data
+    ///
+    /// # Returns
+    ///
+    /// A configured ClocklessRmtDriver instance
+    pub async fn new_async<C, P>(
+        channel: C,
+        pin: impl Peripheral<P = P> + 'd,
+        rmt_buffer: [u32; BUFFER_SIZE],
+    ) -> Self
+    where
+        C: TxChannelCreatorAsync<'d, Tx, P>,
+        P: PeripheralOutput + Peripheral<P = P>,
+    {
+        let clock_divider = 1;
+        let config = TxChannelConfig::default()
+            .with_clk_divider(clock_divider)
+            .with_idle_output_level(Level::Low)
+            .with_idle_output(true)
+            .with_carrier_modulation(false);
+
+        let channel = channel.configure(pin, config).unwrap();
+
+        let clocks = Clocks::get();
+        let freq_hz = clocks.apb_clock.as_hz() / clock_divider as u32;
+        let freq_mhz = freq_hz / 1_000_000;
+
+        let t_0h = ((Led::T_0H.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_0l = ((Led::T_0L.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_1h = ((Led::T_1H.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_1l = ((Led::T_1L.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_reset = ((Led::T_RESET.to_nanos() * freq_mhz) / 1_000) as u16;
+
+        Self {
+            led: PhantomData,
+            channel: Some(channel),
+            rmt_buffer,
+            pulses: (
+                PulseCode::new(Level::High, t_0h, Level::Low, t_0l),
+                PulseCode::new(Level::High, t_1h, Level::Low, t_1l),
+                PulseCode::new(Level::Low, t_reset, Level::Low, 0),
+            ),
+        }
+    }
+}
+
+impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+where
+    Led: ClocklessLed,
+{
     /// Writes a single byte of color data to the RMT buffer.
     ///
     /// # Arguments
@@ -198,9 +264,7 @@ where
         Ok(())
     }
 
-    /// Convert all pixels to the RMT format and
-    /// add them to internal buffer, then start a singular RMT operation
-    /// based on that buffer.
+    /// Convert all pixels to the RMT format and add them to internal buffer.
     ///
     /// # Arguments
     ///
@@ -210,7 +274,7 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error
-    pub fn write_pixels<I, C>(
+    pub fn write_pixels_to_rmt<I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -231,6 +295,38 @@ where
             .next()
             .ok_or(ClocklessRmtDriverError::BufferSizeExceeded)? = self.pulses.2;
 
+        Ok(())
+    }
+}
+
+impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+where
+    Led: ClocklessLed,
+    Tx: TxChannel,
+{
+    /// Write pixels to internal RMT buffer, then transmit.
+    ///
+    /// # Arguments
+    ///
+    /// * `pixels` - Iterator over the pixel colors
+    /// * `brightness` - Global brightness factor
+    /// * `correction` - Color correction factors
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
+    pub fn write_pixels<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), ClocklessRmtDriverError>
+    where
+        I: IntoIterator<Item = C>,
+        LinearSrgb: FromColor<C>,
+    {
+        self.write_pixels_to_rmt(pixels, brightness, correction)?;
+
         let channel = self.channel.take().unwrap();
         match channel.transmit(&self.rmt_buffer).unwrap().wait() {
             Ok(chan) => {
@@ -245,9 +341,44 @@ where
     }
 }
 
+#[cfg(feature = "async")]
+impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+where
+    Led: ClocklessLed,
+    Tx: TxChannelAsync,
+{
+    /// Write pixels to internal RMT buffer, then transmit, asynchronously.
+    ///
+    /// # Arguments
+    ///
+    /// * `pixels` - Iterator over the pixel colors
+    /// * `brightness` - Global brightness factor
+    /// * `correction` - Color correction factors
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
+    pub async fn write_pixels_async<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), ClocklessRmtDriverError>
+    where
+        I: IntoIterator<Item = C>,
+        LinearSrgb: FromColor<C>,
+    {
+        self.write_pixels_to_rmt(pixels, brightness, correction)?;
+
+        let mut channel = self.channel.take().unwrap();
+        channel
+            .transmit(&self.rmt_buffer)
+            .await
+            .map_err(ClocklessRmtDriverError::TransmissionError)
+    }
+}
+
 /// Implementation of Driver trait for ClocklessRmtDriver.
-///
-/// This allows the RMT driver to be used with the Blinksy control system.
 impl<Led, Tx, const BUFFER_SIZE: usize> Driver for ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
@@ -267,5 +398,30 @@ where
         Self::Color: FromColor<C>,
     {
         self.write_pixels(pixels, brightness, correction)
+    }
+}
+
+#[cfg(feature = "async")]
+/// Implementation of DriverAsync trait for ClocklessRmtDriver.
+impl<Led, Tx, const BUFFER_SIZE: usize> DriverAsync for ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+where
+    Led: ClocklessLed,
+    Tx: TxChannelAsync,
+{
+    type Error = ClocklessRmtDriverError;
+    type Color = LinearSrgb;
+
+    async fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
+    {
+        self.write_pixels_async(pixels, brightness, correction)
+            .await
     }
 }

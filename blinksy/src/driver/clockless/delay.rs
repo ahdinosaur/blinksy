@@ -185,7 +185,7 @@ where
             self.pin.set_high()?;
             self.delay.delay_ns(Led::T_1H.to_nanos()).await;
             self.pin.set_low()?;
-            self.delay.delay_ns(Led::T_1L.to_nanos().await);
+            self.delay.delay_ns(Led::T_1L.to_nanos()).await;
         }
         Ok(())
     }
@@ -256,6 +256,7 @@ where
     ///
     /// * `pixels` - Iterator over colors
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
     ///
     /// # Returns
     ///
@@ -302,6 +303,7 @@ where
     ///
     /// * `pixels` - Iterator over colors
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
     ///
     /// # Returns
     ///

@@ -109,13 +109,6 @@ impl ClockedLed for Apa102Led {
         Ok(())
     }
 
-    /// No special reset needed for APA102.
-    fn reset<Writer: ClockedWriter<Word = Self::Word>>(
-        _writer: &mut Writer,
-    ) -> Result<(), Writer::Error> {
-        Ok(())
-    }
-
     /// Writes the APA102 end frame.
     ///
     /// The end frame needs to be at least (n-1)/16 + 1 bytes of zeros, where n is

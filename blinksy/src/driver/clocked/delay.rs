@@ -1,12 +1,13 @@
 use crate::{
-    color::{ColorCorrection, FromColor},
+    driver::{clocked::ClockedLedDriver, ClockedWriterAsync, Driver, DriverAsync},
     time::{Megahertz, Nanoseconds},
 };
 
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
+use embedded_hal_async::delay::DelayNs as DelayNsAsync;
 
-use super::{ClockedLed, ClockedWriter, Driver};
+use super::{ClockedLed, ClockedWriter};
 
 /// Driver for clocked LEDs using GPIO bit-banging with a delay timer.
 ///
@@ -48,25 +49,13 @@ use super::{ClockedLed, ClockedWriter, Driver};
 /// * `Data` - The GPIO pin type for data output
 /// * `Clock` - The GPIO pin type for clock output
 /// * `Delay` - The delay provider
-#[derive(Debug)]
-pub struct ClockedDelayDriver<Led, Data, Clock, Delay>
-where
-    Led: ClockedLed,
-    Data: OutputPin,
-    Clock: OutputPin,
-    Delay: DelayNs,
-{
-    /// Marker for the LED protocol type
-    led: PhantomData<Led>,
-    /// Writer implementation for the clocked protocol
-    writer: ClockedDelayWriter<Data, Clock, Delay>,
-}
+pub struct ClockedDelayDriver<Led: ClockedLed, Data, Clock, Delay>(
+    ClockedLedDriver<Led, ClockedDelayWriter<Data, Clock, Delay>>,
+);
 
 impl<Led, Data, Clock, Delay> ClockedDelayDriver<Led, Data, Clock, Delay>
 where
     Led: ClockedLed,
-    Data: OutputPin,
-    Clock: OutputPin,
     Delay: DelayNs,
 {
     /// Creates a new clocked LED driver.
@@ -82,10 +71,10 @@ where
     ///
     /// A new ClockedDelayDriver instance
     pub fn new(data: Data, clock: Clock, delay: Delay, data_rate: Megahertz) -> Self {
-        Self {
+        Self(ClockedLedDriver {
             led: PhantomData,
             writer: ClockedDelayWriter::new(data, clock, delay, data_rate),
-        }
+        })
     }
 }
 
@@ -96,34 +85,44 @@ where
     Clock: OutputPin,
     Delay: DelayNs,
 {
-    type Error = <ClockedDelayWriter<Data, Clock, Delay> as ClockedWriter>::Error;
+    type Error = ClockedDelayError<Data, Clock>;
     type Color = Led::Color;
 
-    /// Writes a sequence of colors to the LED chain.
-    ///
-    /// Delegates to the Led::clocked_write method to handle the protocol-specific details.
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over colors
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `gamma` - Gamma correction factor
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if transmission fails
     fn write<I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
-        correction: ColorCorrection,
+        correction: crate::color::ColorCorrection,
     ) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        Self::Color: crate::color::FromColor<C>,
     {
-        Led::clocked_write(&mut self.writer, pixels, brightness, correction)
+        self.0.write(pixels, brightness, correction)
+    }
+}
+
+impl<Led, Data, Clock, Delay> DriverAsync for ClockedDelayDriver<Led, Data, Clock, Delay>
+where
+    Led: ClockedLed<Word = u8>,
+    Data: OutputPin,
+    Clock: OutputPin,
+    Delay: DelayNsAsync,
+{
+    type Error = ClockedDelayError<Data, Clock>;
+    type Color = Led::Color;
+
+    async fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: crate::color::ColorCorrection,
+    ) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = C>,
+        Self::Color: crate::color::FromColor<C>,
+    {
+        self.0.write(pixels, brightness, correction).await
     }
 }
 
@@ -132,12 +131,7 @@ where
 /// This type handles the low-level bit-banging of data and clock pins
 /// to transmit data using a clocked protocol.
 #[derive(Debug)]
-pub struct ClockedDelayWriter<Data, Clock, Delay>
-where
-    Data: OutputPin,
-    Clock: OutputPin,
-    Delay: DelayNs,
-{
+pub struct ClockedDelayWriter<Data, Clock, Delay> {
     /// GPIO pin for data transmission
     data: Data,
     /// GPIO pin for clock signal
@@ -148,12 +142,7 @@ where
     t_half_cycle_ns: u32,
 }
 
-impl<Data, Clock, Delay> ClockedDelayWriter<Data, Clock, Delay>
-where
-    Data: OutputPin,
-    Clock: OutputPin,
-    Delay: DelayNs,
-{
+impl<Data, Clock, Delay> ClockedDelayWriter<Data, Clock, Delay> {
     /// Creates a new ClockedDelayWriter.
     ///
     /// # Arguments
@@ -221,7 +210,10 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
+    fn write<I>(&mut self, words: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Self::Word>,
+    {
         for byte in words {
             for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
                 match byte & bit_position {
@@ -233,6 +225,54 @@ where
                 self.delay.delay_ns(self.t_half_cycle_ns);
                 self.clock.set_high().map_err(ClockedDelayError::Clock)?;
                 self.delay.delay_ns(self.t_half_cycle_ns);
+                self.clock.set_low().map_err(ClockedDelayError::Clock)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl<Data, Clock, Delay> ClockedWriterAsync for ClockedDelayWriter<Data, Clock, Delay>
+where
+    Data: OutputPin,
+    Clock: OutputPin,
+    Delay: DelayNsAsync,
+{
+    type Error = ClockedDelayError<Data, Clock>;
+    type Word = u8;
+
+    /// Writes a slice of bytes using the bit-banging technique.
+    ///
+    /// For each bit:
+    /// 1. Sets the data line to the bit value
+    /// 2. Waits for half a clock cycle
+    /// 3. Sets the clock line high
+    /// 4. Waits for half a clock cycle
+    /// 5. Sets the clock line low
+    ///
+    /// # Arguments
+    ///
+    /// * `words` - Slice of bytes to write
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if pin operation fails
+    async fn write<I>(&mut self, words: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Self::Word>,
+    {
+        for byte in words {
+            for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
+                match byte & bit_position {
+                    0 => self.data.set_low(),
+                    _ => self.data.set_high(),
+                }
+                .map_err(ClockedDelayError::Data)?;
+
+                self.delay.delay_ns(self.t_half_cycle_ns).await;
+                self.clock.set_high().map_err(ClockedDelayError::Clock)?;
+                self.delay.delay_ns(self.t_half_cycle_ns).await;
                 self.clock.set_low().map_err(ClockedDelayError::Clock)?;
             }
         }

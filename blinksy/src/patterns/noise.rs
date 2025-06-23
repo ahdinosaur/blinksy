@@ -56,7 +56,7 @@
 //! [`Okhsv`]: crate::color::Okhsv
 //! [mikey.nz]: https://mikey.nz
 
-use noise::{NoiseFn, Seedable};
+use noise_functions::{modifiers::Seeded, Noise as NoiseTrait, Sample};
 
 use crate::{
     color::Okhsv,
@@ -67,21 +67,21 @@ use crate::{
 
 /// Re-exports of noise functions from the noise crate.
 pub mod noise_fns {
-    pub use noise::{OpenSimplex, Perlin, Simplex};
+    pub use noise_functions::{OpenSimplex2, Perlin, Simplex};
 }
 
 /// Configuration parameters for noise patterns.
 #[derive(Debug)]
 pub struct NoiseParams {
     /// Controls the speed of animation (higher = faster)
-    pub time_scalar: f64,
+    pub time_scalar: f32,
     /// Controls the spatial scale of the noise (higher = more compressed)
-    pub position_scalar: f64,
+    pub position_scalar: f32,
 }
 
 impl Default for NoiseParams {
     fn default() -> Self {
-        const MILLISECONDS_PER_SECOND: f64 = 1e3;
+        const MILLISECONDS_PER_SECOND: f32 = 1e3;
         Self {
             time_scalar: 0.75 / MILLISECONDS_PER_SECOND,
             position_scalar: 0.5,
@@ -94,14 +94,11 @@ impl Default for NoiseParams {
 /// Creates flowing animations based on a 2D noise function, using
 /// time and the 1D position for the input coordinates.
 #[derive(Debug)]
-pub struct Noise1d<Noise>
-where
-    Noise: NoiseFn<f64, 2>,
-{
+pub struct Noise1d<Noise> {
     /// The noise function used to get hue
-    hue_noise: Noise,
+    hue_noise: Seeded<Noise>,
     /// The noise function used to get value
-    value_noise: Noise,
+    value_noise: Seeded<Noise>,
     /// Configuration parameters
     params: NoiseParams,
 }
@@ -109,7 +106,7 @@ where
 impl<Layout, Noise> Pattern<Dim1d, Layout> for Noise1d<Noise>
 where
     Layout: Layout1d,
-    Noise: NoiseFn<f64, 2> + Seedable + Default,
+    Noise: NoiseTrait + Sample<2> + Default,
 {
     type Params = NoiseParams;
     type Color = Okhsv;
@@ -117,8 +114,8 @@ where
     /// Creates a new Noise1d pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
         Self {
-            hue_noise: Noise::default().set_seed(0),
-            value_noise: Noise::default().set_seed(1),
+            hue_noise: Noise::default().seed(0),
+            value_noise: Noise::default().seed(1),
             params,
         }
     }
@@ -126,7 +123,7 @@ where
     /// Generates colors for a 1D layout using noise.
     ///
     /// The pattern uses the LED position and time as inputs to a 2D noise function,
-    /// mapping the noise value to a hue in the HSV color space.
+    /// mapping the noise value to a hue in the Okhsv color space.
     fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
         let Self {
             hue_noise,
@@ -139,13 +136,13 @@ where
             position_scalar,
         } = params;
 
-        let noise_time = time_in_ms as f64 * time_scalar;
+        let noise_time = time_in_ms as f32 * time_scalar;
 
         Layout::points().map(move |x| {
-            let noise_args = [position_scalar * x as f64, noise_time];
-            let hue = hue_noise.get(noise_args) as f32;
+            let noise_args = [position_scalar * x, noise_time];
+            let hue = hue_noise.sample2(noise_args);
             let saturation = 1.;
-            let value = 0.75 + 0.25 * value_noise.get(noise_args) as f32;
+            let value = 0.75 + 0.25 * value_noise.sample2(noise_args);
             Okhsv::new(hue, saturation, value)
         })
     }
@@ -156,14 +153,11 @@ where
 /// Creates flowing animations based on a 3D noise function, using
 /// time and the 2D position for the input coordinates.
 #[derive(Debug)]
-pub struct Noise2d<Noise>
-where
-    Noise: NoiseFn<f64, 3>,
-{
+pub struct Noise2d<Noise> {
     /// The noise function used to get hue
-    hue_noise: Noise,
+    hue_noise: Seeded<Noise>,
     /// The noise function used to get value
-    value_noise: Noise,
+    value_noise: Seeded<Noise>,
     /// Configuration parameters
     params: NoiseParams,
 }
@@ -171,7 +165,7 @@ where
 impl<Layout, Noise> Pattern<Dim2d, Layout> for Noise2d<Noise>
 where
     Layout: Layout2d,
-    Noise: NoiseFn<f64, 3> + Seedable + Default,
+    Noise: NoiseTrait + Sample<3> + Default,
 {
     type Params = NoiseParams;
     type Color = Okhsv;
@@ -179,8 +173,8 @@ where
     /// Creates a new Noise2d pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
         Self {
-            hue_noise: Noise::default().set_seed(0),
-            value_noise: Noise::default().set_seed(1),
+            hue_noise: Noise::default().seed(0),
+            value_noise: Noise::default().seed(1),
             params,
         }
     }
@@ -188,7 +182,7 @@ where
     /// Generates colors for a 2D layout using noise.
     ///
     /// The pattern uses the LED x,y position and time as inputs to a 3D noise function,
-    /// mapping the noise value to a hue in the HSV color space.
+    /// mapping the noise value to a hue in the Okhsv color space.
     fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
         let Self {
             hue_noise,
@@ -201,17 +195,17 @@ where
             position_scalar,
         } = params;
 
-        let noise_time = time_in_ms as f64 * time_scalar;
+        let noise_time = time_in_ms as f32 * time_scalar;
 
         Layout::points().map(move |point| {
             let noise_args = [
-                position_scalar * point.x as f64,
-                position_scalar * point.y as f64,
+                position_scalar * point.x,
+                position_scalar * point.y,
                 noise_time,
             ];
-            let hue = hue_noise.get(noise_args) as f32;
+            let hue = hue_noise.sample3(noise_args);
             let saturation = 1.;
-            let value = 0.75 + 0.25 * value_noise.get(noise_args) as f32;
+            let value = 0.75 + 0.25 * value_noise.sample3(noise_args);
             Okhsv::new(hue, saturation, value)
         })
     }

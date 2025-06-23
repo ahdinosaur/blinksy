@@ -1,12 +1,15 @@
 use crate::{
     color::{ColorCorrection, FromColor},
+    driver::{Driver, DriverAsync},
     time::{Megahertz, Nanoseconds},
 };
 
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
+#[cfg(feature = "async")]
+use embedded_hal_async::delay::DelayNs as DelayNsAsync;
 
-use super::{ClockedLed, ClockedWriter, Driver};
+use super::{ClockedLed, ClockedLedAsync, ClockedWriter, ClockedWriterAsync};
 
 /// Driver for clocked LEDs using GPIO bit-banging with a delay timer.
 ///
@@ -51,10 +54,8 @@ use super::{ClockedLed, ClockedWriter, Driver};
 #[derive(Debug)]
 pub struct ClockedDelayDriver<Led, Data, Clock, Delay>
 where
-    Led: ClockedLed,
     Data: OutputPin,
     Clock: OutputPin,
-    Delay: DelayNs,
 {
     /// Marker for the LED protocol type
     led: PhantomData<Led>,
@@ -64,10 +65,8 @@ where
 
 impl<Led, Data, Clock, Delay> ClockedDelayDriver<Led, Data, Clock, Delay>
 where
-    Led: ClockedLed,
     Data: OutputPin,
     Clock: OutputPin,
-    Delay: DelayNs,
 {
     /// Creates a new clocked LED driver.
     ///
@@ -96,7 +95,7 @@ where
     Clock: OutputPin,
     Delay: DelayNs,
 {
-    type Error = <ClockedDelayWriter<Data, Clock, Delay> as ClockedWriter>::Error;
+    type Error = ClockedDelayError<Data, Clock>;
     type Color = Led::Color;
 
     /// Writes a sequence of colors to the LED chain.
@@ -107,7 +106,6 @@ where
     ///
     /// * `pixels` - Iterator over colors
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `gamma` - Gamma correction factor
     /// * `correction` - Color correction factors
     ///
     /// # Returns
@@ -127,6 +125,44 @@ where
     }
 }
 
+#[cfg(feature = "async")]
+impl<Led, Data, Clock, Delay> DriverAsync for ClockedDelayDriver<Led, Data, Clock, Delay>
+where
+    Led: ClockedLedAsync<Word = u8>,
+    Data: OutputPin,
+    Clock: OutputPin,
+    Delay: DelayNsAsync,
+{
+    type Error = ClockedDelayError<Data, Clock>;
+    type Color = Led::Color;
+
+    /// Writes a sequence of colors to the LED chain, asynchronously.
+    ///
+    /// Delegates to the Led::clocked_write method to handle the protocol-specific details.
+    ///
+    /// # Arguments
+    ///
+    /// * `pixels` - Iterator over colors
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if transmission fails
+    async fn write<I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
+    {
+        Led::clocked_write_async(&mut self.writer, pixels, brightness, correction).await
+    }
+}
+
 /// Implementation of ClockedWriter using GPIO bit-banging with delays.
 ///
 /// This type handles the low-level bit-banging of data and clock pins
@@ -136,7 +172,6 @@ pub struct ClockedDelayWriter<Data, Clock, Delay>
 where
     Data: OutputPin,
     Clock: OutputPin,
-    Delay: DelayNs,
 {
     /// GPIO pin for data transmission
     data: Data,
@@ -152,7 +187,6 @@ impl<Data, Clock, Delay> ClockedDelayWriter<Data, Clock, Delay>
 where
     Data: OutputPin,
     Clock: OutputPin,
-    Delay: DelayNs,
 {
     /// Creates a new ClockedDelayWriter.
     ///
@@ -233,6 +267,52 @@ where
                 self.delay.delay_ns(self.t_half_cycle_ns);
                 self.clock.set_high().map_err(ClockedDelayError::Clock)?;
                 self.delay.delay_ns(self.t_half_cycle_ns);
+                self.clock.set_low().map_err(ClockedDelayError::Clock)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "async")]
+impl<Data, Clock, Delay> ClockedWriterAsync for ClockedDelayWriter<Data, Clock, Delay>
+where
+    Data: OutputPin,
+    Clock: OutputPin,
+    Delay: DelayNsAsync,
+{
+    type Error = ClockedDelayError<Data, Clock>;
+    type Word = u8;
+
+    /// Writes a slice of bytes using the bit-banging technique, asynchronously.
+    ///
+    /// For each bit:
+    /// 1. Sets the data line to the bit value
+    /// 2. Waits for half a clock cycle
+    /// 3. Sets the clock line high
+    /// 4. Waits for half a clock cycle
+    /// 5. Sets the clock line low
+    ///
+    /// # Arguments
+    ///
+    /// * `words` - Slice of bytes to write
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if pin operation fails
+    async fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
+        for byte in words {
+            for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
+                match byte & bit_position {
+                    0 => self.data.set_low(),
+                    _ => self.data.set_high(),
+                }
+                .map_err(ClockedDelayError::Data)?;
+
+                self.delay.delay_ns(self.t_half_cycle_ns).await;
+                self.clock.set_high().map_err(ClockedDelayError::Clock)?;
+                self.delay.delay_ns(self.t_half_cycle_ns).await;
                 self.clock.set_low().map_err(ClockedDelayError::Clock)?;
             }
         }

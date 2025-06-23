@@ -72,16 +72,16 @@ fn main() -> ! {
 
     let mut control = ControlBuilder::new_3d()
         .with_layout::<Layout>()
-        /*
         .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
-        */
+        /*
         .with_pattern::<Rainbow>(RainbowParams {
             position_scalar: 1.,
             // time_scalar: 50. / 1e6,
             ..Default::default()
         })
+        */
         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
         .build();
 

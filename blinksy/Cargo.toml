@@ -17,6 +17,6 @@ embedded-hal = "1.0.0"
 fugit = "0.3.7"
 glam = { version = "0.30.1", default-features = false, features = ["libm"] }
 heapless = "0.8.0"
-noise = { package = "noise-fork-nostd", version = "0.9.0", default-features = false, features = ["libm"] }
+noise-functions = { version = "0.8", default-features = false, features = ["libm"] }
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 smart-leds-trait = "0.3.1"

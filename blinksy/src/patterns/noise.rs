@@ -60,8 +60,8 @@ use noise::{NoiseFn, Seedable};
 
 use crate::{
     color::Okhsv,
-    dimension::{Dim1d, Dim2d},
     layout::{Layout1d, Layout2d},
+    markers::{Dim1d, Dim2d},
     pattern::Pattern,
 };
 

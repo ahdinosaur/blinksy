@@ -7,10 +7,11 @@ use blinksy::{
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
+use embassy_executor::Spawner;
 use gledopto::{apa102, board, elapsed, main};
 
-#[main]
-fn main() -> ! {
+#[esp_hal_embassy::main]
+async fn main(_spawner: Spawner) {
     let p = board!();
 
     layout2d!(
@@ -25,7 +26,7 @@ fn main() -> ! {
         }]
     );
     let mut control = ControlBuilder::new_2d()
-        .blocking()
+        .async()
         .with_layout::<Layout>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()

@@ -27,7 +27,6 @@ use esp_hal::rmt::{TxChannelAsync, TxChannelCreatorAsync};
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
-    peripheral::Peripheral,
     rmt::{Error as RmtError, PulseCode, TxChannel, TxChannelConfig, TxChannelCreator},
 };
 
@@ -85,6 +84,41 @@ where
 impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
+{
+    fn clock_divider() -> u8 {
+        1
+    }
+
+    fn tx_channel_config() -> TxChannelConfig {
+        TxChannelConfig::default()
+            .with_clk_divider(Self::clock_divider())
+            .with_idle_output_level(Level::Low)
+            .with_idle_output(true)
+            .with_carrier_modulation(false)
+    }
+
+    fn setup_pulses() -> (u32, u32, u32) {
+        let clocks = Clocks::get();
+        let freq_hz = clocks.apb_clock.as_hz() / Self::clock_divider() as u32;
+        let freq_mhz = freq_hz / 1_000_000;
+
+        let t_0h = ((Led::T_0H.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_0l = ((Led::T_0L.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_1h = ((Led::T_1H.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_1l = ((Led::T_1L.to_nanos() * freq_mhz) / 1_000) as u16;
+        let t_reset = ((Led::T_RESET.to_nanos() * freq_mhz) / 1_000) as u16;
+
+        (
+            PulseCode::new(Level::High, t_0h, Level::Low, t_0l),
+            PulseCode::new(Level::High, t_1h, Level::Low, t_1l),
+            PulseCode::new(Level::Low, t_reset, Level::Low, 0),
+        )
+    }
+}
+
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+where
+    Led: ClocklessLed,
     Tx: TxChannel,
 {
     /// Create a new adapter object that drives the pin using the RMT channel.
@@ -98,49 +132,28 @@ where
     /// # Returns
     ///
     /// A configured ClocklessRmtDriver instance
-    pub fn new<C, P>(
+    pub fn new<'d, C, P>(
         channel: C,
-        pin: impl Peripheral<P = P> + 'd,
+        pin: impl PeripheralOutput<'d>,
         rmt_buffer: [u32; BUFFER_SIZE],
     ) -> Self
     where
-        C: TxChannelCreator<'d, Tx, P>,
-        P: PeripheralOutput + Peripheral<P = P>,
+        C: TxChannelCreator<'d, Tx>,
     {
-        let clock_divider = 1;
-        let config = TxChannelConfig::default()
-            .with_clk_divider(clock_divider)
-            .with_idle_output_level(Level::Low)
-            .with_idle_output(true)
-            .with_carrier_modulation(false);
-
+        let config = Self::tx_channel_config();
         let channel = channel.configure(pin, config).unwrap();
-
-        let clocks = Clocks::get();
-        let freq_hz = clocks.apb_clock.as_hz() / clock_divider as u32;
-        let freq_mhz = freq_hz / 1_000_000;
-
-        let t_0h = ((Led::T_0H.to_nanos() * freq_mhz) / 1_000) as u16;
-        let t_0l = ((Led::T_0L.to_nanos() * freq_mhz) / 1_000) as u16;
-        let t_1h = ((Led::T_1H.to_nanos() * freq_mhz) / 1_000) as u16;
-        let t_1l = ((Led::T_1L.to_nanos() * freq_mhz) / 1_000) as u16;
-        let t_reset = ((Led::T_RESET.to_nanos() * freq_mhz) / 1_000) as u16;
 
         Self {
             led: PhantomData,
             channel: Some(channel),
             rmt_buffer,
-            pulses: (
-                PulseCode::new(Level::High, t_0h, Level::Low, t_0l),
-                PulseCode::new(Level::High, t_1h, Level::Low, t_1l),
-                PulseCode::new(Level::Low, t_reset, Level::Low, 0),
-            ),
+            pulses: Self::setup_pulses(),
         }
     }
 }
 
 #[cfg(feature = "async")]
-impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
     Tx: TxChannelAsync,
@@ -156,43 +169,22 @@ where
     /// # Returns
     ///
     /// A configured ClocklessRmtDriver instance
-    pub async fn new_async<C, P>(
+    pub async fn new_async<'d, C, P>(
         channel: C,
-        pin: impl Peripheral<P = P> + 'd,
+        pin: impl PeripheralOutput<'d>,
         rmt_buffer: [u32; BUFFER_SIZE],
     ) -> Self
     where
-        C: TxChannelCreatorAsync<'d, Tx, P>,
-        P: PeripheralOutput + Peripheral<P = P>,
+        C: TxChannelCreatorAsync<'d, Tx>,
     {
-        let clock_divider = 1;
-        let config = TxChannelConfig::default()
-            .with_clk_divider(clock_divider)
-            .with_idle_output_level(Level::Low)
-            .with_idle_output(true)
-            .with_carrier_modulation(false);
-
+        let config = Self::tx_channel_config();
         let channel = channel.configure(pin, config).unwrap();
-
-        let clocks = Clocks::get();
-        let freq_hz = clocks.apb_clock.as_hz() / clock_divider as u32;
-        let freq_mhz = freq_hz / 1_000_000;
-
-        let t_0h = ((Led::T_0H.to_nanos() * freq_mhz) / 1_000) as u16;
-        let t_0l = ((Led::T_0L.to_nanos() * freq_mhz) / 1_000) as u16;
-        let t_1h = ((Led::T_1H.to_nanos() * freq_mhz) / 1_000) as u16;
-        let t_1l = ((Led::T_1L.to_nanos() * freq_mhz) / 1_000) as u16;
-        let t_reset = ((Led::T_RESET.to_nanos() * freq_mhz) / 1_000) as u16;
 
         Self {
             led: PhantomData,
             channel: Some(channel),
             rmt_buffer,
-            pulses: (
-                PulseCode::new(Level::High, t_0h, Level::Low, t_0l),
-                PulseCode::new(Level::High, t_1h, Level::Low, t_1l),
-                PulseCode::new(Level::Low, t_reset, Level::Low, 0),
-            ),
+            pulses: Self::setup_pulses(),
         }
     }
 }

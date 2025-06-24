@@ -24,6 +24,10 @@ esp-alloc = { version = "0.7.0", features = ["defmt"] }
 esp-backtrace = { version = "0.15.1", features = ["defmt", "panic-handler"] }
 fugit = "0.3.7"
 
+[dev-dependencies]
+embassy-executor = "0.7.0"
+esp-hal-embassy = "0.8.0"
+
 [features]
 
 ##
@@ -34,6 +38,7 @@ fugit = "0.3.7"
 gl_c_016wl_d = [
   "blinksy-esp/esp32",
   "esp-hal/esp32",
+  "esp-hal-embassy/esp32",
   "esp-println/esp32",
   "esp-backtrace/esp32",
 ]
@@ -42,6 +47,7 @@ gl_c_016wl_d = [
 mock = [
   "blinksy-esp/esp32c6",
   "esp-hal/esp32c6",
+  "esp-hal-embassy/esp32c6",
   "esp-println/esp32c6",
   "esp-backtrace/esp32c6",
 ]

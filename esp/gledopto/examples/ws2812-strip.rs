@@ -16,6 +16,7 @@ fn main() -> ! {
     layout1d!(Layout, 60 * 5);
 
     let mut control = ControlBuilder::new_1d()
+        .blocking()
         .with_layout::<Layout>()
         .with_pattern::<Rainbow>(RainbowParams {
             position_scalar: 1.,

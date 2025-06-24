@@ -17,7 +17,7 @@
 //!
 //! [a WLED effect]: https://kno.wled.ge/features/effects/
 
-use crate::dimension::LayoutForDim;
+use crate::layout::LayoutForDim;
 
 /// Trait for creating visual effects on LED layouts.
 ///

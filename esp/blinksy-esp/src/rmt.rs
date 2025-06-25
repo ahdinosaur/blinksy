@@ -81,7 +81,7 @@ where
     pulses: (u32, u32, u32),
 }
 
-impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
 {
@@ -189,7 +189,7 @@ where
     }
 }
 
-impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
 {
@@ -291,7 +291,7 @@ where
     }
 }
 
-impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
     Tx: TxChannel,
@@ -334,7 +334,7 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
     Tx: TxChannelAsync,

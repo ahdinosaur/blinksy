@@ -14,14 +14,14 @@ desktop-2d-noise:
 gledopto-ws2812-strip:
   cd esp && cargo run --release -p gledopto --example ws2812-strip --features gl_c_016wl_d
 
-gledopto-ws2812-strip-async:
-  cd esp && cargo run --release -p gledopto --example ws2812-strip-async --features gl_c_016wl_d
+gledopto-ws2812-strip-embassy:
+  cd esp && cargo run --release -p gledopto --example ws2812-strip-embassy --features gl_c_016wl_d
 
 gledopto-apa102-grid:
   cd esp && cargo run --release -p gledopto --example apa102-grid --features gl_c_016wl_d
 
-gledopto-apa102-grid-async:
-  cd esp && cargo run --release -p gledopto --example apa102-grid-async --features gl_c_016wl_d
+gledopto-apa102-grid-embassy:
+  cd esp && cargo run --release -p gledopto --example apa102-grid-embassy --features gl_c_016wl_d
 
 ##
 # Testing

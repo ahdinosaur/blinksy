@@ -362,11 +362,23 @@ where
     {
         self.write_pixels_to_rmt(pixels, brightness, correction)?;
 
-        let mut channel = self.channel.take().unwrap();
-        channel
-            .transmit(&self.rmt_buffer)
-            .await
-            .map_err(ClocklessRmtDriverError::TransmissionError)
+        let channel = self.channel.as_mut().unwrap();
+
+        let pulses_per_led = 8 * Led::LED_CHANNELS.channel_count();
+
+        for chunk in self.rmt_buffer.chunks(pulses_per_led) {
+            // TODO figure out RMT block size, for now ESP32 -> 64 is hardcoded.
+            let mut transmit_buffer = [PulseCode::empty(); 64];
+            let chunk_len = chunk.len();
+            transmit_buffer[..chunk_len].copy_from_slice(chunk);
+
+            channel
+                .transmit(&transmit_buffer)
+                .await
+                .map_err(ClocklessRmtDriverError::TransmissionError)?;
+        }
+
+        Ok(())
     }
 }
 

@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
     layout::Layout1d,
@@ -16,7 +17,7 @@ async fn main(_spawner: Spawner) {
 
     init_embassy!(p);
 
-    layout1d!(Layout, 60 * 5);
+    layout1d!(Layout, 60);
 
     let mut control = ControlBuilder::new_1d_async()
         .with_layout::<Layout>()
@@ -29,10 +30,10 @@ async fn main(_spawner: Spawner) {
 
     control.set_brightness(0.2);
 
-    defmt::info!("Tick start");
-    let elapsed_in_ms = elapsed().as_millis();
-    control.tick(elapsed_in_ms).await.unwrap();
-    defmt::info!("Tick end");
+    loop {
+        let elapsed_in_ms = elapsed().as_millis();
+        control.tick(elapsed_in_ms).await.unwrap();
+    }
 }
 
 /*

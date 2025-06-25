@@ -475,7 +475,6 @@ version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4cd70abe47945c9116972781b5c05277ad855a5f5569fe2afd3e2e61a103cc0"
 dependencies = [
- "defmt 0.3.100",
  "esp-build 0.2.0",
  "esp-println",
  "semihosting",

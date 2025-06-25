@@ -184,12 +184,30 @@ pub struct ControlBuilder<Dim, Exec, Layout, Pattern, Driver> {
 }
 
 impl ControlBuilder<(), (), (), (), ()> {
-    /// Starts building a one-dimensional control system.
+    /// Starts building a one-dimensional blocking control system.
     ///
     /// # Returns
     ///
-    /// A builder initialized for 1D
-    pub fn new_1d() -> ControlBuilder<Dim1d, (), (), (), ()> {
+    /// A builder initialized for 1D, blocking
+    pub fn new_1d() -> ControlBuilder<Dim1d, Blocking, (), (), ()> {
+        ControlBuilder {
+            dim: PhantomData,
+            exec: PhantomData,
+            layout: PhantomData,
+            pattern: (),
+            driver: (),
+        }
+    }
+}
+
+#[cfg(feature = "async")]
+impl ControlBuilder<(), (), (), (), ()> {
+    /// Starts building a one-dimensional asynchronous control system.
+    ///
+    /// # Returns
+    ///
+    /// A builder initialized for 1D, async
+    pub fn new_1d_async() -> ControlBuilder<Dim1d, Async, (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,
@@ -201,12 +219,12 @@ impl ControlBuilder<(), (), (), (), ()> {
 }
 
 impl ControlBuilder<(), (), (), (), ()> {
-    /// Starts building a two-dimensional control system.
+    /// Starts building a two-dimensional blocking control system.
     ///
     /// # Returns
     ///
-    /// A builder initialized for 2D
-    pub fn new_2d() -> ControlBuilder<Dim2d, (), (), (), ()> {
+    /// A builder initialized for 2D, blocking
+    pub fn new_2d() -> ControlBuilder<Dim2d, Blocking, (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,
@@ -217,30 +235,14 @@ impl ControlBuilder<(), (), (), (), ()> {
     }
 }
 
-impl<Dim> ControlBuilder<Dim, (), (), (), ()> {
-    /// Specifies the executor to be blocking.
+#[cfg(feature = "async")]
+impl ControlBuilder<(), (), (), (), ()> {
+    /// Starts building a two-dimensional asynchronous control system.
     ///
     /// # Returns
     ///
-    /// Builder with blocking executor specified
-    pub fn blocking() -> ControlBuilder<Dim, Blocking, (), (), ()> {
-        ControlBuilder {
-            dim: PhantomData,
-            exec: PhantomData,
-            layout: PhantomData,
-            pattern: (),
-            driver: (),
-        }
-    }
-}
-
-impl<Dim> ControlBuilder<Dim, (), (), (), ()> {
-    /// Specifies the executor to be async.
-    ///
-    /// # Returns
-    ///
-    /// Builder with async executor specified
-    pub fn asynch() -> ControlBuilder<Dim, Async, (), (), ()> {
+    /// A builder initialized for 2D, async
+    pub fn new_2d_async() -> ControlBuilder<Dim2d, Async, (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,

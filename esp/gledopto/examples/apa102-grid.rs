@@ -25,7 +25,6 @@ fn main() -> ! {
         }]
     );
     let mut control = ControlBuilder::new_2d()
-        .blocking()
         .with_layout::<Layout>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()

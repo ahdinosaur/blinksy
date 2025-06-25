@@ -132,7 +132,7 @@ where
     /// # Returns
     ///
     /// A configured ClocklessRmtDriver instance
-    pub fn new<'d, C, P>(
+    pub fn new<'d, C>(
         channel: C,
         pin: impl PeripheralOutput<'d>,
         rmt_buffer: [u32; BUFFER_SIZE],
@@ -169,7 +169,7 @@ where
     /// # Returns
     ///
     /// A configured ClocklessRmtDriver instance
-    pub async fn new_async<'d, C, P>(
+    pub fn new_async<'d, C>(
         channel: C,
         pin: impl PeripheralOutput<'d>,
         rmt_buffer: [u32; BUFFER_SIZE],

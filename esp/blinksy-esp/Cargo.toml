@@ -19,7 +19,9 @@ defmt = "0.3.10"
 
 [features]
 default = ["async"]
-async = []
+async = [
+  "blinksy/async",
+]
 
 # Chip Support Feature Flags
 # Target the ESP32-C2.

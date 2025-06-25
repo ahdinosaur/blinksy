@@ -19,6 +19,7 @@ blinksy-esp = { path = "../blinksy-esp", version = "0.4" }
 button-driver = { version = "0.2.2", features = ["embedded_hal"] }
 defmt = "0.3.10"
 esp-hal = { version = "1.0.0-beta.0", features = ["defmt", "unstable"] }
+esp-hal-embassy = { version = "0.8.0", optional = true }
 esp-println = { version = "0.13.0", features = ["defmt-espflash"] }
 esp-alloc = { version = "0.7.0", features = ["defmt"] }
 esp-backtrace = { version = "0.15.1", features = ["defmt", "panic-handler"] }
@@ -26,9 +27,16 @@ fugit = "0.3.7"
 
 [dev-dependencies]
 embassy-executor = "0.7.0"
-esp-hal-embassy = "0.8.0"
 
 [features]
+default = ["embassy"]
+embassy = [
+  "dep:esp-hal-embassy",
+  "async"
+]
+async = [
+  "blinksy-esp/async"
+]
 
 ##
 # Board Support Feature Flags

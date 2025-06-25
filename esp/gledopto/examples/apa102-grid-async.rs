@@ -8,9 +8,9 @@ use blinksy::{
     ControlBuilder,
 };
 use embassy_executor::Spawner;
-use gledopto::{apa102, board, elapsed, main};
+use gledopto::{apa102_async, board, elapsed, main_embassy};
 
-#[esp_hal_embassy::main]
+#[main_embassy]
 async fn main(_spawner: Spawner) {
     let p = board!();
 
@@ -25,19 +25,18 @@ async fn main(_spawner: Spawner) {
             serpentine: true,
         }]
     );
-    let mut control = ControlBuilder::new_2d()
-        .async()
+    let mut control = ControlBuilder::new_2d_async()
         .with_layout::<Layout>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
-        .with_driver(apa102!(p))
+        .with_driver(apa102_async!(p))
         .build();
 
     control.set_brightness(0.02);
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();
-        control.tick(elapsed_in_ms).unwrap();
+        control.tick(elapsed_in_ms).await.unwrap();
     }
 }

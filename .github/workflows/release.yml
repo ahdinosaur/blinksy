@@ -41,7 +41,7 @@ jobs:
         if: steps.tag-info.outputs.workspace == 'esp'
         with:
           ldproxy: false
-          version: 1.85.0.0
+          version: 1.86.0.0
 
       - uses: Swatinem/rust-cache@v2
         with:

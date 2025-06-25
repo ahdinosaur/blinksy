@@ -12,7 +12,7 @@ on:
 env:
   RUSTFLAGS: -Dwarnings
   CARGO_TERM_COLOR: always
-  MSRV: "1.85.0"
+  MSRV: "1.86.0"
   DEFMT_LOG: trace
 
 # Cancel any currently running workflows from the same PR, branch, or
@@ -32,7 +32,7 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - 1.85.0 # msrv
+          - 1.86.0 # msrv
 
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/target
@@ -76,7 +76,7 @@ jobs:
       - uses: esp-rs/xtensa-toolchain@v1.5
         if: matrix.device.toolchain == 'esp'
         with:
-          version: 1.85.0.0
+          version: 1.86.0.0
           ldproxy: false
           buildtargets: ${{ matrix.device.soc }}
 
@@ -108,7 +108,7 @@ jobs:
       - uses: esp-rs/xtensa-toolchain@v1.5
         if: matrix.device.toolchain == 'esp'
         with:
-          version: 1.85.0.0
+          version: 1.86.0.0
           ldproxy: false
           buildtargets: ${{ matrix.device.soc }}
 
@@ -160,7 +160,7 @@ jobs:
       - uses: esp-rs/xtensa-toolchain@v1.5
         with:
           ldproxy: false
-          version: 1.85.0.0
+          version: 1.86.0.0
           buildtargets: esp32
 
       - uses: Swatinem/rust-cache@v2

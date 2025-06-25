@@ -316,7 +316,7 @@ pub trait ClockedLedAsync {
     /// # Returns
     ///
     /// Ok(()) on success or an error if any write operation fails
-    async fn clocked_write_async<Writer, I, C>(
+    async fn clocked_write<Writer, I, C>(
         writer: &mut Writer,
         pixels: I,
         brightness: f32,

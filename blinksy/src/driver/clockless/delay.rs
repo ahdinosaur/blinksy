@@ -96,7 +96,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    pub fn write_bit(&mut self, bit: bool) -> Result<(), Pin::Error> {
+    fn write_bit(&mut self, bit: bool) -> Result<(), Pin::Error> {
         if !bit {
             // Transmit a '0' bit
             self.pin.set_high()?;
@@ -122,7 +122,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    pub fn write_byte(&mut self, byte: &u8) -> Result<(), Pin::Error> {
+    fn write_byte(&mut self, byte: &u8) -> Result<(), Pin::Error> {
         for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
             match byte & bit_position {
                 0 => self.write_bit(false)?,
@@ -141,7 +141,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    pub fn write_buffer(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
+    fn write_buffer(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
         for byte in buffer {
             self.write_byte(byte)?;
         }
@@ -152,7 +152,7 @@ where
     ///
     /// This keeps the data line low for the required reset period, allowing the LEDs
     /// to latch the received data and update their outputs.
-    pub fn delay_for_reset(&mut self) {
+    fn delay_for_reset(&mut self) {
         self.delay.delay_ns(Led::T_RESET.to_nanos())
     }
 }
@@ -173,7 +173,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    pub async fn write_bit_async(&mut self, bit: bool) -> Result<(), Pin::Error> {
+    async fn write_bit_async(&mut self, bit: bool) -> Result<(), Pin::Error> {
         if !bit {
             // Transmit a '0' bit
             self.pin.set_high()?;
@@ -199,7 +199,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    pub async fn write_byte_async(&mut self, byte: &u8) -> Result<(), Pin::Error> {
+    async fn write_byte_async(&mut self, byte: &u8) -> Result<(), Pin::Error> {
         for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
             match byte & bit_position {
                 0 => self.write_bit_async(false).await?,
@@ -218,7 +218,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    pub async fn write_buffer_async(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
+    async fn write_buffer_async(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
         for byte in buffer {
             self.write_byte_async(byte).await?;
         }
@@ -229,7 +229,7 @@ where
     ///
     /// This keeps the data line low for the required reset period, allowing the LEDs
     /// to latch the received data and update their outputs.
-    pub async fn delay_for_reset_async(&mut self) {
+    async fn delay_for_reset_async(&mut self) {
         self.delay.delay_ns(Led::T_RESET.to_nanos()).await
     }
 }

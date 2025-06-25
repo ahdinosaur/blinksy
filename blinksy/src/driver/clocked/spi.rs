@@ -131,7 +131,7 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Led::clocked_write_async(&mut self.writer, pixels, brightness, correction).await
+        Led::clocked_write(&mut self.writer, pixels, brightness, correction).await
     }
 }
 

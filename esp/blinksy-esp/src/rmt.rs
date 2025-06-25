@@ -266,7 +266,7 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error
-    pub fn write_pixels_to_rmt<I, C>(
+    fn write_pixels_to_rmt<I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -307,7 +307,7 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error
-    pub fn write_pixels<I, C>(
+    fn write_pixels<I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -350,7 +350,7 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error
-    pub async fn write_pixels_async<I, C>(
+    async fn write_pixels_async<I, C>(
         &mut self,
         pixels: I,
         brightness: f32,

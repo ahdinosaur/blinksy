@@ -27,7 +27,7 @@ pub use clockless::*;
 /// # Example
 ///
 /// ```rust
-/// use blinksy::{color::{ColorCorrection, FromColor, LinearSrgb}, driver::Driver};
+/// # use blinksy::{color::{ColorCorrection, FromColor, LinearSrgb}, driver::Driver};
 ///
 /// struct MyDriver {
 ///     // Implementation details
@@ -90,13 +90,13 @@ pub trait Driver {
 /// # Example
 ///
 /// ```rust
-/// use blinksy::{color::{ColorCorrection, FromColor, LinearSrgb}, driver::AsyncDriver};
+/// # use blinksy::{color::{ColorCorrection, FromColor, LinearSrgb}, driver::DriverAsync};
 ///
 /// struct MyAsyncDriver {
 ///     // Implementation details
 /// }
 ///
-/// impl AsyncDriver for MyAsyncDriver {
+/// impl DriverAsync for MyAsyncDriver {
 ///     type Error = ();
 ///     type Color = LinearSrgb;
 ///

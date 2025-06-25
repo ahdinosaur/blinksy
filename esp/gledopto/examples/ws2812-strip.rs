@@ -2,7 +2,6 @@
 #![no_main]
 
 use blinksy::{
-    layout::Layout1d,
     layout1d,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,

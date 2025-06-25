@@ -40,15 +40,13 @@ pub enum ClocklessRmtDriverError {
     TransmissionError(RmtError),
 }
 
-/// Macro to allocate a buffer sized for a specific number of LEDs to be
-/// addressed.
+/// Macro to allocate a buffer used for RMT transmission sized for one LED frame.
 ///
-/// Attempting to use more LEDs than the buffer is configured for will result in
+/// Attempting to use more than the buffer is configured for will result in
 /// an `ClocklessRmtDriverError::BufferSizeExceeded` error.
 ///
 /// # Arguments
 ///
-/// * `$led_count` - Number of LEDs to be controlled
 /// * `$channel_count` - Number of color channels per LED (3 for RGB, 4 for RGBW)
 ///
 /// # Returns
@@ -56,8 +54,8 @@ pub enum ClocklessRmtDriverError {
 /// An array of u32 values sized appropriately for the RMT buffer
 #[macro_export]
 macro_rules! create_rmt_buffer {
-    ($led_count:expr, $channel_count:expr) => {
-        [0u32; $led_count * $channel_count * 8 + 1]
+    ($channel_count:expr) => {
+        [0u32; $channel_count * 8 + 1]
     };
 }
 
@@ -77,7 +75,8 @@ where
 {
     led: PhantomData<Led>,
     channel: Option<Tx>,
-    rmt_buffer: [u32; BUFFER_SIZE],
+    rmt_led_buffer: [u32; BUFFER_SIZE],
+    rmt_end_buffer: [u32; 2],
     pulses: (u32, u32, u32),
 }
 
@@ -114,6 +113,10 @@ where
             PulseCode::new(Level::Low, t_reset, Level::Low, 0),
         )
     }
+
+    fn setup_rmt_end_buffer(pulses: (u32, u32, u32)) -> [u32; 2] {
+        [pulses.2, 0]
+    }
 }
 
 impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
@@ -142,12 +145,14 @@ where
     {
         let config = Self::tx_channel_config();
         let channel = channel.configure(pin, config).unwrap();
+        let pulses = Self::setup_pulses();
 
         Self {
             led: PhantomData,
             channel: Some(channel),
-            rmt_buffer,
-            pulses: Self::setup_pulses(),
+            rmt_led_buffer: rmt_buffer,
+            rmt_end_buffer: Self::setup_rmt_end_buffer(pulses),
+            pulses,
         }
     }
 }
@@ -179,11 +184,13 @@ where
     {
         let config = Self::tx_channel_config();
         let channel = channel.configure(pin, config).unwrap();
+        let pulses = Self::setup_pulses();
 
         Self {
             led: PhantomData,
             channel: Some(channel),
-            rmt_buffer,
+            rmt_led_buffer: rmt_buffer,
+            rmt_end_buffer: Self::setup_rmt_end_buffer(pulses),
             pulses: Self::setup_pulses(),
         }
     }
@@ -255,40 +262,6 @@ where
         }
         Ok(())
     }
-
-    /// Convert all pixels to the RMT format and add them to internal buffer.
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over the pixel colors
-    /// * `brightness` - Global brightness factor
-    ///
-    /// # Returns
-    ///
-    /// Result indicating success or an error
-    fn write_pixels_to_rmt<I, C>(
-        &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), ClocklessRmtDriverError>
-    where
-        I: IntoIterator<Item = C>,
-        LinearSrgb: FromColor<C>,
-    {
-        let mut rmt_iter = self.rmt_buffer.iter_mut();
-
-        for color in pixels {
-            let color = LinearSrgb::from_color(color);
-            Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses, brightness, correction)?;
-        }
-
-        *rmt_iter
-            .next()
-            .ok_or(ClocklessRmtDriverError::BufferSizeExceeded)? = self.pulses.2;
-
-        Ok(())
-    }
 }
 
 impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
@@ -296,6 +269,29 @@ where
     Led: ClocklessLed,
     Tx: TxChannel,
 {
+    /// Transmit buffer using RMT, blocking.
+    ///
+    /// # Arguments
+    ///
+    /// * `buffer` - Buffer to be transmitted
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
+    fn transmit_blocking(&mut self, buffer: &[u32]) -> Result<(), ClocklessRmtDriverError> {
+        let channel = self.channel.take().unwrap();
+        match channel.transmit(buffer).unwrap().wait() {
+            Ok(chan) => {
+                self.channel = Some(chan);
+                Ok(())
+            }
+            Err((e, chan)) => {
+                self.channel = Some(chan);
+                Err(ClocklessRmtDriverError::TransmissionError(e))
+            }
+        }
+    }
+
     /// Write pixels to internal RMT buffer, then transmit.
     ///
     /// # Arguments
@@ -317,19 +313,18 @@ where
         I: IntoIterator<Item = C>,
         LinearSrgb: FromColor<C>,
     {
-        self.write_pixels_to_rmt(pixels, brightness, correction)?;
-
-        let channel = self.channel.take().unwrap();
-        match channel.transmit(&self.rmt_buffer).unwrap().wait() {
-            Ok(chan) => {
-                self.channel = Some(chan);
-                Ok(())
-            }
-            Err((e, chan)) => {
-                self.channel = Some(chan);
-                Err(ClocklessRmtDriverError::TransmissionError(e))
-            }
+        for color in pixels {
+            let mut rmt_iter = self.rmt_led_buffer.iter_mut();
+            let color = LinearSrgb::from_color(color);
+            Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses, brightness, correction)?;
+            let rmt_led_buffer = self.rmt_led_buffer;
+            self.transmit_blocking(&rmt_led_buffer)?;
         }
+
+        let rmt_end_buffer = self.rmt_end_buffer;
+        self.transmit_blocking(&rmt_end_buffer)?;
+
+        Ok(())
     }
 }
 
@@ -339,6 +334,23 @@ where
     Led: ClocklessLed,
     Tx: TxChannelAsync,
 {
+    /// Transmit buffer using RMT, async.
+    ///
+    /// # Arguments
+    ///
+    /// * `buffer` - Buffer to be transmitted
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
+    async fn transmit_async(&mut self, buffer: &[u32]) -> Result<(), ClocklessRmtDriverError> {
+        let channel = self.channel.as_mut().unwrap();
+        channel
+            .transmit(buffer)
+            .await
+            .map_err(ClocklessRmtDriverError::TransmissionError)
+    }
+
     /// Write pixels to internal RMT buffer, then transmit, asynchronously.
     ///
     /// # Arguments
@@ -360,23 +372,16 @@ where
         I: IntoIterator<Item = C>,
         LinearSrgb: FromColor<C>,
     {
-        self.write_pixels_to_rmt(pixels, brightness, correction)?;
-
-        let channel = self.channel.as_mut().unwrap();
-
-        let pulses_per_led = 8 * Led::LED_CHANNELS.channel_count();
-
-        for chunk in self.rmt_buffer.chunks(pulses_per_led) {
-            // TODO figure out RMT block size, for now ESP32 -> 64 is hardcoded.
-            let mut transmit_buffer = [PulseCode::empty(); 64];
-            let chunk_len = chunk.len();
-            transmit_buffer[..chunk_len].copy_from_slice(chunk);
-
-            channel
-                .transmit(&transmit_buffer)
-                .await
-                .map_err(ClocklessRmtDriverError::TransmissionError)?;
+        for color in pixels {
+            let mut rmt_iter = self.rmt_led_buffer.iter_mut();
+            let color = LinearSrgb::from_color(color);
+            Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses, brightness, correction)?;
+            let rmt_led_buffer = self.rmt_led_buffer;
+            self.transmit_async(&rmt_led_buffer).await?;
         }
+
+        let rmt_end_buffer = self.rmt_end_buffer;
+        self.transmit_async(&rmt_end_buffer).await?;
 
         Ok(())
     }

@@ -53,9 +53,8 @@
 //!         let rmt_channel = rmt.channel0;
 //!
 //!         // Create RMT buffer
-//!         const NUM_LEDS: usize = Layout::PIXEL_COUNT;
 //!         const CHANNELS_PER_LED: usize = <Ws2812Led as ClocklessLed>::LED_CHANNELS.channel_count(); // Usually 3 (RGB)
-//!         let rmt_buffer = create_rmt_buffer!(NUM_LEDS, CHANNELS_PER_LED);
+//!         let rmt_buffer = create_rmt_buffer!(CHANNELS_PER_LED);
 //!
 //!         Ws2812Rmt::new(rmt_channel, data_pin, rmt_buffer)
 //!     };

@@ -253,7 +253,7 @@ macro_rules! ws2812_rmt_buffer {
                         $crate::blinksy::drivers::ws2812::Ws2812Led as $crate::blinksy::driver::ClocklessLed
                     >::LED_CHANNELS.channel_count();
 
-        $crate::blinksy_esp::create_rmt_buffer!($num_leds, CHANNEL_COUNT)
+        $crate::blinksy_esp::create_rmt_buffer!(CHANNEL_COUNT)
     }}
 }
 

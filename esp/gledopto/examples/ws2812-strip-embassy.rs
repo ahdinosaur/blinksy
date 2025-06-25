@@ -3,7 +3,6 @@
 #![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
-    layout::Layout1d,
     layout1d,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,

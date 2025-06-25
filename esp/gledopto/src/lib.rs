@@ -137,8 +137,8 @@ pub use hal_embassy::main as main_embassy;
 pub use esp_alloc as alloc;
 
 // These modules provide error handling and debug printing
-use esp_backtrace as _;
-use esp_println as _;
+pub use esp_backtrace as backtrace;
+pub use esp_println as println;
 
 /// Button handling functionality
 pub mod button;
@@ -173,6 +173,15 @@ macro_rules! function_button {
     ($peripherals:ident) => {
         $crate::button::FunctionButton::new($peripherals.GPIO0)
     };
+}
+
+#[cfg(feature = "embassy")]
+#[macro_export]
+macro_rules! init_embassy {
+    ($peripherals:ident) => {{
+        let timg0 = $crate::hal::timer::timg::TimerGroup::new($peripherals.TIMG0);
+        $crate::hal_embassy::init(timg0.timer0);
+    }};
 }
 
 #[macro_export]
@@ -231,7 +240,7 @@ macro_rules! apa102_async {
 
 #[macro_export]
 macro_rules! rmt {
-    ($led_pin:ident) => {{
+    ($peripherals:ident) => {{
         let freq = $crate::hal::time::Rate::from_mhz(80);
         $crate::hal::rmt::Rmt::new($peripherals.RMT, freq).unwrap()
     }};
@@ -244,7 +253,7 @@ macro_rules! ws2812_rmt_buffer {
                         $crate::blinksy::drivers::ws2812::Ws2812Led as $crate::blinksy::driver::ClocklessLed
                     >::LED_CHANNELS.channel_count();
 
-        let rmt_buffer = $crate::blinksy_esp::create_rmt_buffer!($num_leds, CHANNEL_COUNT);
+        $crate::blinksy_esp::create_rmt_buffer!($num_leds, CHANNEL_COUNT)
     }}
 }
 
@@ -262,8 +271,8 @@ macro_rules! ws2812_rmt_buffer {
 macro_rules! ws2812 {
     ($peripherals:ident, $num_leds:expr) => {{
         let led_pin = $peripherals.GPIO16;
-        let rmt = $crate::rmt!(led_pin);
-        let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds)
+        let rmt = $crate::rmt!($peripherals);
+        let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds);
         $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin, rmt_buffer)
     }};
 }
@@ -283,8 +292,8 @@ macro_rules! ws2812 {
 macro_rules! ws2812_async {
     ($peripherals:ident, $num_leds:expr) => {{
         let led_pin = $peripherals.GPIO16;
-        let rmt = $crate::rmt!(led_pin).into_async();
-        let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds)
-        $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin, rmt_buffer)
+        let rmt = $crate::rmt!($peripherals).into_async();
+        let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds);
+        $crate::blinksy_esp::Ws2812Rmt::new_async(rmt.channel0, led_pin, rmt_buffer)
     }};
 }

@@ -8,11 +8,13 @@ use blinksy::{
     ControlBuilder,
 };
 use embassy_executor::Spawner;
-use gledopto::{board, elapsed, main_embassy, ws2812_async};
+use gledopto::{board, elapsed, init_embassy, main_embassy, ws2812_async};
 
 #[main_embassy]
 async fn main(_spawner: Spawner) {
     let p = board!();
+
+    init_embassy!(p);
 
     layout1d!(Layout, 60 * 5);
 

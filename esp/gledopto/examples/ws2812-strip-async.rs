@@ -29,8 +29,41 @@ async fn main(_spawner: Spawner) {
 
     control.set_brightness(0.2);
 
+    defmt::info!("Tick start");
+    let elapsed_in_ms = elapsed().as_millis();
+    control.tick(elapsed_in_ms).await.unwrap();
+    defmt::info!("Tick end");
+}
+
+/*
+use embassy_executor::Spawner;
+use embassy_time::{Duration, Timer};
+use esp_backtrace as _;
+use esp_hal::timer::timg::TimerGroup;
+use esp_println as _;
+
+#[embassy_executor::task]
+async fn run() {
     loop {
-        let elapsed_in_ms = elapsed().as_millis();
-        control.tick(elapsed_in_ms).await.unwrap();
+        defmt::info!("Hello world from embassy using esp-hal-async!");
+        Timer::after(Duration::from_millis(1_000)).await;
     }
 }
+
+#[esp_hal_embassy::main]
+async fn main(spawner: Spawner) {
+    let peripherals = esp_hal::init(esp_hal::Config::default());
+
+    defmt::info!("Init!");
+
+    let timg0 = TimerGroup::new(peripherals.TIMG0);
+    esp_hal_embassy::init(timg0.timer0);
+
+    spawner.spawn(run()).ok();
+
+    loop {
+        defmt::info!("Bing!");
+        Timer::after(Duration::from_millis(5_000)).await;
+    }
+}
+*/

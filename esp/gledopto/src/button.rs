@@ -57,7 +57,8 @@
 use button_driver::{Button, ButtonConfig, InstantProvider, Mode};
 use core::ops::{Deref, DerefMut, Sub};
 use esp_hal::{
-    gpio::{GpioPin, Input, InputConfig, Pull},
+    gpio::{Input, InputConfig, Pull},
+    peripherals::GPIO0,
     time::{Duration, Instant},
 };
 
@@ -77,7 +78,7 @@ impl FunctionButton<'_> {
     /// # Returns
     ///
     /// A configured FunctionButton instance
-    pub fn new(pin: GpioPin<0>) -> Self {
+    pub fn new(pin: GPIO0<'static>) -> Self {
         let input = Input::new(pin, InputConfig::default().with_pull(Pull::Up));
 
         let button_config = ButtonConfig::<Duration> {

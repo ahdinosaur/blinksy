@@ -125,12 +125,20 @@ pub use esp_hal as hal;
 /// Re-export the main macro from esp_hal for entry point definition
 pub use hal::main;
 
+#[cfg(feature = "embassy")]
+/// Re-export the ESP32 Embassy HAL
+pub use esp_hal_embassy as hal_embassy;
+
+#[cfg(feature = "embassy")]
+/// Re-export the main macro from esp_hal for entry point definition
+pub use hal_embassy::main as main_embassy;
+
 /// Re-export the ESP32 heap allocator
 pub use esp_alloc as alloc;
 
 // These modules provide error handling and debug printing
-use esp_backtrace as _;
-use esp_println as _;
+pub use esp_backtrace as backtrace;
+pub use esp_println as println;
 
 /// Button handling functionality
 pub mod button;
@@ -167,7 +175,35 @@ macro_rules! function_button {
     };
 }
 
-/// Creates an APA102 LED driver using the SPI interface.
+#[cfg(feature = "embassy")]
+#[macro_export]
+macro_rules! init_embassy {
+    ($peripherals:ident) => {{
+        let timg0 = $crate::hal::timer::timg::TimerGroup::new($peripherals.TIMG0);
+        $crate::hal_embassy::init(timg0.timer0);
+    }};
+}
+
+#[macro_export]
+macro_rules! spi {
+    ($peripherals:ident) => {{
+        let clock_pin = $peripherals.GPIO16;
+        let data_pin = $peripherals.GPIO2;
+        let data_rate = $crate::hal::time::Rate::from_mhz(4);
+
+        $crate::hal::spi::master::Spi::new(
+            $peripherals.SPI2,
+            $crate::hal::spi::master::Config::default()
+                .with_frequency(data_rate)
+                .with_mode($crate::hal::spi::Mode::_0),
+        )
+        .expect("Failed to setup SPI")
+        .with_sck(clock_pin)
+        .with_mosi(data_pin)
+    }};
+}
+
+/// Creates a APA102 LED driver using the SPI interface.
 ///
 /// # Arguments
 ///
@@ -179,22 +215,46 @@ macro_rules! function_button {
 #[macro_export]
 macro_rules! apa102 {
     ($peripherals:ident) => {{
-        let clock_pin = $peripherals.GPIO16;
-        let data_pin = $peripherals.GPIO2;
-        let data_rate = $crate::hal::time::Rate::from_mhz(4);
-
-        let mut spi = $crate::hal::spi::master::Spi::new(
-            $peripherals.SPI2,
-            $crate::hal::spi::master::Config::default()
-                .with_frequency(data_rate)
-                .with_mode($crate::hal::spi::Mode::_0),
-        )
-        .expect("Failed to setup SPI")
-        .with_sck(clock_pin)
-        .with_mosi(data_pin);
-
+        let spi = $crate::spi!($peripherals);
         $crate::blinksy::drivers::apa102::Apa102Spi::new(spi)
     }};
+}
+
+/// Creates an async APA102 LED driver using the SPI interface.
+///
+/// # Arguments
+///
+/// * `$peripherals` - The ESP32 peripherals instance
+///
+/// # Returns
+///
+/// An async APA102 driver configured for the Gledopto board
+#[cfg(feature = "async")]
+#[macro_export]
+macro_rules! apa102_async {
+    ($peripherals:ident) => {{
+        let spi = $crate::spi!($peripherals).into_async();
+        $crate::blinksy::drivers::apa102::Apa102Spi::new(spi)
+    }};
+}
+
+#[macro_export]
+macro_rules! rmt {
+    ($peripherals:ident) => {{
+        let freq = $crate::hal::time::Rate::from_mhz(80);
+        $crate::hal::rmt::Rmt::new($peripherals.RMT, freq).unwrap()
+    }};
+}
+
+#[macro_export]
+macro_rules! ws2812_rmt_buffer {
+    ($num_leds:expr) => {{
+        const CHANNEL_COUNT: usize = <
+                        $crate::blinksy::drivers::ws2812::Ws2812Led as $crate::blinksy::driver::ClocklessLed
+                    >::LED_CHANNELS.channel_count();
+
+        $crate::blinksy_esp::create_rmt_buffer!(CHANNEL_COUNT)
+    }}
 }
 
 /// Creates a WS2812 LED driver using the RMT peripheral.
@@ -211,15 +271,29 @@ macro_rules! apa102 {
 macro_rules! ws2812 {
     ($peripherals:ident, $num_leds:expr) => {{
         let led_pin = $peripherals.GPIO16;
-        let freq = $crate::hal::time::Rate::from_mhz(80);
-        let rmt = $crate::hal::rmt::Rmt::new($peripherals.RMT, freq).unwrap();
-
-        const CHANNEL_COUNT: usize = <
-                        $crate::blinksy::drivers::ws2812::Ws2812Led as $crate::blinksy::driver::ClocklessLed
-                    >::LED_CHANNELS.channel_count();
-
-        let rmt_buffer = $crate::blinksy_esp::create_rmt_buffer!($num_leds, CHANNEL_COUNT);
-
+        let rmt = $crate::rmt!($peripherals);
+        let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds);
         $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin, rmt_buffer)
+    }};
+}
+
+/// Creates an async WS2812 LED driver using the RMT peripheral.
+///
+/// # Arguments
+///
+/// * `$peripherals` - The ESP32 peripherals instance
+/// * `$num_leds` - The number of LEDs in the strip
+///
+/// # Returns
+///
+/// A WS2812 driver configured for the Gledopto board
+#[cfg(feature = "async")]
+#[macro_export]
+macro_rules! ws2812_async {
+    ($peripherals:ident, $num_leds:expr) => {{
+        let led_pin = $peripherals.GPIO16;
+        let rmt = $crate::rmt!($peripherals).into_async();
+        let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds);
+        $crate::blinksy_esp::Ws2812Rmt::new_async(rmt.channel0, led_pin, rmt_buffer)
     }};
 }

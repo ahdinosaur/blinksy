@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-rust-version = "1.85.0"
+rust-version = "1.86.0"
 description = "no-std, no-alloc LED control library for 1D, 2D, and 3D layouts"
 readme = "../README.md"
 homepage = "https://github.com/ahdinosaur/blinksy"

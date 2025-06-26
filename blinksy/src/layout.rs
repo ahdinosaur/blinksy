@@ -53,6 +53,20 @@ use core::{
 pub use glam::Vec2;
 use num_traits::FromPrimitive;
 
+use crate::markers::{Dim1d, Dim2d};
+
+/// Trait for associating layout types with dimension markers.
+///
+/// This trait creates the relationship between a layout type and its dimensionality,
+/// which helps enforce correct combinations at compile time.
+pub trait LayoutForDim<Dim> {}
+
+/// All types implementing Layout1d are compatible with Dim1d.
+impl<T> LayoutForDim<Dim1d> for T where T: Layout1d {}
+
+/// All types implementing Layout2d are compatible with Dim2d.
+impl<T> LayoutForDim<Dim2d> for T where T: Layout2d {}
+
 /// Trait for one-dimensional LED layouts.
 ///
 /// Implementors of this trait represent a linear arrangement of LEDs.

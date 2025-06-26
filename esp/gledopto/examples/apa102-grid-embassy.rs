@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
     layout::{Shape2d, Vec2},
@@ -7,10 +8,11 @@ use blinksy::{
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use gledopto::{apa102, board, elapsed, main};
+use embassy_executor::Spawner;
+use gledopto::{apa102_async, board, elapsed, main_embassy};
 
-#[main]
-fn main() -> ! {
+#[main_embassy]
+async fn main(_spawner: Spawner) {
     let p = board!();
 
     layout2d!(
@@ -24,16 +26,16 @@ fn main() -> ! {
             serpentine: true,
         }]
     );
-    let mut control = ControlBuilder::new_2d()
+    let mut control = ControlBuilder::new_2d_async()
         .with_layout::<Layout>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
-        .with_driver(apa102!(p))
+        .with_driver(apa102_async!(p))
         .build();
 
     control.set_brightness(0.02);
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();
-        control.tick(elapsed_in_ms).unwrap();
+        control.tick(elapsed_in_ms).await.unwrap();
     }
 }

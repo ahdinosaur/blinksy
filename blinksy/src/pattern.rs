@@ -17,7 +17,7 @@
 //!
 //! [a WLED effect]: https://kno.wled.ge/features/effects/
 
-use crate::dimension::LayoutForDim;
+use crate::layout::LayoutForDim;
 
 /// Trait for creating visual effects on LED layouts.
 ///
@@ -37,7 +37,7 @@ use crate::dimension::LayoutForDim;
 /// # Example
 ///
 /// ```rust
-/// use blinksy::{color::Okhsv, dimension::Dim1d, layout::Layout1d, pattern::Pattern};
+/// # use blinksy::{color::Okhsv, markers::Dim1d, layout::Layout1d, pattern::Pattern};
 ///
 /// struct RainbowParams {
 ///     speed: f32,

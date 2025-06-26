@@ -57,6 +57,7 @@
 
 - **No-std, no-alloc**: Designed for embedded targets.
 - **Spatial in 1D, 2D, or 3D**: Map out the shape of your LEDs in space.
+- **Async support**: Supports blocking or asynchronous execution.
 - **Full color support**: Supports modern and classic color spaces.
 - **Global settings**: Control overall brightness and color correction.
 - **Desktop simulation**: Simulate your LEDs on your desktop to play with ideas.
@@ -174,13 +175,99 @@ fn main() {
 
 </details>
 
+### Embedded Gledopto: 1D WS2812 Strip with Rainbow Pattern
+
+https://github.com/user-attachments/assets/703fe31d-e7ca-4e08-ae2b-7829c0d4d52e
+
+<details>
+<summary>
+    Click to see code (Blocking)
+</summary>
+
+```rust
+#![no_std]
+#![no_main]
+
+use blinksy::{
+    layout1d,
+    patterns::rainbow::{Rainbow, RainbowParams},
+    ControlBuilder,
+};
+use gledopto::{board, elapsed, main, ws2812};
+
+#[main]
+fn main() -> ! {
+    let p = board!();
+
+    layout1d!(Layout, 60 * 5);
+
+    let mut control = ControlBuilder::new_1d()
+        .with_layout::<Layout>()
+        .with_pattern::<Rainbow>(RainbowParams::default())
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .build();
+
+    control.set_brightness(0.2);
+
+    loop {
+        let elapsed_in_ms = elapsed().as_millis();
+        control.tick(elapsed_in_ms).unwrap();
+    }
+}
+```
+
+</details>
+
+<details>
+<summary>
+    Click to see code (Async)
+</summary>
+
+```rust
+#![no_std]
+#![no_main]
+#![feature(impl_trait_in_assoc_type)]
+
+use blinksy::{
+    layout1d,
+    patterns::rainbow::{Rainbow, RainbowParams},
+    ControlBuilder,
+};
+use embassy_executor::Spawner;
+use gledopto::{board, elapsed, init_embassy, main_embassy, ws2812_async};
+
+#[main_embassy]
+async fn main(_spawner: Spawner) {
+    let p = board!();
+
+    init_embassy!(p);
+
+    layout1d!(Layout, 60 * 5);
+
+    let mut control = ControlBuilder::new_1d_async()
+        .with_layout::<Layout>()
+        .with_pattern::<Rainbow>(RainbowParams::default())
+        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
+        .build();
+
+    control.set_brightness(0.2);
+
+    loop {
+        let elapsed_in_ms = elapsed().as_millis();
+        control.tick(elapsed_in_ms).await.unwrap();
+    }
+}
+```
+
+</details>
+
 ### Embedded Gledopto: 2D APA102 Grid with Noise Pattern
 
 https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
 
 <details>
 <summary>
-    Click to see code
+    Click to see code (Blocking)
 </summary>
 
 ```rust
@@ -212,13 +299,11 @@ fn main() -> ! {
     );
     let mut control = ControlBuilder::new_2d()
         .with_layout::<Layout>()
-        .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
-            ..Default::default()
-        })
+        .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
         .with_driver(apa102!(p))
         .build();
 
-    control.set_brightness(0.1);
+    control.set_brightness(0.02);
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();
@@ -229,51 +314,54 @@ fn main() -> ! {
 
 </details>
 
-### Embedded Gledopto: 1D WS2812 Strip with Rainbow Pattern
-
-https://github.com/user-attachments/assets/703fe31d-e7ca-4e08-ae2b-7829c0d4d52e
-
 <details>
 <summary>
-    Click to see code
+    Click to see code (Async)
 </summary>
 
 ```rust
 #![no_std]
 #![no_main]
+#![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
-    layout::Layout1d,
-    layout1d,
-    patterns::rainbow::{Rainbow, RainbowParams},
+    layout::{Shape2d, Vec2},
+    layout2d,
+    patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use gledopto::{board, elapsed, main, ws2812};
+use embassy_executor::Spawner;
+use gledopto::{apa102_async, board, elapsed, main_embassy};
 
-#[main]
-fn main() -> ! {
+#[main_embassy]
+async fn main(_spawner: Spawner) {
     let p = board!();
 
-    layout1d!(Layout, 60 * 5);
-
-    let mut control = ControlBuilder::new_1d()
+    layout2d!(
+        Layout,
+        [Shape2d::Grid {
+            start: Vec2::new(-1., -1.),
+            horizontal_end: Vec2::new(1., -1.),
+            vertical_end: Vec2::new(-1., 1.),
+            horizontal_pixel_count: 16,
+            vertical_pixel_count: 16,
+            serpentine: true,
+        }]
+    );
+    let mut control = ControlBuilder::new_2d_async()
         .with_layout::<Layout>()
-        .with_pattern::<Rainbow>(RainbowParams {
-            ..Default::default()
-        })
-        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
+        .with_driver(apa102_async!(p))
         .build();
 
-    control.set_brightness(0.2);
+    control.set_brightness(0.02);
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();
-        control.tick(elapsed_in_ms).unwrap();
+        control.tick(elapsed_in_ms).await.unwrap();
     }
 }
 ```
-
-</details>
 
 ## Contributing
 

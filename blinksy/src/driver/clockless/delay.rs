@@ -88,48 +88,6 @@ where
     Pin: OutputPin,
     Delay: DelayNs,
 {
-    /// Transmits a single bit using the timing parameters from Led.
-    ///
-    /// # Arguments
-    ///
-    /// * `bit` - The bit value to transmit (true = 1, false = 0)
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if pin operation fails
-    fn write_bit(&mut self, bit: bool) -> Result<(), Pin::Error> {
-        if !bit {
-            // Transmit a '0' bit
-            self.pin.set_high()?;
-            self.delay.delay_ns(Led::T_0H.to_nanos());
-            self.pin.set_low()?;
-            self.delay.delay_ns(Led::T_0L.to_nanos());
-        } else {
-            // Transmit a '1' bit
-            self.pin.set_high()?;
-            self.delay.delay_ns(Led::T_1H.to_nanos());
-            self.pin.set_low()?;
-            self.delay.delay_ns(Led::T_1L.to_nanos());
-        }
-        Ok(())
-    }
-
-    /// Transmits a byte, bit by bit, most significant bit first.
-    ///
-    /// # Arguments
-    ///
-    /// * `byte` - The byte value to transmit
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if pin operation fails
-    fn write_byte(&mut self, byte: &u8) -> Result<(), Pin::Error> {
-        for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
-            self.write_bit(bit)?
-        }
-        Ok(())
-    }
-
     /// Transmits a buffer of bytes.
     ///
     /// # Arguments
@@ -141,7 +99,21 @@ where
     /// Ok(()) on success or an error if pin operation fails
     fn write_buffer(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
         for byte in buffer {
-            self.write_byte(byte)?;
+            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+                if !bit {
+                    // Transmit a '0' bit
+                    self.pin.set_high()?;
+                    self.delay.delay_ns(Led::T_0H.to_nanos());
+                    self.pin.set_low()?;
+                    self.delay.delay_ns(Led::T_0L.to_nanos());
+                } else {
+                    // Transmit a '1' bit
+                    self.pin.set_high()?;
+                    self.delay.delay_ns(Led::T_1H.to_nanos());
+                    self.pin.set_low()?;
+                    self.delay.delay_ns(Led::T_1L.to_nanos());
+                }
+            }
         }
         Ok(())
     }
@@ -162,48 +134,6 @@ where
     Pin: OutputPin,
     Delay: DelayNsAsync,
 {
-    /// Transmits a single bit using the timing parameters from Led, asychronously.
-    ///
-    /// # Arguments
-    ///
-    /// * `bit` - The bit value to transmit (true = 1, false = 0)
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if pin operation fails
-    async fn write_bit_async(&mut self, bit: bool) -> Result<(), Pin::Error> {
-        if !bit {
-            // Transmit a '0' bit
-            self.pin.set_high()?;
-            self.delay.delay_ns(Led::T_0H.to_nanos()).await;
-            self.pin.set_low()?;
-            self.delay.delay_ns(Led::T_0L.to_nanos()).await;
-        } else {
-            // Transmit a '1' bit
-            self.pin.set_high()?;
-            self.delay.delay_ns(Led::T_1H.to_nanos()).await;
-            self.pin.set_low()?;
-            self.delay.delay_ns(Led::T_1L.to_nanos()).await;
-        }
-        Ok(())
-    }
-
-    /// Transmits a byte, bit by bit, most significant bit first, asychronously.
-    ///
-    /// # Arguments
-    ///
-    /// * `byte` - The byte value to transmit
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if pin operation fails
-    async fn write_byte_async(&mut self, byte: &u8) -> Result<(), Pin::Error> {
-        for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
-            self.write_bit_async(bit).await?
-        }
-        Ok(())
-    }
-
     /// Transmits a buffer of bytes, asychronously.
     ///
     /// # Arguments
@@ -215,7 +145,21 @@ where
     /// Ok(()) on success or an error if pin operation fails
     async fn write_buffer_async(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
         for byte in buffer {
-            self.write_byte_async(byte).await?;
+            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+                if !bit {
+                    // Transmit a '0' bit
+                    self.pin.set_high()?;
+                    self.delay.delay_ns(Led::T_0H.to_nanos()).await;
+                    self.pin.set_low()?;
+                    self.delay.delay_ns(Led::T_0L.to_nanos()).await;
+                } else {
+                    // Transmit a '1' bit
+                    self.pin.set_high()?;
+                    self.delay.delay_ns(Led::T_1H.to_nanos()).await;
+                    self.pin.set_low()?;
+                    self.delay.delay_ns(Led::T_1L.to_nanos()).await;
+                }
+            }
         }
         Ok(())
     }

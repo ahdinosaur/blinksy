@@ -28,9 +28,7 @@ async fn main(_spawner: Spawner) {
     );
     let mut control = ControlBuilder::new_2d_async()
         .with_layout::<Layout>()
-        .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
-            ..Default::default()
-        })
+        .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
         .with_driver(apa102_async!(p))
         .build();
 

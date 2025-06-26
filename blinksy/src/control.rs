@@ -39,7 +39,7 @@ use crate::{
 /// * `Pattern` - The [`pattern`](crate::pattern) type
 /// * `Driver` - The LED [`driver`](crate::driver) type
 ///
-/// # Example
+/// # Example (Blocking)
 ///
 /// ```rust,ignore
 /// use blinksy::{
@@ -64,6 +64,34 @@ use crate::{
 /// // Main control loop
 /// loop {
 ///     control.tick(/* current time in milliseconds */).unwrap();
+/// }
+/// ```
+///
+/// # Example (Async)
+///
+/// ```rust,ignore
+/// use blinksy::{
+///     ControlBuilder,
+///     layout1d,
+///     patterns::rainbow::{Rainbow, RainbowParams}
+/// };
+///
+/// // Define a 1d layout of 60 LEDs
+/// layout1d!(Layout, 60);
+///
+/// // Create a control system
+/// let mut control = ControlBuilder::new_1d_async()
+///     .with_layout::<Layout>()
+///     .with_pattern::<Rainbow>(RainbowParams::default())
+///     .with_driver(/* LED driver */)
+///     .build();
+///
+/// // Use the control system
+/// control.set_brightness(0.5);
+///
+/// // Main control loop
+/// loop {
+///     control.tick(/* current time in milliseconds */).await.unwrap();
 /// }
 /// ```
 pub struct Control<Dim, Exec, Layout, Pattern, Driver> {
@@ -151,7 +179,7 @@ where
     Driver: DriverAsyncTrait,
     Driver::Color: FromColor<Pattern::Color>,
 {
-    /// Updates the LED state based on the current time.
+    /// Updates the LED state based on the current time, asynchronously.
     ///
     /// This method:
     /// 1. Calls the pattern to generate colors
@@ -317,7 +345,7 @@ impl<Dim, Layout, Pattern> ControlBuilder<Dim, Blocking, Layout, Pattern, ()> {
     ///
     /// # Arguments
     ///
-    /// * `driver` - The LED driver instance (blocking executor)
+    /// * `driver` - The LED driver instance (blocking)
     ///
     /// # Returns
     ///
@@ -344,7 +372,7 @@ impl<Dim, Layout, Pattern> ControlBuilder<Dim, Async, Layout, Pattern, ()> {
     ///
     /// # Arguments
     ///
-    /// * `driver` - The LED driver instance (async executor)
+    /// * `driver` - The LED driver instance (async)
     ///
     /// # Returns
     ///

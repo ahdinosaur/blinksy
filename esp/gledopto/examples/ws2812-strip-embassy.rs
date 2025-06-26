@@ -16,14 +16,11 @@ async fn main(_spawner: Spawner) {
 
     init_embassy!(p);
 
-    layout1d!(Layout, 60);
+    layout1d!(Layout, 60 * 5);
 
     let mut control = ControlBuilder::new_1d_async()
         .with_layout::<Layout>()
-        .with_pattern::<Rainbow>(RainbowParams {
-            position_scalar: 1.,
-            ..Default::default()
-        })
+        .with_pattern::<Rainbow>(RainbowParams::default())
         .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
         .build();
 
@@ -34,36 +31,3 @@ async fn main(_spawner: Spawner) {
         control.tick(elapsed_in_ms).await.unwrap();
     }
 }
-
-/*
-use embassy_executor::Spawner;
-use embassy_time::{Duration, Timer};
-use esp_backtrace as _;
-use esp_hal::timer::timg::TimerGroup;
-use esp_println as _;
-
-#[embassy_executor::task]
-async fn run() {
-    loop {
-        defmt::info!("Hello world from embassy using esp-hal-async!");
-        Timer::after(Duration::from_millis(1_000)).await;
-    }
-}
-
-#[esp_hal_embassy::main]
-async fn main(spawner: Spawner) {
-    let peripherals = esp_hal::init(esp_hal::Config::default());
-
-    defmt::info!("Init!");
-
-    let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_hal_embassy::init(timg0.timer0);
-
-    spawner.spawn(run()).ok();
-
-    loop {
-        defmt::info!("Bing!");
-        Timer::after(Duration::from_millis(5_000)).await;
-    }
-}
-*/

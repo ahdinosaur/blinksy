@@ -7,6 +7,7 @@ use super::ClocklessLed;
 use crate::{
     color::{ColorCorrection, FromColor, LinearSrgb},
     driver::{Driver, DriverAsync},
+    util::bits::{u8_to_bits, BitOrder},
 };
 
 /// Driver for clockless LEDs using GPIO bit-banging with a delay timer.
@@ -123,11 +124,8 @@ where
     ///
     /// Ok(()) on success or an error if pin operation fails
     fn write_byte(&mut self, byte: &u8) -> Result<(), Pin::Error> {
-        for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
-            match byte & bit_position {
-                0 => self.write_bit(false)?,
-                _ => self.write_bit(true)?,
-            }
+        for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+            self.write_bit(bit)?
         }
         Ok(())
     }
@@ -200,11 +198,8 @@ where
     ///
     /// Ok(()) on success or an error if pin operation fails
     async fn write_byte_async(&mut self, byte: &u8) -> Result<(), Pin::Error> {
-        for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
-            match byte & bit_position {
-                0 => self.write_bit_async(false).await?,
-                _ => self.write_bit_async(true).await?,
-            }
+        for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+            self.write_bit_async(bit).await?
         }
         Ok(())
     }

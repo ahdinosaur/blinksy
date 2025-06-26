@@ -2,6 +2,7 @@ use crate::{
     color::{ColorCorrection, FromColor},
     driver::{Driver, DriverAsync},
     time::{Megahertz, Nanoseconds},
+    util::bits::{u8_to_bits, BitOrder},
 };
 
 use core::marker::PhantomData;
@@ -257,10 +258,10 @@ where
     /// Ok(()) on success or an error if pin operation fails
     fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
         for byte in words {
-            for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
-                match byte & bit_position {
-                    0 => self.data.set_low(),
-                    _ => self.data.set_high(),
+            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+                match bit {
+                    false => self.data.set_low(),
+                    true => self.data.set_high(),
                 }
                 .map_err(ClockedDelayError::Data)?;
 
@@ -303,10 +304,10 @@ where
     /// Ok(()) on success or an error if pin operation fails
     async fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
         for byte in words {
-            for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
-                match byte & bit_position {
-                    0 => self.data.set_low(),
-                    _ => self.data.set_high(),
+            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+                match bit {
+                    false => self.data.set_low(),
+                    true => self.data.set_high(),
                 }
                 .map_err(ClockedDelayError::Data)?;
 

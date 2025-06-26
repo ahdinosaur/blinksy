@@ -1,3 +1,2 @@
-mod component;
-
-pub use self::component::*;
+pub mod bits;
+pub(crate) mod component;

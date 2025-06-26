@@ -1,6 +1,6 @@
 use core::ops::Index;
 
-use crate::util::Component;
+use crate::util::component::Component;
 
 use super::{ColorCorrection, LinearSrgb};
 

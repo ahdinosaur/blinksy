@@ -1,4 +1,4 @@
-use crate::util::Component;
+use crate::util::component::Component;
 
 use super::{
     ColorCorrection, FromColor, GammaSrgb, LedChannels, LedColor, Lms, Okhsl, Okhsv, Oklab, Srgb,

@@ -124,6 +124,6 @@ pub mod markers;
 pub mod pattern;
 pub mod patterns;
 pub mod time;
-mod util;
+pub mod util;
 
 pub use self::control::*;

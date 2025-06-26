@@ -20,6 +20,7 @@ use blinksy::driver::DriverAsync;
 use blinksy::{
     color::{ColorCorrection, FromColor, LedColor, LinearSrgb},
     driver::{clockless::ClocklessLed, Driver},
+    util::bits::{u8_to_bits, BitOrder},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
 #[cfg(feature = "async")]
@@ -216,12 +217,12 @@ where
         rmt_iter: &mut IterMut<u32>,
         pulses: &(u32, u32, u32),
     ) -> Result<(), ClocklessRmtDriverError> {
-        for bit_position in [128, 64, 32, 16, 8, 4, 2, 1] {
+        for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
             *rmt_iter
                 .next()
-                .ok_or(ClocklessRmtDriverError::BufferSizeExceeded)? = match byte & bit_position {
-                0 => pulses.0,
-                _ => pulses.1,
+                .ok_or(ClocklessRmtDriverError::BufferSizeExceeded)? = match bit {
+                false => pulses.0,
+                true => pulses.1,
             }
         }
         Ok(())

@@ -36,7 +36,7 @@ use crate::{
         clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
         ClockedLedAsync, ClockedWriterAsync,
     },
-    util::Component,
+    util::component::Component,
 };
 
 /// APA102 driver using GPIO bit-banging with delay timing.

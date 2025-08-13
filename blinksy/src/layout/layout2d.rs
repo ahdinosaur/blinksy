@@ -159,10 +159,10 @@ impl Shape2d {
 ///
 /// For our 2D space, we can think of:
 ///
-/// - `(-1.0, -1.0)` as the bottom left
-/// - `(1.0, -1.0)` as the bottom right
-/// - `(-1.0, 1.0)` as the top left
-/// - `(1.0, 1.0)` as the top right
+/// - `(-1.0, -1.0)` as the left bottom
+/// - `(1.0, -1.0)` as the right bottom
+/// - `(-1.0, 1.0)` as the left top
+/// - `(1.0, 1.0)` as the right top
 pub trait Layout2d {
     /// The total number of LEDs in this layout.
     const PIXEL_COUNT: usize;

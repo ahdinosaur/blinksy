@@ -121,7 +121,7 @@ impl Shape3d {
 /// - `(-1.0, -1.0, -1.0)` as the left bottom back
 /// - `(-1.0, -1.0, 1.0)` as the left bottom front
 /// - `(1.0, -1.0, -1.0)` as the right bottom back
-/// - `(1.0, -1.0, -1.0)` as the right bottom front
+/// - `(1.0, -1.0, 1.0)` as the right bottom front
 /// - `(-1.0, 1.0, -1.0)` as the left top back
 /// - `(-1.0, 1.0, 1.0)` as the left top front
 /// - `(1.0, 1.0, -1.0)` as the right top back

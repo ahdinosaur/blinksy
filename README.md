@@ -120,7 +120,7 @@ For all examples, see:
 - [Desktop examples in `./blinksy-desktop/examples`](./blinksy-desktop/examples)
 - [Embedded (with Gledopto) examples in `./esp/gledopto/examples`](./esp/gledopto/examples)
 
-### Embedded: 3D Cube with Nosie Pattern
+### Embedded Gledopto: 3D Cube with Nosie Pattern
 
 https://github.com/user-attachments/assets/36a2c6ad-7ae6-4498-85b3-ed76d0b62264
 

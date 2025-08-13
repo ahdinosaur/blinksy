@@ -11,6 +11,9 @@ desktop-2d-rainbow:
 desktop-2d-noise:
   cargo run --release --example 2d-noise
 
+desktop-3d-cube-noise:
+  cargo run --release --example 3d-cube-noise
+
 gledopto-ws2812-strip:
   cd esp && cargo run --release -p gledopto --example ws2812-strip --features gl_c_016wl_d
 

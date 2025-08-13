@@ -49,5 +49,6 @@ mod iterators;
 mod layout1d;
 mod layout2d;
 
+pub use iterators::*;
 pub use layout1d::*;
 pub use layout2d::*;

@@ -10,7 +10,7 @@ use core::marker::PhantomData;
 
 use crate::{
     color::{ColorCorrection, FromColor},
-    dimension::{Dim1d, Dim2d, LayoutForDim},
+    dimension::{Dim1d, Dim2d, Dim3d, LayoutForDim},
     driver::Driver as DriverTrait,
     pattern::Pattern as PatternTrait,
 };
@@ -174,6 +174,22 @@ impl ControlBuilder<(), (), (), ()> {
     ///
     /// A builder initialized for 2D
     pub fn new_2d() -> ControlBuilder<Dim2d, (), (), ()> {
+        ControlBuilder {
+            dim: PhantomData,
+            layout: PhantomData,
+            pattern: (),
+            driver: (),
+        }
+    }
+}
+
+impl ControlBuilder<(), (), (), ()> {
+    /// Starts building a three-dimensional control system.
+    ///
+    /// # Returns
+    ///
+    /// A builder initialized for 3D
+    pub fn new_3d() -> ControlBuilder<Dim3d, (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             layout: PhantomData,

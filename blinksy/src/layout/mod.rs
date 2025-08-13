@@ -5,9 +5,10 @@
 //!
 //! - For 1D, use [`layout1d!`] to define a type that implements [`Layout1d`]
 //! - For 2D, use [`layout2d!`] to define a type that implements [`Layout2d`]
+//! - For 3D, use [`layout3d!`] to define a type that implements [`Layout3d`]
 //!
 //! The layout traits provide a `PIXEL_COUNT` constant, which is the number of LEDs, and a
-//! `.points()`. method, which maps each LED pixel into a 1D, 2D, or soon 3D space between -1.0 and
+//! `.points()`. method, which maps each LED pixel into a 1D, 2D, or 3D space between -1.0 and
 //! 1.0.
 //!
 //! ## 1D Layouts
@@ -42,13 +43,20 @@
 //! );
 //! ```
 //!
+//! ## 3D Layouts
+//!
+//! For 3D layouts, use the [`layout3d!`] macro with one or more [`Shape3d`] definitions.
+//!
 //! [`layout1d!`]: crate::layout1d!
 //! [`layout2d!`]: crate::layout2d!
+//! [`layout3d!`]: crate::layout3d!
 
 mod iterators;
 mod layout1d;
 mod layout2d;
+mod layout3d;
 
 pub use iterators::*;
 pub use layout1d::*;
 pub use layout2d::*;
+pub use layout3d::*;

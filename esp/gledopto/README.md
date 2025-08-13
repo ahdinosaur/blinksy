@@ -2,7 +2,7 @@
 
 Rust **no-std** [embedded](https://github.com/rust-embedded/awesome-embedded-rust) board support crate for Gledopto ESP32 Digital LED controllers.
 
-Uses [Blinksy](https://github.com/ahdinosaur/blinksy): an LED control library for 1D, 2D, and soon 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
+Uses [Blinksy](https://github.com/ahdinosaur/blinksy): an LED control library for 1D, 2D, and 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 
 ## Supported Boards
 

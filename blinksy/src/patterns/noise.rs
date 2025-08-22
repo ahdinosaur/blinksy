@@ -124,7 +124,7 @@ where
     ///
     /// The pattern uses the LED position and time as inputs to a 2D noise function,
     /// mapping the noise value to a hue in the Okhsv color space.
-    fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
+    fn tick(&self, time: Millis) -> impl Iterator<Item = Self::Color> {
         let Self {
             hue_noise,
             value_noise,

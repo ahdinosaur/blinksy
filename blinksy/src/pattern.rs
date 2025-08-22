@@ -17,7 +17,7 @@
 //!
 //! [a WLED effect]: https://kno.wled.ge/features/effects/
 
-use crate::dimension::LayoutForDim;
+use crate::{dimension::LayoutForDim, time::MillisecondsU64};
 
 /// Trait for creating visual effects on LED layouts.
 ///
@@ -87,10 +87,10 @@ where
     ///
     /// # Arguments
     ///
-    /// * `time_in_ms` - The current time in milliseconds
+    /// * `time` - The current time in milliseconds
     ///
     /// # Returns
     ///
     /// An iterator yielding one color per LED in the layout
-    fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color>;
+    fn tick(&self, time: MillisecondsU64) -> impl Iterator<Item = Self::Color>;
 }

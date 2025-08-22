@@ -65,16 +65,17 @@ use crate::{
 ///     control.tick(/* current time in milliseconds */).unwrap();
 /// }
 /// ```
-pub struct Control<Dim, Layout, Pattern, Driver> {
+pub struct Control<Dim, Layout, Pattern, Driver, Timer> {
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,
     pattern: Pattern,
     driver: Driver,
+    timer: Timer,
     brightness: f32,
     correction: ColorCorrection,
 }
 
-impl<Dim, Layout, Pattern, Driver> Control<Dim, Layout, Pattern, Driver> {
+impl<Dim, Layout, Pattern, Driver, Timer> Control<Dim, Layout, Pattern, Driver, Timer> {
     /// Creates a new control system.
     ///
     /// # Arguments
@@ -85,12 +86,13 @@ impl<Dim, Layout, Pattern, Driver> Control<Dim, Layout, Pattern, Driver> {
     /// # Returns
     ///
     /// A new Control instance with default brightness
-    pub fn new(pattern: Pattern, driver: Driver) -> Self {
+    pub fn new(pattern: Pattern, driver: Driver, timer: Timer) -> Self {
         Self {
             dim: PhantomData,
             layout: PhantomData,
             pattern,
             driver,
+            timer,
             brightness: 1.,
             correction: ColorCorrection::default(),
         }
@@ -115,12 +117,13 @@ impl<Dim, Layout, Pattern, Driver> Control<Dim, Layout, Pattern, Driver> {
     }
 }
 
-impl<Dim, Layout, Pattern, Driver> Control<Dim, Layout, Pattern, Driver>
+impl<Dim, Layout, Pattern, Driver, Timer> Control<Dim, Layout, Pattern, Driver, Timer>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
     Driver: DriverTrait,
     Driver::Color: FromColor<Pattern::Color>,
+    Timer: FnMut() -> u64,
 {
     /// Updates the LED state based on the current time.
     ///
@@ -135,7 +138,8 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error from the driver
-    pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
+    pub fn tick(&mut self) -> Result<(), Driver::Error> {
+        let time_in_ms = (self.timer)();
         let pixels = self.pattern.tick(time_in_ms);
         self.driver.write(pixels, self.brightness, self.correction)
     }
@@ -144,62 +148,66 @@ where
 ///
 /// The builder allows your to build up your [`Control`] system one-by-one
 /// and handles the combination of generic types and contraints that [`Control`] expects.
-pub struct ControlBuilder<Dim, Layout, Pattern, Driver> {
+pub struct ControlBuilder<Dim, Layout, Pattern, Driver, Timer> {
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,
     pattern: Pattern,
     driver: Driver,
+    timer: Timer,
 }
 
-impl ControlBuilder<(), (), (), ()> {
+impl ControlBuilder<(), (), (), (), ()> {
     /// Starts building a one-dimensional control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 1D
-    pub fn new_1d() -> ControlBuilder<Dim1d, (), (), ()> {
+    pub fn new_1d() -> ControlBuilder<Dim1d, (), (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             layout: PhantomData,
             pattern: (),
             driver: (),
+            timer: (),
         }
     }
 }
 
-impl ControlBuilder<(), (), (), ()> {
+impl ControlBuilder<(), (), (), (), ()> {
     /// Starts building a two-dimensional control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 2D
-    pub fn new_2d() -> ControlBuilder<Dim2d, (), (), ()> {
+    pub fn new_2d() -> ControlBuilder<Dim2d, (), (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             layout: PhantomData,
             pattern: (),
             driver: (),
+            timer: (),
         }
     }
 }
 
-impl ControlBuilder<(), (), (), ()> {
+impl ControlBuilder<(), (), (), (), ()> {
     /// Starts building a three-dimensional control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 3D
-    pub fn new_3d() -> ControlBuilder<Dim3d, (), (), ()> {
+    pub fn new_3d() -> ControlBuilder<Dim3d, (), (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             layout: PhantomData,
             pattern: (),
             driver: (),
+            timer: (),
         }
     }
 }
 
-impl<Dim, Pattern, Driver> ControlBuilder<Dim, (), Pattern, Driver> {
+impl<Dim, Pattern, Driver, Timer> ControlBuilder<Dim, (), Pattern, Driver, Timer> {
     /// Specifies the layout type for the control system.
     ///
     /// # Type Parameters
@@ -209,7 +217,7 @@ impl<Dim, Pattern, Driver> ControlBuilder<Dim, (), Pattern, Driver> {
     /// # Returns
     ///
     /// Builder with layout type specified
-    pub fn with_layout<Layout>(self) -> ControlBuilder<Dim, Layout, Pattern, Driver>
+    pub fn with_layout<Layout>(self) -> ControlBuilder<Dim, Layout, Pattern, Driver, Timer>
     where
         Layout: LayoutForDim<Dim>,
     {
@@ -218,11 +226,12 @@ impl<Dim, Pattern, Driver> ControlBuilder<Dim, (), Pattern, Driver> {
             layout: PhantomData,
             pattern: self.pattern,
             driver: self.driver,
+            timer: self.timer,
         }
     }
 }
 
-impl<Dim, Layout, Driver> ControlBuilder<Dim, Layout, (), Driver>
+impl<Dim, Layout, Driver, Timer> ControlBuilder<Dim, Layout, (), Driver, Timer>
 where
     Layout: LayoutForDim<Dim>,
 {
@@ -242,7 +251,7 @@ where
     pub fn with_pattern<Pattern>(
         self,
         params: Pattern::Params,
-    ) -> ControlBuilder<Dim, Layout, Pattern, Driver>
+    ) -> ControlBuilder<Dim, Layout, Pattern, Driver, Timer>
     where
         Pattern: PatternTrait<Dim, Layout>,
     {
@@ -252,11 +261,12 @@ where
             layout: self.layout,
             pattern,
             driver: self.driver,
+            timer: self.timer,
         }
     }
 }
 
-impl<Dim, Layout, Pattern> ControlBuilder<Dim, Layout, Pattern, ()> {
+impl<Dim, Layout, Pattern, Timer> ControlBuilder<Dim, Layout, Pattern, (), Timer> {
     /// Specifies the LED driver for the control system.
     ///
     /// # Arguments
@@ -266,7 +276,10 @@ impl<Dim, Layout, Pattern> ControlBuilder<Dim, Layout, Pattern, ()> {
     /// # Returns
     ///
     /// Builder with driver specified
-    pub fn with_driver<Driver>(self, driver: Driver) -> ControlBuilder<Dim, Layout, Pattern, Driver>
+    pub fn with_driver<Driver>(
+        self,
+        driver: Driver,
+    ) -> ControlBuilder<Dim, Layout, Pattern, Driver, Timer>
     where
         Driver: DriverTrait,
     {
@@ -275,23 +288,52 @@ impl<Dim, Layout, Pattern> ControlBuilder<Dim, Layout, Pattern, ()> {
             layout: self.layout,
             pattern: self.pattern,
             driver,
+            timer: self.timer,
         }
     }
 }
 
-impl<Dim, Layout, Pattern, Driver> ControlBuilder<Dim, Layout, Pattern, Driver>
+impl<Dim, Layout, Pattern, Driver> ControlBuilder<Dim, Layout, Pattern, Driver, ()> {
+    /// Specifies the timer for the control system.
+    ///
+    /// # Arguments
+    ///
+    /// * `timer` - The timer function `FnMut() -> u64`
+    ///
+    /// # Returns
+    ///
+    /// Builder with timer specified
+    pub fn with_timer<Timer>(
+        self,
+        timer: Timer,
+    ) -> ControlBuilder<Dim, Layout, Pattern, Driver, Timer>
+    where
+        Timer: FnMut() -> u64,
+    {
+        ControlBuilder {
+            dim: self.dim,
+            layout: self.layout,
+            pattern: self.pattern,
+            driver: self.driver,
+            timer,
+        }
+    }
+}
+
+impl<Dim, Layout, Pattern, Driver, Timer> ControlBuilder<Dim, Layout, Pattern, Driver, Timer>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
     Driver: DriverTrait,
     Driver::Color: FromColor<Pattern::Color>,
+    Timer: FnMut() -> u64,
 {
     /// Builds the final [`Control`] struct.
     ///
     /// # Returns
     ///
     /// A fully configured Control instance
-    pub fn build(self) -> Control<Dim, Layout, Pattern, Driver> {
-        Control::new(self.pattern, self.driver)
+    pub fn build(self) -> Control<Dim, Layout, Pattern, Driver, Timer> {
+        Control::new(self.pattern, self.driver, self.timer)
     }
 }

@@ -13,7 +13,7 @@ use gledopto::{board, elapsed, main, ws2812};
 fn main() -> ! {
     let p = board!();
 
-    layout1d!(Layout, 60 * 5);
+    layout1d!(Layout, 6);
 
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout>()

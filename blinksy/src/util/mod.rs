@@ -1,3 +1,5 @@
 mod component;
+mod map_range;
 
-pub use self::component::*;
+pub(crate) use self::component::*;
+pub use self::map_range::*;

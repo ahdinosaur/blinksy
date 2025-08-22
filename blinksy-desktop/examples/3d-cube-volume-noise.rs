@@ -1,6 +1,7 @@
 use blinksy::{
     layout::{Layout3d, Shape3d, Vec3},
     patterns::noise::{noise_fns, Noise3d, NoiseParams},
+    util::map_range,
     ControlBuilder,
 };
 use blinksy_desktop::{
@@ -18,11 +19,7 @@ impl Layout3d for VolumeCubeLayout {
         let mut index: usize = 0;
 
         fn map(n: usize) -> f32 {
-            assert!(n <= 4, "Input must be between 0 and 4 inclusive.");
-            // Map 0..=5 to 0.0..=1.0
-            let normalized = n as f32 / 4.0;
-            // Map 0.0..=1.0 to -1.0..=1.0
-            normalized * 2.0 - 1.0
+            map_range(n as f32, 0., 4., -1., 1.)
         }
 
         iter::from_fn(move || {
@@ -47,7 +44,6 @@ fn main() {
         .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
             time_scalar: 0.25 / 1e3,
             position_scalar: 0.25,
-            ..Default::default()
         })
         .with_driver(Desktop::new_3d::<VolumeCubeLayout>())
         .build();

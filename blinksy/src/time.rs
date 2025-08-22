@@ -7,69 +7,69 @@
 //!
 //! [`fugit`]: https://docs.rs/fugit
 
-/// Frequency in hertz (Hz), backed by `u32`.
-pub use fugit::HertzU32;
-
-/// Frequency in hertz (Hz), backed by `u64`.
-pub use fugit::HertzU64;
-
-/// Frequency in kilohertz (KHz), backed by `u32`.
-pub use fugit::KilohertzU32;
-
-/// Frequency in kilohertz (KHz), backed by `u64`.
-pub use fugit::KilohertzU64;
-
 /// Frequency in megahertz (MHz), backed by `u32`.
-pub use fugit::MegahertzU32;
-
-/// Frequency in megahertz (MHz), backed by `u64`.
-pub use fugit::MegahertzU64;
-
-/// Duration in nanoseconds (ns), backed by `u32`.
-pub use fugit::NanosDurationU32 as NanosecondsU32;
-
-/// Duration in nanoseconds (ns), backed by `u64`.
-pub use fugit::NanosDurationU64 as NanosecondsU64;
+pub use fugit::MegahertzU32 as Megahertz;
 
 /// Duration in microseconds (μs), backed by `u32`.
-pub use fugit::MicrosDurationU32 as MicrosecondsU32;
+///
+/// Used as an animation time source.
+pub use fugit::MicrosDurationU32 as AppDuration;
 
-/// Duration in microseconds (μs), backed by `u64`.
-pub use fugit::MicrosDurationU64 as MicrosecondsU64;
+/// Duration in nanoseconds (ns), backed by `u32`.
+///
+/// Used in protocol timing.
+pub use fugit::NanosDurationU32 as ProtocolDuration;
 
-/// Duration in milliseconds (ms), backed by `u32`.
-pub use fugit::MillisDurationU32 as MillisecondsU32;
+/// Duration in seconds (s), backed by `f32`.
+///
+/// Used in animation timing.
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct AnimationDuration(pub f32);
 
-/// Duration in milliseconds (ms), backed by `u64`.
-pub use fugit::MillisDurationU64 as MillisecondsU64;
+impl AnimationDuration {
+    /// A duration of zero seconds.
+    pub const ZERO: Self = Self(0.0);
 
-/// Duration in seconds (s), backed by `u32`.
-pub use fugit::SecsDurationU32 as SecondsU32;
+    /// Creates a duration from microseconds.
+    #[inline]
+    pub const fn from_micros(val: u32) -> Self {
+        Self(val as f32 / 1_000_000.0)
+    }
 
-/// Duration in seconds (s), backed by `u64`.
-pub use fugit::SecsDurationU64 as SecondsU64;
+    /// Creates a duration from milliseconds.
+    #[inline]
+    pub const fn from_millis(val: u64) -> Self {
+        Self(val as f32 / 1_000.0)
+    }
 
-/// Duration in seconds (s), backed by `u32`.
-pub use fugit::MinutesDurationU32 as MinutesU32;
+    /// Creates a duration from seconds.
+    #[inline]
+    pub const fn from_secs(val: u64) -> Self {
+        Self(val as f32)
+    }
 
-/// Duration in seconds (s), backed by `u64`.
-pub use fugit::MinutesDurationU64 as MinutesU64;
+    /// Creates a duration from minutes.
+    #[inline]
+    pub const fn from_minutes(val: u64) -> Self {
+        Self(val as f32 * 60.0)
+    }
 
-/// Duration in seconds (s), backed by `u32`.
-pub use fugit::HoursDurationU32 as HoursU32;
-
-/// Duration in seconds (s), backed by `u64`.
-pub use fugit::HoursDurationU64 as HoursU64;
+    /// Creates a duration from hours.
+    #[inline]
+    pub const fn from_hours(val: u64) -> Self {
+        Self(val as f32 * 3600.0)
+    }
+}
 
 pub trait TimeSource {
-    fn now(&mut self) -> MillisecondsU64;
+    fn elapsed(&mut self) -> AppDuration;
 }
 
 impl<F> TimeSource for F
 where
-    F: FnMut() -> MillisecondsU64,
+    F: FnMut() -> AppDuration,
 {
-    fn now(&mut self) -> MillisecondsU64 {
+    fn elapsed(&mut self) -> AppDuration {
         self()
     }
 }

@@ -11,7 +11,8 @@ use num_traits::float::FloatCore;
 ///
 /// # Example
 /// ```
-/// let x = map_range(2.5, 0.0, 5.0, -1.0, 1.0);
+/// # use blinksy::util::map_range;
+/// let x: f32 = map_range(2.5, 0.0, 5.0, -1.0, 1.0);
 /// assert!((x - 0.0).abs() < 1e-6);
 /// ```
 pub fn map_range<N>(value: N, in_min: N, in_max: N, out_min: N, out_max: N) -> N

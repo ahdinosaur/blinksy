@@ -40,33 +40,40 @@ pub enum Shape2d {
         serpentine: bool,
     },
 
-    /// An circular or elliptical arc in 2D.
+    /// A circular or elliptical arc in 2D.
     ///
-    /// Parametric:
+    /// Parametric form:
     ///
-    /// ```rust
-    /// point = center + cos(theta) * axis_u + sin(theta) * axis_v
+    /// ```text
+    /// point(theta) = center + cos(theta) * axis_u + sin(theta) * axis_v
     /// ```
+    ///
+    /// Angle and direction:
+    ///
+    /// - Theta = 0 lies along `axis_u` (i.e. `center + axis_u`)
+    ///   - As theta increases, the point moves towards `axis_v` (counter-clockwise in the XY plane).
+    /// - The arc is traced for theta in `[start_angle_in_radians, end_angle_in_radians]`.
+    ///   - If `end` < `start`, the arc goes clockwise.
+    /// - Positive angles are counter-clockwise.
+    /// - To make a full ellipse, set end = start + [`TAU`].
+    ///
     ///
     /// How to choose `axis_u` / `axis_v`:
     ///
-    /// - Axis-aligned circle with with radius (r):
+    /// - Axis-aligned circle with with radius `r`:
     ///   - `axis_u = (r, 0)`
     ///   - `axis_v = (0, r)`
-    /// - Axis-aligned ellipse with radii (rx, ry):
+    /// - Axis-aligned ellipse with radii `(rx, ry)`:
     ///   - `axis_u = (rx, 0)`
     ///   - `axis_v = (0, ry)`
-    /// - Rotated by phi:
+    /// - Rotated by `phi`:
     ///   - `axis_u = ( rx * cos(phi),  rx * sin(phi))`
     ///   - `axis_v = ( -ry * sin(phi), ry * cos(phi))`
     ///
-    /// Angles:
+    /// Notes:
     ///
-    /// - Measured from +X axis.
-    /// - Positive angles are counter-clockwise.
-    /// - Sweep = end - start
-    ///
-    /// To make a full ellipse, set end = start + [`TAU`].
+    /// - `axis_u` and `axis_v` must not both be zero.
+    /// - `axis_u` and `axis_v` need not be unit length of perpendicular.
     ///
     /// [`TAU`]: https://doc.rust-lang.org/core/f32/consts/constant.TAU.html
     Arc {

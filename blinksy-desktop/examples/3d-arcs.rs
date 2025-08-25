@@ -11,19 +11,6 @@ use blinksy_desktop::{
 use core::f32::consts::PI;
 use std::{thread::sleep, time::Duration};
 
-// Parametric form used by Arc:
-//
-// ```
-// point = center + cos(theta) * axis_u + sin(theta) * axis_v
-// ```
-//
-// For these half-arches:
-//
-// - We keep axis_u along +X with length 1.0 so endpoints are at x = ±1.
-// - We keep axis_v along +Y with a variable length (v_radius) to control height.
-// - center.y = -1.0 makes the “flat bottom” lie at y = -1 when theta = 0 or PI.
-// - theta spans [0, PI], tracing right base -> apex -> left base at constant z.
-
 layout3d!(
     /// Five half-arches stepping through z ∈ [-1, 1]
     pub LayoutTunnel,

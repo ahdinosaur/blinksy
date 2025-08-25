@@ -42,18 +42,34 @@ pub enum Shape3d {
 
     /// An circular or elliptical arc in 3D.
     ///
-    /// Parametric:
+    /// Parametric form:
     ///
-    /// ```rust
-    /// point = center + cos(theta) * axis_u + sin(theta) * axis_v
+    /// ```text
+    /// point(theta) = center + cos(theta) * axis_u + sin(theta) * axis_v
     /// ```
     ///
-    /// Tips:
+    /// Plane and orientation:
     ///
-    /// - The plane is span(axis_u, axis_v). They should be non-colinear.
-    /// - Handedness and rotation come from the pair (axis_u, axis_v).
+    /// - The arc lies in the plane spanned by `axis_u` and `axis_v`.
+    /// - `axis_u` and `axis_v` must be non-colinear (not scalar multiples).
+    /// - Theta = 0 lies along `axis_u` (i.e. `center + axis_u`)
+    ///   - As theta increases, the point moves towards `axis_v`.
+    /// - Looking along `axis_u x axis_v`, rotation is counter-clockwise. Swap the two axes to flip direction.
+    /// - To make a full circle/ellipse, set end = start + [core::f32::consts::TAU].
     ///
-    /// To make a full ellipse, set end = start + [`TAU`].
+    /// - Circle of radius `r` in the XY plane:
+    ///   - `axis_u = (r, 0, 0)`
+    ///   - `axis_v = (0, r, 0)`
+    /// - Circle of radius `r` in an arbitrary plane with unit basis `u`, `v`:
+    ///   - `axis_u = r * u`
+    ///   - `axis_v = r * v`
+    /// - Ellipse with radii `rx`, `ry` in a plane with unit basis `u`, `v`:
+    ///   - `axis_u = rx * u`
+    ///   - `axis_v = ry * v`
+    ///
+    /// Notes:
+    ///
+    /// - Axes don’t need to be unit length or perpendicular; their lengths set the ellipse radii along their directions.
     ///
     /// [`TAU`]: https://doc.rust-lang.org/core/f32/consts/constant.TAU.html
     Arc {

@@ -1,5 +1,6 @@
 use core::ops::{Add, Mul};
 
+#[allow(unused_imports)]
 use num_traits::Float;
 
 /// Iterator for points along an arc (circular or elliptical) in 2D or 3D.

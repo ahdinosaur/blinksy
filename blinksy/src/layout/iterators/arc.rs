@@ -64,7 +64,7 @@ impl<Item> ArcStepIterator<Item> {
 impl<Item> Iterator for ArcStepIterator<Item>
 where
     Item: Add<Output = Item> + Copy,
-    f32: Mul<Item, Output = Item>,
+    f32: Mul<Item, Output = Item> + Mul<f32, Output = f32>,
 {
     type Item = Item;
 

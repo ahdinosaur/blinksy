@@ -1,6 +1,8 @@
 use core::iter::{once, Once};
 
-use super::iterators::{GridStepIterator, StepIterator};
+use crate::layout::ArcStepIterator;
+
+use super::iterators::{GridStepIterator, LineStepIterator};
 
 pub use glam::Vec2;
 
@@ -38,15 +40,47 @@ pub enum Shape2d {
         serpentine: bool,
     },
 
-    /// An arc of LEDs centered at `center` with the specified `radius`.
+    /// An circular or elliptical arc in 2D.
+    ///
+    /// Parametric:
+    ///
+    /// ```rust
+    /// point = center + cos(theta) * axis_u + sin(theta) * axis_v
+    /// ```
+    ///
+    /// How to choose `axis_u` / `axis_v`:
+    ///
+    /// - Axis-aligned circle with with radius (r):
+    ///   - `axis_u = (r, 0)`
+    ///   - `axis_v = (0, r)`
+    /// - Axis-aligned ellipse with radii (rx, ry):
+    ///   - `axis_u = (rx, 0)`
+    ///   - `axis_v = (0, ry)`
+    /// - Rotated by phi:
+    ///   - `axis_u = ( rx * cos(phi),  rx * sin(phi))`
+    ///   - `axis_v = ( -ry * sin(phi), ry * cos(phi))`
+    ///
+    /// Angles:
+    ///
+    /// - Measured from +X axis.
+    /// - Positive angles are counter-clockwise.
+    /// - Sweep = end - start
+    ///
+    /// To make a full ellipse, set end = start + [`TAU`].
+    ///
+    /// [`TAU`]: https://doc.rust-lang.org/core/f32/consts/constant.TAU.html
     Arc {
-        /// Center point of the arc
+        /// Center of the ellipse
         center: Vec2,
-        /// Radius of the arc
-        radius: f32,
-        /// Angular span of the arc in radians
-        angle_in_radians: f32,
-        /// Number of LEDs along the arc
+        /// Cosine-axis vector
+        axis_u: Vec2,
+        /// Sine-axis vector
+        axis_v: Vec2,
+        /// Start angle in radians
+        start_angle_in_radians: f32,
+        /// End angle in radians
+        end_angle_in_radians: f32,
+        /// Number of LEDs
         pixel_count: usize,
     },
 }
@@ -57,9 +91,11 @@ pub enum Shape2dPointsIterator {
     /// Iterator for a single point
     Point(Once<Vec2>),
     /// Iterator for points along a line
-    Line(StepIterator<Vec2, f32>),
+    Line(LineStepIterator<Vec2, f32>),
     /// Iterator for points in a grid
     Grid(GridStepIterator<Vec2, f32>),
+    /// Iterator for points in an arc
+    Arc(ArcStepIterator<Vec2>),
 }
 
 impl Iterator for Shape2dPointsIterator {
@@ -70,6 +106,7 @@ impl Iterator for Shape2dPointsIterator {
             Shape2dPointsIterator::Point(iter) => iter.next(),
             Shape2dPointsIterator::Line(iter) => iter.next(),
             Shape2dPointsIterator::Grid(iter) => iter.next(),
+            Shape2dPointsIterator::Arc(iter) => iter.next(),
         }
     }
 }
@@ -80,8 +117,8 @@ impl From<Once<Vec2>> for Shape2dPointsIterator {
     }
 }
 
-impl From<StepIterator<Vec2, f32>> for Shape2dPointsIterator {
-    fn from(value: StepIterator<Vec2, f32>) -> Self {
+impl From<LineStepIterator<Vec2, f32>> for Shape2dPointsIterator {
+    fn from(value: LineStepIterator<Vec2, f32>) -> Self {
         Shape2dPointsIterator::Line(value)
     }
 }
@@ -89,6 +126,12 @@ impl From<StepIterator<Vec2, f32>> for Shape2dPointsIterator {
 impl From<GridStepIterator<Vec2, f32>> for Shape2dPointsIterator {
     fn from(value: GridStepIterator<Vec2, f32>) -> Self {
         Shape2dPointsIterator::Grid(value)
+    }
+}
+
+impl From<ArcStepIterator<Vec2>> for Shape2dPointsIterator {
+    fn from(value: ArcStepIterator<Vec2>) -> Self {
+        Shape2dPointsIterator::Arc(value)
     }
 }
 
@@ -117,7 +160,7 @@ impl Shape2d {
                 pixel_count,
             } => {
                 let step = (end - start) / ((pixel_count - 1) as f32).max(1.);
-                StepIterator::new(start, step, pixel_count).into()
+                LineStepIterator::new(start, step, pixel_count).into()
             }
             Shape2d::Grid {
                 start,
@@ -141,12 +184,23 @@ impl Shape2d {
                 )
                 .into()
             }
+
             Shape2d::Arc {
-                center: _,
-                radius: _,
-                angle_in_radians: _,
-                pixel_count: _,
-            } => todo!(),
+                center,
+                axis_u,
+                axis_v,
+                start_angle_in_radians,
+                end_angle_in_radians,
+                pixel_count,
+            } => ArcStepIterator::new(
+                center,
+                axis_u,
+                axis_v,
+                start_angle_in_radians,
+                end_angle_in_radians,
+                pixel_count,
+            )
+            .into(),
         }
     }
 }

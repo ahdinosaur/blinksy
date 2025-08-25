@@ -4,55 +4,6 @@ use core::{
 };
 use num_traits::FromPrimitive;
 
-/// Iterator that produces values by stepping from a start point.
-///
-/// Used for generating points along lines and other linear patterns.
-#[derive(Debug)]
-pub struct StepIterator<Item, Scalar> {
-    start: Item,
-    step: Item,
-    index: usize,
-    length: usize,
-    scalar: PhantomData<Scalar>,
-}
-
-impl<Item, Scalar> StepIterator<Item, Scalar> {
-    /// Creates a new step iterator.
-    ///
-    /// # Arguments
-    ///
-    /// * `start` - The starting item
-    /// * `step` - The step between items
-    /// * `length` - The number of items to generate
-    pub fn new(start: Item, step: Item, length: usize) -> Self {
-        Self {
-            start,
-            step,
-            index: 0,
-            length,
-            scalar: PhantomData,
-        }
-    }
-}
-
-impl<Item, Scalar> Iterator for StepIterator<Item, Scalar>
-where
-    Item: Add<Output = Item> + Copy,
-    Scalar: FromPrimitive + Mul<Item, Output = Item>,
-{
-    type Item = Item;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.length {
-            return None;
-        }
-        let index = Scalar::from_usize(self.index)?;
-        let next = self.start + index * self.step;
-        self.index += 1;
-        Some(next)
-    }
-}
-
 /// Iterator for grid points with support for serpentine (zigzag) patterns.
 #[derive(Debug)]
 pub struct GridStepIterator<Item, Scalar> {

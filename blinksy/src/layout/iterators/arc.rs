@@ -7,8 +7,8 @@ use num_traits::Float;
 ///
 /// Parametric form:
 ///
-/// ```rust
-/// point = origin + cos(theta) * cos_scalar + sin(theta) * sin_scalar
+/// ```text
+/// point(theta) = origin + cos(theta) * cos_scalar + sin(theta) * sin_scalar
 /// ```
 ///
 /// - 2D circle with radius r:

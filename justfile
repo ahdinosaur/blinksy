@@ -14,6 +14,9 @@ desktop-2d-noise:
 desktop-3d-cube-face-noise:
   cargo run --release --example 3d-cube-face-noise
 
+desktop-3d-cube-volume-rainbow:
+  cargo run --release --example 3d-cube-volume-rainbow
+
 desktop-3d-cube-volume-noise:
   cargo run --release --example 3d-cube-volume-noise
 

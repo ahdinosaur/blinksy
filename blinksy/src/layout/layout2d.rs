@@ -116,7 +116,7 @@ impl Shape2d {
                 end,
                 pixel_count,
             } => {
-                let step = (start - end) / pixel_count as f32;
+                let step = (end - start) / ((pixel_count - 1) as f32).max(1.);
                 StepIterator::new(start, step, pixel_count).into()
             }
             Shape2d::Grid {

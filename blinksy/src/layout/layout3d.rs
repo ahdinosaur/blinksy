@@ -70,6 +70,9 @@ pub enum Shape3d {
     /// Notes:
     ///
     /// - Axes don’t need to be unit length or perpendicular; their lengths set the ellipse radii along their directions.
+    /// - The points returned by `shape::points()` of a `Shape3d::Arc`:
+    ///   - Will have uniform density if a circular arc
+    ///   - Will **not** have uniform density if an elliptical arc, as the points correspond to `theta`.
     ///
     /// [`TAU`]: https://doc.rust-lang.org/core/f32/consts/constant.TAU.html
     Arc {

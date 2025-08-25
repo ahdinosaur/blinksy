@@ -57,7 +57,6 @@ pub enum Shape2d {
     /// - Positive angles are counter-clockwise.
     /// - To make a full ellipse, set end = start + [`TAU`].
     ///
-    ///
     /// How to choose `axis_u` / `axis_v`:
     ///
     /// - Axis-aligned circle with with radius `r`:
@@ -74,6 +73,9 @@ pub enum Shape2d {
     ///
     /// - `axis_u` and `axis_v` must not both be zero.
     /// - `axis_u` and `axis_v` need not be unit length of perpendicular.
+    /// - The points returned by `shape::points()` of a `Shape2d::Arc`:
+    ///   - Will have uniform density if a circular arc
+    ///   - Will **not** have uniform density if an elliptical arc, as the points correspond to `theta`.
     ///
     /// [`TAU`]: https://doc.rust-lang.org/core/f32/consts/constant.TAU.html
     Arc {

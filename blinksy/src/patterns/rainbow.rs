@@ -124,7 +124,7 @@ where
         let step = 0.5 * position_scalar;
 
         Layout::points().map(move |point| {
-            let hue = point.x * step + time;
+            let hue = (point.x + point.y) * step + time;
             let saturation = 1.;
             let value = 1.;
             Self::Color::new(hue, saturation, value)
@@ -159,7 +159,7 @@ where
         let step = 0.5 * position_scalar;
 
         Layout::points().map(move |point| {
-            let hue = point.x * step + time;
+            let hue = (point.x + point.y + point.z) * step + time;
             let saturation = 1.;
             let value = 1.;
             Self::Color::new(hue, saturation, value)

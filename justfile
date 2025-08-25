@@ -17,6 +17,9 @@ desktop-3d-cube-face-noise:
 desktop-3d-cube-volume-noise:
   cargo run --release --example 3d-cube-volume-noise
 
+desktop-3d-arcs:
+  cargo run --release --example 3d-arcs
+
 gledopto-ws2812-strip:
   cd esp && cargo run --release -p gledopto --example ws2812-strip --features gl_c_016wl_d
 

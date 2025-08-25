@@ -1,0 +1,91 @@
+use blinksy::{
+    layout::{Shape3d, Vec3},
+    layout3d,
+    patterns::noise::{noise_fns, Noise3d, NoiseParams},
+    ControlBuilder,
+};
+use blinksy_desktop::{
+    driver::{Desktop, DesktopError},
+    time::elapsed_in_ms,
+};
+use core::f32::consts::PI;
+use std::{thread::sleep, time::Duration};
+
+// Parametric form used by Arc:
+//
+// ```
+// point = center + cos(theta) * axis_u + sin(theta) * axis_v
+// ```
+//
+// For these half-arches:
+//
+// - We keep axis_u along +X with length 1.0 so endpoints are at x = ±1.
+// - We keep axis_v along +Y with a variable length (v_radius) to control height.
+// - center.y = -1.0 makes the “flat bottom” lie at y = -1 when theta = 0 or PI.
+// - theta spans [0, PI], tracing right base -> apex -> left base at constant z.
+
+layout3d!(
+    /// Five half-arches stepping through z ∈ [-1, 1]
+    pub LayoutTunnel,
+    [
+        // Perfect semi-circle (apex at y = 0)
+        Shape3d::Arc {
+            center: Vec3::new(0., -1., -1.),
+            axis_u: Vec3::new(1., 0., 0.),
+            axis_v: Vec3::new(0., 1., 0.), // v_radius = 1.0 (circle)
+            start_angle_in_radians: 0.0,
+            end_angle_in_radians: PI,
+            pixel_count: 60,
+        },
+        Shape3d::Arc {
+            center: Vec3::new(0., -1., -0.5),
+            axis_u: Vec3::new(1., 0., 0.),
+            axis_v: Vec3::new(0., 1.25, 0.), // v_radius = 1.25
+            start_angle_in_radians: 0.0,
+            end_angle_in_radians: PI,
+            pixel_count: 68,
+        },
+        Shape3d::Arc {
+            center: Vec3::new(0., -1., 0.),
+            axis_u: Vec3::new(1., 0., 0.),
+            axis_v: Vec3::new(0., 1.5, 0.), // v_radius = 1.5
+            start_angle_in_radians: 0.0,
+            end_angle_in_radians: PI,
+            pixel_count: 76,
+        },
+        Shape3d::Arc {
+            center: Vec3::new(0., -1., 0.5),
+            axis_u: Vec3::new(1., 0., 0.),
+            axis_v: Vec3::new(0., 1.75, 0.), // v_radius = 1.75
+            start_angle_in_radians: 0.0,
+            end_angle_in_radians: PI,
+            pixel_count: 84,
+        },
+        // Tall elliptical arch, apex reaches y = +1
+        Shape3d::Arc {
+            center: Vec3::new(0., -1., 1.),
+            axis_u: Vec3::new(1., 0., 0.),
+            axis_v: Vec3::new(0., 2., 0.), // v_radius = 2.0 (ellipse)
+            start_angle_in_radians: 0.0,
+            end_angle_in_radians: PI,
+            pixel_count: 93,
+        },
+    ]
+);
+
+fn main() {
+    let mut control = ControlBuilder::new_3d()
+        .with_layout::<LayoutTunnel>()
+        .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
+            ..Default::default()
+        })
+        .with_driver(Desktop::new_3d::<LayoutTunnel>())
+        .build();
+
+    loop {
+        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+            break;
+        }
+        sleep(Duration::from_millis(16));
+    }
+}

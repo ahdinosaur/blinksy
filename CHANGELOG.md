@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7
+
+Migration guide (0.6 -> 0.7)
+
+- No known breaking changes.
+
+Feature additions:
+
+- [#59](https://github.com/ahdinosaur/blinksy/pull/59): Add example of 3D volumetric cube
+- [#65](https://github.com/ahdinosaur/blinksy/pull/65): Add support for GL-C-017WL-D
+- [#63](https://github.com/ahdinosaur/blinksy/pull/63): Add arc shape
+
+Bug fixes:
+
+- [#61](https://github.com/ahdinosaur/blinksy/pull/61): Fix points step of Shape::Line
+
+Visual improvements:
+
+- [#64](https://github.com/ahdinosaur/blinksy/pull/64): Change rainbow pattern so is not just over x, but over all available dimensions
+
 ## 0.6
 
 Woo hoo `blinksy` now supports 3D!

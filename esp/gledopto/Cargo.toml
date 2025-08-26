@@ -38,6 +38,14 @@ gl_c_016wl_d = [
   "esp-backtrace/esp32",
 ]
 
+# Gledopto GL-C-017WL-D
+gl_c_017wl_d = [
+  "blinksy-esp/esp32",
+  "esp-hal/esp32",
+  "esp-println/esp32",
+  "esp-backtrace/esp32",
+]
+
 # Mock for tests, builds, and docs
 mock = [
   "blinksy-esp/esp32c6",

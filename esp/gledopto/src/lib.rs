@@ -6,9 +6,8 @@
 //!
 //! ## Supported Boards
 //!
-//! Currently this library only supports one board:
-//!
 //! - [x] [Gledopto GL-C-016WL-D](https://www.gledopto.eu/gledopto-esp32-wled-uart_1), `gl_c_016wl_d`
+//! - [x] [Gledopto GL-C-017WL-D](https://www.gledopto.eu/gledopto-esp32-wled-uart_5), `gl_c_017wl_d`
 //!
 //! Select the board by using its respective feature.
 //!

@@ -54,11 +54,16 @@
 //!
 //! ## Quick Start
 //!
-//! To quickstart a project, see [`blinksy-quickstart-gledopto`][blinksy-quickstart-gledopto]
+//! To quickstart a project, see:
 //!
-//! To start using the library, see [control].
+//! - [`blinksy-quickstart-1d-rope`][blinksy-quickstart-1d-rope]
+//! - [`blinksy-quickstart-3d-grid`][blinksy-quickstart-3d-grid]
 //!
-//! [blinksy-quickstart-gledopto]: https://github.com/ahdinosaur/blinksy-quickstart-gledopto
+//! To start using the library, see [control][control].
+//!
+//! [blinksy-quickstart-1d-rope]: https://github.com/ahdinosaur/blinksy-quickstart-1d-rope
+//! [blinksy-quickstart-3d-grid]: https://github.com/ahdinosaur/blinksy-quickstart-3d-grid
+//! [control]: https://docs.rs/blinksy/0.5/blinksy/control/index.html
 //!
 //! ### 1D Strip with Rainbow Pattern
 //!

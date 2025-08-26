@@ -106,11 +106,15 @@ If you want help to support a new target, [make an issue](https://github.com/ahd
 
 ## Quick Start
 
-To quickstart a project, see [`blinksy-quickstart-gledopto`][blinksy-quickstart-gledopto]
+To quickstart a project, see:
+
+- [`blinksy-quickstart-1d-rope`][blinksy-quickstart-1d-rope]
+- [`blinksy-quickstart-3d-grid`][blinksy-quickstart-3d-grid]
 
 To start using the library, see [control][control].
 
-[blinksy-quickstart-gledopto]: https://github.com/ahdinosaur/blinksy-quickstart-gledopto
+[blinksy-quickstart-1d-rope]: https://github.com/ahdinosaur/blinksy-quickstart-1d-rope
+[blinksy-quickstart-3d-grid]: https://github.com/ahdinosaur/blinksy-quickstart-3d-grid
 [control]: https://docs.rs/blinksy/0.5/blinksy/control/index.html
 
 ## Examples

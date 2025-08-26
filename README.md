@@ -143,7 +143,9 @@ use blinksy::{
     patterns::noise::{noise_fns, Noise3d, NoiseParams},
     ControlBuilder,
 };
-use gledopto::{board, elapsed, main, ws2812};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {
@@ -301,7 +303,9 @@ use blinksy::{
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use gledopto::{apa102, board, elapsed, main};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {
@@ -356,7 +360,9 @@ use blinksy::{
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
-use gledopto::{board, elapsed, main, ws2812};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {

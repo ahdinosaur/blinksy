@@ -38,7 +38,9 @@
 //!     patterns::rainbow::{Rainbow, RainbowParams},
 //!     ControlBuilder,
 //! };
-//! use gledopto::{board, elapsed, main, ws2812};
+//! use gledopto::{board, bootloader, elapsed, main, ws2812};
+//!
+//! bootloader!();
 //!
 //! #[main]
 //! fn main() -> ! {
@@ -75,7 +77,9 @@
 //!     patterns::noise::{noise_fns, Noise2d, NoiseParams},
 //!     ControlBuilder,
 //! };
-//! use gledopto::{apa102, board, elapsed, main};
+//! use gledopto::{apa102, board, bootloader, elapsed, main};
+//!
+//! bootloader!();
 //!
 //! #[main]
 //! fn main() -> ! {

@@ -57,6 +57,8 @@ pub enum Shape3d {
     /// - Looking along `axis_u x axis_v`, rotation is counter-clockwise. Swap the two axes to flip direction.
     /// - To make a full circle/ellipse, set end = start + [core::f32::consts::TAU].
     ///
+    /// How to choose `axis_u` / `axis_v`:
+    ///
     /// - Circle of radius `r` in the XY plane:
     ///   - `axis_u = (r, 0, 0)`
     ///   - `axis_v = (0, r, 0)`

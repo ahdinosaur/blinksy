@@ -18,10 +18,11 @@ blinksy = { path = "../../blinksy", version = "0.7" }
 blinksy-esp = { path = "../blinksy-esp", version = "0.7" }
 button-driver = { version = "0.2.2", features = ["embedded_hal"] }
 defmt = "0.3.10"
-esp-hal = { version = "1.0.0-beta.0", features = ["defmt", "unstable"] }
+esp-hal = { version = "1.0.0-rc.0", features = ["defmt", "unstable"] }
 esp-println = { version = "0.13.0", features = ["defmt-espflash"] }
 esp-alloc = { version = "0.7.0", features = ["defmt"] }
 esp-backtrace = { version = "0.15.1", features = ["defmt", "panic-handler"] }
+esp-bootloader-esp-idf = { version = "0.2.0", features = ["defmt"] }
 fugit = "0.3.7"
 
 [features]
@@ -36,6 +37,7 @@ gl_c_016wl_d = [
   "esp-hal/esp32",
   "esp-println/esp32",
   "esp-backtrace/esp32",
+  "esp-bootloader-esp-idf/esp32",
 ]
 
 # Gledopto GL-C-017WL-D
@@ -44,6 +46,7 @@ gl_c_017wl_d = [
   "esp-hal/esp32",
   "esp-println/esp32",
   "esp-backtrace/esp32",
+  "esp-bootloader-esp-idf/esp32",
 ]
 
 # Mock for tests, builds, and docs
@@ -52,6 +55,7 @@ mock = [
   "esp-hal/esp32c6",
   "esp-println/esp32c6",
   "esp-backtrace/esp32c6",
+  "esp-bootloader-esp-idf/esp32c6",
 ]
 
 [package.metadata.docs.rs]

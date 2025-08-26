@@ -23,8 +23,11 @@ use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
-    peripheral::Peripheral,
-    rmt::{Error as RmtError, PulseCode, TxChannel, TxChannelConfig, TxChannelCreator},
+    rmt::{
+        Channel, Error as RmtError, PulseCode, RawChannelAccess, TxChannel, TxChannelConfig,
+        TxChannelCreator, TxChannelInternal,
+    },
+    Blocking,
 };
 
 /// All types of errors that can happen during the conversion and transmission
@@ -66,43 +69,39 @@ macro_rules! create_rmt_buffer {
 /// # Type Parameters
 ///
 /// * `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// * `Tx` - The RMT transmit channel type
+/// * `Tx` - The RMT transmit channel identifier
 /// * `BUFFER_SIZE` - Size of the RMT buffer
 pub struct ClocklessRmtDriver<Led, Tx, const BUFFER_SIZE: usize>
 where
     Led: ClocklessLed,
-    Tx: TxChannel,
+    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     led: PhantomData<Led>,
-    channel: Option<Tx>,
+    channel: Option<Channel<Blocking, Tx>>,
     rmt_buffer: [u32; BUFFER_SIZE],
     pulses: (u32, u32, u32),
 }
 
-impl<'d, Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
-    Tx: TxChannel,
+    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     /// Create a new adapter object that drives the pin using the RMT channel.
     ///
     /// # Arguments
     ///
-    /// * `channel` - RMT transmit channel
+    /// * `channel` - RMT transmit channel creator
     /// * `pin` - GPIO pin connected to the LED data line
     /// * `rmt_buffer` - Buffer for RMT data
     ///
     /// # Returns
     ///
     /// A configured ClocklessRmtDriver instance
-    pub fn new<C, P>(
-        channel: C,
-        pin: impl Peripheral<P = P> + 'd,
-        rmt_buffer: [u32; BUFFER_SIZE],
-    ) -> Self
+    pub fn new<'d, C, O>(channel: C, pin: O, rmt_buffer: [u32; BUFFER_SIZE]) -> Self
     where
-        C: TxChannelCreator<'d, Tx, P>,
-        P: PeripheralOutput + Peripheral<P = P>,
+        C: TxChannelCreator<'d, Blocking, Raw = Tx>,
+        O: PeripheralOutput<'d>,
     {
         let clock_divider = 1;
         let config = TxChannelConfig::default()
@@ -111,7 +110,7 @@ where
             .with_idle_output(true)
             .with_carrier_modulation(false);
 
-        let channel = channel.configure(pin, config).unwrap();
+        let channel = channel.configure_tx(pin, config).unwrap();
 
         let clocks = Clocks::get();
         let freq_hz = clocks.apb_clock.as_hz() / clock_divider as u32;
@@ -251,7 +250,7 @@ where
 impl<Led, Tx, const BUFFER_SIZE: usize> Driver for ClocklessRmtDriver<Led, Tx, BUFFER_SIZE>
 where
     Led: ClocklessLed,
-    Tx: TxChannel,
+    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     type Error = ClocklessRmtDriverError;
     type Color = LinearSrgb;

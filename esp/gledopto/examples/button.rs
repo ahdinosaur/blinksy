@@ -3,7 +3,9 @@
 
 use defmt::info;
 
-use gledopto::{board, function_button, main};
+use gledopto::{board, bootloader, function_button, main};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {

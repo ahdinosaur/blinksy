@@ -9,7 +9,9 @@ use blinksy::{
     util::map_range,
     ControlBuilder,
 };
-use gledopto::{board, elapsed, main, ws2812};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 struct VolumeCubeLayout;
 

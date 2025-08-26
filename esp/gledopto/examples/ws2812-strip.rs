@@ -7,7 +7,9 @@ use blinksy::{
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
-use gledopto::{board, elapsed, main, ws2812};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {

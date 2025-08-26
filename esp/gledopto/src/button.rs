@@ -57,7 +57,8 @@
 use button_driver::{Button, ButtonConfig, InstantProvider, Mode};
 use core::ops::{Deref, DerefMut, Sub};
 use esp_hal::{
-    gpio::{GpioPin, Input, InputConfig, Pull},
+    gpio::{Input, InputConfig, Pull},
+    peripherals::GPIO0,
     time::{Duration, Instant},
 };
 
@@ -67,7 +68,7 @@ use esp_hal::{
 /// for the function button on the Gledopto board (connected to GPIO0).
 pub struct FunctionButton<'a>(Button<Input<'a>, ButtonInstant, Duration>);
 
-impl FunctionButton<'_> {
+impl<'a> FunctionButton<'a> {
     /// Creates a new function button instance.
     ///
     /// # Arguments
@@ -77,7 +78,7 @@ impl FunctionButton<'_> {
     /// # Returns
     ///
     /// A configured FunctionButton instance
-    pub fn new(pin: GpioPin<0>) -> Self {
+    pub fn new(pin: GPIO0<'a>) -> Self {
         let input = Input::new(pin, InputConfig::default().with_pull(Pull::Up));
 
         let button_config = ButtonConfig::<Duration> {

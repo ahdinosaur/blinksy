@@ -2,13 +2,12 @@
 //!
 //! Rust **no-std** [embedded](https://github.com/rust-embedded/awesome-embedded-rust) board support crate for Gledopto ESP32 Digital LED controllers.
 //!
-//! Uses [Blinksy](https://github.com/ahdinosaur/blinksy): an LED control library for 1D, 2D, and soon 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
+//! Uses [Blinksy](https://github.com/ahdinosaur/blinksy): an LED control library for 1D, 2D, and 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 //!
 //! ## Supported Boards
 //!
-//! Currently this library only supports one board:
-//!
 //! - [x] [Gledopto GL-C-016WL-D](https://www.gledopto.eu/gledopto-esp32-wled-uart_1), `gl_c_016wl_d`
+//! - [x] [Gledopto GL-C-017WL-D](https://www.gledopto.eu/gledopto-esp32-wled-uart_5), `gl_c_017wl_d`
 //!
 //! Select the board by using its respective feature.
 //!
@@ -39,7 +38,9 @@
 //!     patterns::rainbow::{Rainbow, RainbowParams},
 //!     ControlBuilder,
 //! };
-//! use gledopto::{board, elapsed, main, ws2812};
+//! use gledopto::{board, bootloader, elapsed, main, ws2812};
+//!
+//! bootloader!();
 //!
 //! #[main]
 //! fn main() -> ! {
@@ -76,7 +77,9 @@
 //!     patterns::noise::{noise_fns, Noise2d, NoiseParams},
 //!     ControlBuilder,
 //! };
-//! use gledopto::{apa102, board, elapsed, main};
+//! use gledopto::{apa102, board, bootloader, elapsed, main};
+//!
+//! bootloader!();
 //!
 //! #[main]
 //! fn main() -> ! {
@@ -136,6 +139,9 @@ pub use hal_embassy::main as main_embassy;
 /// Re-export the ESP32 heap allocator
 pub use esp_alloc as alloc;
 
+/// Re-export the ESP32 heap allocator
+pub use esp_bootloader_esp_idf as bootloader;
+
 // These modules provide error handling and debug printing
 pub use esp_backtrace as backtrace;
 pub use esp_println as println;
@@ -150,6 +156,16 @@ pub mod button;
 macro_rules! heap_allocator {
     () => {
         $crate::alloc::heap_allocator!(size: 72 * 1024);
+    };
+}
+
+/// Populates the bootloader application descriptor
+///
+/// This is required for espflash.
+#[macro_export]
+macro_rules! bootloader {
+    () => {
+        $crate::bootloader::esp_app_desc!();
     };
 }
 

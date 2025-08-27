@@ -4,6 +4,7 @@
 //!
 //! - [`Dim1d`]: Marker for one-dimensional layouts
 //! - [`Dim2d`]: Marker for two-dimensional layouts
+//! - [`Dim3d`]: Marker for three-dimensional layouts
 //!
 //! Function markers are type-level markers to represent execution type.
 //!
@@ -19,6 +20,11 @@ pub struct Dim1d;
 ///
 /// Used as a type parameter to indicate patterns and controls that operate in 2D.
 pub struct Dim2d;
+
+/// Marker type for three-dimensional space.
+///
+/// Used as a type parameter to indicate patterns and controls that operate in 3D.
+pub struct Dim3d;
 
 /// Marker type for blocking execution.
 ///

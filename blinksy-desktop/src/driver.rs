@@ -60,8 +60,8 @@
 use blinksy::{
     color::{ColorCorrection, FromColor, LinearSrgb, Srgb},
     driver::Driver,
-    layout::{Layout1d, Layout2d, LayoutForDim},
-    markers::{Dim1d, Dim2d},
+    layout::{Layout1d, Layout2d, Layout3d, LayoutForDim},
+    markers::{Dim1d, Dim2d, Dim3d},
 };
 use core::{fmt, marker::PhantomData};
 use egui_miniquad as egui_mq;
@@ -230,6 +230,69 @@ impl Desktop<Dim2d, ()> {
         let mut positions = Vec::with_capacity(Layout::PIXEL_COUNT);
         for point in Layout::points() {
             positions.push(vec3(point.x, point.y, 0.0));
+        }
+
+        let (sender, receiver) = channel();
+        let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let is_window_closed_2 = is_window_closed.clone();
+
+        std::thread::spawn(move || {
+            DesktopStage::start(move || {
+                DesktopStage::new(positions, receiver, config, is_window_closed_2)
+            });
+        });
+
+        Desktop {
+            dim: PhantomData,
+            layout: PhantomData,
+            brightness: 1.0,
+            correction: ColorCorrection::default(),
+            sender,
+            is_window_closed,
+        }
+    }
+}
+
+impl Desktop<Dim3d, ()> {
+    /// Creates a new graphics driver for 3D layouts.
+    ///
+    /// This method initializes a rendering window showing a 3D arrangement of LEDs
+    /// based on the layout's coordinates.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `Layout` - The layout type implementing Layout3d
+    ///
+    /// # Returns
+    ///
+    /// A Desktop driver configured for the specified 3D layout
+    pub fn new_3d<Layout>() -> Desktop<Dim3d, Layout>
+    where
+        Layout: Layout3d,
+    {
+        Self::new_3d_with_config::<Layout>(DesktopConfig::default())
+    }
+
+    /// Creates a new graphics driver for 3D layouts with custom configuration.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `Layout` - The layout type implementing Layout3d
+    ///
+    /// # Parameters
+    ///
+    /// * `config` - Configuration options for the simulator window
+    ///
+    /// # Returns
+    ///
+    /// A Desktop driver configured for the specified 3D layout
+    pub fn new_3d_with_config<Layout>(config: DesktopConfig) -> Desktop<Dim3d, Layout>
+    where
+        Layout: Layout3d,
+    {
+        let mut positions = Vec::with_capacity(Layout::PIXEL_COUNT);
+        for point in Layout::points() {
+            positions.push(vec3(point.x, point.y, point.z));
         }
 
         let (sender, receiver) = channel();

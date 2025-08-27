@@ -2,13 +2,12 @@
 
 Rust **no-std** [embedded](https://github.com/rust-embedded/awesome-embedded-rust) board support crate for Gledopto ESP32 Digital LED controllers.
 
-Uses [Blinksy](https://github.com/ahdinosaur/blinksy): an LED control library for 1D, 2D, and soon 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
+Uses [Blinksy](https://github.com/ahdinosaur/blinksy): an LED control library for 1D, 2D, and 3D LED setups, inspired by [FastLED](https://fastled.io/) and [WLED](https://kno.wled.ge/).
 
 ## Supported Boards
 
-Currently this library only supports one board:
-
 - [x] [Gledopto GL-C-016WL-D](https://www.gledopto.eu/gledopto-esp32-wled-uart_1), `gl_c_016wl_d`
+- [x] [Gledopto GL-C-017WL-D](https://www.gledopto.eu/gledopto-esp32-wled-uart_5), `gl_c_017wl_d`
 
 Select the board by using its respective feature.
 
@@ -40,7 +39,9 @@ use blinksy::{
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use gledopto::{apa102, board, elapsed, main};
+use gledopto::{apa102, board, bootloader, elapsed, main};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {
@@ -95,7 +96,9 @@ use blinksy::{
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
-use gledopto::{board, elapsed, main, ws2812};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {
@@ -133,7 +136,7 @@ To quickstart a project, see [`blinksy-quickstart-gledopto`][blinksy-quickstart-
 As the Gledopto controller is an ESP32, if you want to get started here are some more resources to help:
 
 - [The Rust on ESP Book](https://docs.esp-rs.org/book/introduction.html): An overall guide on ESP32 on Rust
-- [esp-hal](https://docs.espressif.com/projects/rust/esp-hal/1.0.0-beta.0/esp32/esp_hal/index.html): The Hardware Abstraction Layer for an ESP32 on Rust
+- [esp-hal](https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.0/esp32/esp_hal/index.html): The Hardware Abstraction Layer for an ESP32 on Rust
 - [espup](https://docs.esp-rs.org/book/installation/riscv-and-xtensa.html): How to install the Xtensa target for Rust, required for ESP32
 - [esp-generate](https://docs.esp-rs.org/book/writing-your-own-application/generate-project/esp-generate.html): A template to help you kickstart your project
 

@@ -25,6 +25,8 @@
 //! (References: [Datasheet](https://cdn-shop.adafruit.com/product-files/2757/p2757_SK6812RGBW_REV01.pdf))
 //!
 //! Each LED receives 32 bits (RGBW) and then passes subsequent data to the next LED in the chain.
+//!
+//! [`blinksy-esp::Sk6812Rmt`]: https://docs.rs/blinksy-esp/0.8/blinksy-esp/type.Sk6812Rmt.html
 
 use fugit::NanosDurationU32 as Nanoseconds;
 

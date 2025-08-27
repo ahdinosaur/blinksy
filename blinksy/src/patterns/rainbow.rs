@@ -29,8 +29,8 @@
 
 use crate::{
     color::{Hsv, HsvHueRainbow},
-    layout::{Layout1d, Layout2d},
-    markers::{Dim1d, Dim2d},
+    layout::{Layout1d, Layout2d, Layout3d},
+    markers::{Dim1d, Dim2d, Dim3d},
     pattern::Pattern,
 };
 
@@ -124,7 +124,42 @@ where
         let step = 0.5 * position_scalar;
 
         Layout::points().map(move |point| {
-            let hue = point.x * step + time;
+            let hue = (point.x + point.y) * step + time;
+            let saturation = 1.;
+            let value = 1.;
+            Self::Color::new(hue, saturation, value)
+        })
+    }
+}
+
+impl<Layout> Pattern<Dim3d, Layout> for Rainbow
+where
+    Layout: Layout3d,
+{
+    type Params = RainbowParams;
+    type Color = Hsv<HsvHueRainbow>;
+
+    /// Creates a new Rainbow pattern with the specified parameters.
+    fn new(params: Self::Params) -> Self {
+        Self { params }
+    }
+
+    /// Generates colors for a 3D layout.
+    ///
+    /// In 3D, the rainbow pattern uses the x-coordinate to determine hue,
+    /// creating bands of color that move across the layout over time.
+    fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
+        let Self { params } = self;
+        let RainbowParams {
+            time_scalar,
+            position_scalar,
+        } = params;
+
+        let time = time_in_ms as f32 * time_scalar;
+        let step = 0.5 * position_scalar;
+
+        Layout::points().map(move |point| {
+            let hue = (point.x + point.y + point.z) * step + time;
             let saturation = 1.;
             let value = 1.;
             Self::Color::new(hue, saturation, value)

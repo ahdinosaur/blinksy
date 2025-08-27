@@ -1,6 +1,6 @@
 [package]
 name = "blinksy-desktop"
-version = "0.4.0"
+version = "0.8.0"
 edition = "2021"
 
 rust-version.workspace = true
@@ -13,7 +13,7 @@ keywords = ["blinksy"]
 categories = ["multimedia", "rendering"]
 
 [dependencies]
-blinksy = { path = "../blinksy", version = "0.4" }
+blinksy = { path = "../blinksy", version = "0.8" }
 egui = "0.28"
 egui-miniquad = "0.15.0"
 glam = { version = "0.30.1" }

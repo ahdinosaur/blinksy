@@ -12,7 +12,7 @@ use crate::{
     color::{ColorCorrection, FromColor},
     driver::{Driver as DriverTrait, DriverAsync as DriverAsyncTrait},
     layout::LayoutForDim,
-    markers::{Async, Blocking, Dim1d, Dim2d},
+    markers::{Async, Blocking, Dim1d, Dim2d, Dim3d},
     pattern::Pattern as PatternTrait,
 };
 
@@ -271,6 +271,41 @@ impl ControlBuilder<(), (), (), (), ()> {
     ///
     /// A builder initialized for 2D, async
     pub fn new_2d_async() -> ControlBuilder<Dim2d, Async, (), (), ()> {
+        ControlBuilder {
+            dim: PhantomData,
+            exec: PhantomData,
+            layout: PhantomData,
+            pattern: (),
+            driver: (),
+        }
+    }
+}
+
+impl ControlBuilder<(), (), (), (), ()> {
+    /// Starts building a two-dimensional blocking control system.
+    ///
+    /// # Returns
+    ///
+    /// A builder initialized for 3D, blocking
+    pub fn new_3d() -> ControlBuilder<Dim3d, Blocking, (), (), ()> {
+        ControlBuilder {
+            dim: PhantomData,
+            exec: PhantomData,
+            layout: PhantomData,
+            pattern: (),
+            driver: (),
+        }
+    }
+}
+
+#[cfg(feature = "async")]
+impl ControlBuilder<(), (), (), (), ()> {
+    /// Starts building a three-dimensional asynchronous control system.
+    ///
+    /// # Returns
+    ///
+    /// A builder initialized for 3D, async
+    pub fn new_3d_async() -> ControlBuilder<Dim3d, Async, (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,

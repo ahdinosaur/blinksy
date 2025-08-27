@@ -7,7 +7,9 @@ use blinksy::{
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use gledopto::{apa102, board, elapsed, main};
+use gledopto::{apa102, board, bootloader, elapsed, main};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {

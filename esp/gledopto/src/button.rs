@@ -68,7 +68,7 @@ use esp_hal::{
 /// for the function button on the Gledopto board (connected to GPIO0).
 pub struct FunctionButton<'a>(Button<Input<'a>, ButtonInstant, Duration>);
 
-impl FunctionButton<'_> {
+impl<'a> FunctionButton<'a> {
     /// Creates a new function button instance.
     ///
     /// # Arguments
@@ -78,7 +78,11 @@ impl FunctionButton<'_> {
     /// # Returns
     ///
     /// A configured FunctionButton instance
+<<<<<<< HEAD
     pub fn new(pin: GPIO0<'static>) -> Self {
+=======
+    pub fn new(pin: GPIO0<'a>) -> Self {
+>>>>>>> 42ca8b6cebc6895423b108608123dca1acb888d1
         let input = Input::new(pin, InputConfig::default().with_pull(Pull::Up));
 
         let button_config = ButtonConfig::<Duration> {

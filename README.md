@@ -19,7 +19,7 @@
 </div>
 
 <div align="center">
-  For <strong>1D</strong>, <strong>2D</strong>, and soon <strong>3D</strong> layouts.
+  For <strong>1D</strong>, <strong>2D</strong>, and <strong>3D</strong> layouts.
 </div>
 
 <div align="center">
@@ -47,11 +47,11 @@
   - The pattern will compute colors for each LED based on its position
 - Setup a [`driver`][driver] to send each frame of colors to your LEDs, using our built-in [`drivers`][drivers] library.
 
-[layout]: https://docs.rs/blinksy/0.4/blinksy/layout/index.html
-[pattern]: https://docs.rs/blinksy/0.4/blinksy/pattern/index.html
-[patterns]: https://docs.rs/blinksy/0.4/blinksy/patterns/index.html
-[driver]: https://docs.rs/blinksy/0.4/blinksy/driver/index.html
-[drivers]: https://docs.rs/blinksy/0.4/blinksy/drivers/index.html
+[layout]: https://docs.rs/blinksy/0.8/blinksy/layout/index.html
+[pattern]: https://docs.rs/blinksy/0.8/blinksy/pattern/index.html
+[patterns]: https://docs.rs/blinksy/0.8/blinksy/patterns/index.html
+[driver]: https://docs.rs/blinksy/0.8/blinksy/driver/index.html
+[drivers]: https://docs.rs/blinksy/0.8/blinksy/drivers/index.html
 
 ## Features
 
@@ -72,10 +72,10 @@
 
 If you want help to support a new chipset, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
-[clockless]: https://docs.rs/blinksy/0.4/blinksy/driver/clockless/index.html
-[ws2812]: https://docs.rs/blinksy/0.4/blinksy/drivers/ws2812/index.html
-[clocked]: https://docs.rs/blinksy/0.4/blinksy/driver/clocked/index.html
-[apa102]: https://docs.rs/blinksy/0.4/blinksy/drivers/apa102/index.html
+[clockless]: https://docs.rs/blinksy/0.8/blinksy/driver/clockless/index.html
+[ws2812]: https://docs.rs/blinksy/0.8/blinksy/drivers/ws2812/index.html
+[clocked]: https://docs.rs/blinksy/0.8/blinksy/driver/clocked/index.html
+[apa102]: https://docs.rs/blinksy/0.8/blinksy/drivers/apa102/index.html
 
 ### Pattern (Effect) Library:
 
@@ -84,8 +84,8 @@ If you want help to support a new chipset, [make an issue](https://github.com/ah
 
 If you want help to port a pattern from FastLED / WLED to Rust, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
-[rainbow]: https://docs.rs/blinksy/0.4/blinksy/patterns/rainbow/index.html
-[noise]: https://docs.rs/blinksy/0.4/blinksy/patterns/noise/index.html
+[rainbow]: https://docs.rs/blinksy/0.8/blinksy/patterns/rainbow/index.html
+[noise]: https://docs.rs/blinksy/0.8/blinksy/patterns/noise/index.html
 
 ### Board Support Packages
 
@@ -94,7 +94,7 @@ If you want help to port a pattern from FastLED / WLED to Rust, [make an issue](
 
 If you want help to support a new target, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
-[gledopto]: https://docs.rs/gledopto/0.4/gledopto
+[gledopto]: https://docs.rs/gledopto/0.8/gledopto
 
 ## Modules
 
@@ -107,12 +107,16 @@ If you want help to support a new target, [make an issue](https://github.com/ahd
 
 ## Quick Start
 
-To quickstart a project, see [`blinksy-quickstart-gledopto`][blinksy-quickstart-gledopto]
+To quickstart a project, see:
+
+- [`blinksy-quickstart-1d-rope`][blinksy-quickstart-1d-rope]
+- [`blinksy-quickstart-3d-grid`][blinksy-quickstart-3d-grid]
 
 To start using the library, see [control][control].
 
-[blinksy-quickstart-gledopto]: https://github.com/ahdinosaur/blinksy-quickstart-gledopto
-[control]: https://docs.rs/blinksy/0.4/blinksy/control/index.html
+[blinksy-quickstart-1d-rope]: https://github.com/ahdinosaur/blinksy-quickstart-1d-rope
+[blinksy-quickstart-3d-grid]: https://github.com/ahdinosaur/blinksy-quickstart-3d-grid
+[control]: https://docs.rs/blinksy/0.8/blinksy/control/index.html
 
 ## Examples
 
@@ -120,6 +124,112 @@ For all examples, see:
 
 - [Desktop examples in `./blinksy-desktop/examples`](./blinksy-desktop/examples)
 - [Embedded (with Gledopto) examples in `./esp/gledopto/examples`](./esp/gledopto/examples)
+
+### Embedded Gledopto: 3D Cube with Nosie Pattern
+
+https://github.com/user-attachments/assets/36a2c6ad-7ae6-4498-85b3-ed76d0b62264
+
+<details>
+<summary>
+    Click to see code
+</summary>
+
+```rust
+#![no_std]
+#![no_main]
+
+use blinksy::{
+    layout::{Layout3d, Shape3d, Vec3},
+    layout3d,
+    patterns::noise::{noise_fns, Noise3d, NoiseParams},
+    ControlBuilder,
+};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
+
+#[main]
+fn main() -> ! {
+    let p = board!();
+
+    layout3d!(
+        Layout,
+        [
+            // bottom face
+            Shape3d::Grid {
+                start: Vec3::new(1., -1., 1.),           // right bottom front
+                horizontal_end: Vec3::new(-1., -1., 1.), // left bottom front
+                vertical_end: Vec3::new(1., -1., -1.),   // right bottom back
+                horizontal_pixel_count: 16,
+                vertical_pixel_count: 16,
+                serpentine: true,
+            },
+            // back face
+            Shape3d::Grid {
+                start: Vec3::new(-1., -1., -1.),         // left bottom back
+                horizontal_end: Vec3::new(-1., 1., -1.), // left top back
+                vertical_end: Vec3::new(1., -1., -1.),   // right bottom back
+                horizontal_pixel_count: 16,
+                vertical_pixel_count: 16,
+                serpentine: true,
+            },
+            // right face
+            Shape3d::Grid {
+                start: Vec3::new(1., 1., -1.),         // right top back
+                horizontal_end: Vec3::new(1., 1., 1.), // right top front
+                vertical_end: Vec3::new(1., -1., -1.), // right bottom back
+                horizontal_pixel_count: 16,
+                vertical_pixel_count: 16,
+                serpentine: true,
+            },
+            // front face
+            Shape3d::Grid {
+                start: Vec3::new(-1., -1., 1.),         // left bottom front
+                horizontal_end: Vec3::new(1., -1., 1.), // right bottom front
+                vertical_end: Vec3::new(-1., 1., 1.),   // left top front
+                horizontal_pixel_count: 16,
+                vertical_pixel_count: 16,
+                serpentine: true,
+            },
+            // left face
+            Shape3d::Grid {
+                start: Vec3::new(-1., 1., -1.),           // left top back
+                horizontal_end: Vec3::new(-1., -1., -1.), // left bottom back
+                vertical_end: Vec3::new(-1., 1., 1.),     // left top front
+                horizontal_pixel_count: 16,
+                vertical_pixel_count: 16,
+                serpentine: true,
+            },
+            // top face
+            Shape3d::Grid {
+                start: Vec3::new(1., 1., 1.),           // right top front
+                horizontal_end: Vec3::new(1., 1., -1.), // right top back
+                vertical_end: Vec3::new(-1., 1., 1.),   // left top front
+                horizontal_pixel_count: 16,
+                vertical_pixel_count: 16,
+                serpentine: true,
+            }
+        ]
+    );
+
+    let mut control = ControlBuilder::new_3d()
+        .with_layout::<Layout>()
+        .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
+            ..Default::default()
+        })
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .build();
+
+    control.set_brightness(0.2);
+
+    loop {
+        let elapsed_in_ms = elapsed().as_millis();
+        control.tick(elapsed_in_ms).unwrap();
+    }
+}
+```
+
+</details>
 
 ### Desktop Simulation: 2D Grid with Noise Pattern
 
@@ -280,7 +390,9 @@ use blinksy::{
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use gledopto::{apa102, board, elapsed, main};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {
@@ -331,7 +443,9 @@ use blinksy::{
     ControlBuilder,
 };
 use embassy_executor::Spawner;
-use gledopto::{apa102_async, board, elapsed, main_embassy};
+use gledopto::{apa102_async, board, bootloader, elapsed, main_embassy};
+
+bootloader!();
 
 #[main_embassy]
 async fn main(_spawner: Spawner) {

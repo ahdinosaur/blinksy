@@ -89,7 +89,7 @@
 //! an entry point to understand how to use Blinksy with an ESP board.
 //!
 //! [blinksy-quickstart-gledopto]: https://github.com/ahdinosaur/blinksy-quickstart-gledopto
-//! [gledopto]: https://docs.rs/gledopto/0.4/gledopto
+//! [gledopto]: https://docs.rs/gledopto/0.8/gledopto
 
 pub mod rmt;
 pub mod time;

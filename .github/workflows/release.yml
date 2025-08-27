@@ -37,11 +37,11 @@ jobs:
           toolchain: stable
 
       - name: Set up ESP toolchain
-        uses: esp-rs/xtensa-toolchain@v1.5
+        uses: esp-rs/xtensa-toolchain@v1.6
         if: steps.tag-info.outputs.workspace == 'esp'
         with:
           ldproxy: false
-          version: 1.86.0.0
+          version: 1.88.0.0
 
       - uses: Swatinem/rust-cache@v2
         with:

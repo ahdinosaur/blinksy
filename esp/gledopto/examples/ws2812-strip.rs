@@ -6,13 +6,15 @@ use blinksy::{
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
-use gledopto::{board, elapsed, main, ws2812};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {
     let p = board!();
 
-    layout1d!(Layout, 60 * 5);
+    layout1d!(Layout, 60);
 
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout>()

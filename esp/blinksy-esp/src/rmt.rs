@@ -23,6 +23,8 @@ use blinksy::{
     util::bits::{u8_to_bits, BitOrder},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
+#[cfg(feature = "async")]
+use esp_hal::rmt::TxChannelAsync;
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
@@ -70,25 +72,22 @@ macro_rules! create_rmt_buffer {
 /// # Type Parameters
 ///
 /// * `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// * `Tx` - The RMT transmit channel identifier
+/// * `TxChannel` - The RMT transmit channel
 /// * `BUFFER_SIZE` - Size of the RMT buffer
-pub struct ClocklessRmtDriver<Led, Dm, Tx, const BUFFER_SIZE: usize>
+pub struct ClocklessRmtDriver<Led, TxChannel, const BUFFER_SIZE: usize>
 where
     Led: ClocklessLed,
-    Dm: DriverMode,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     led: PhantomData<Led>,
-    channel: Option<Channel<Dm, Tx>>,
+    channel: Option<TxChannel>,
     rmt_led_buffer: [u32; BUFFER_SIZE],
     rmt_end_buffer: [u32; 2],
     pulses: (u32, u32, u32),
 }
 
-impl<Led, Dm, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Dm, Tx, BUFFER_SIZE>
+impl<Led, TxChannel, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, TxChannel, BUFFER_SIZE>
 where
     Led: ClocklessLed,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     fn clock_divider() -> u8 {
         1
@@ -125,9 +124,10 @@ where
     }
 }
 
-impl<Led, Dm, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Dm, Tx, BUFFER_SIZE>
+impl<Led, Dm, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Channel<Dm, Tx>, BUFFER_SIZE>
 where
     Led: ClocklessLed,
+    Dm: DriverMode,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     /// Create a new adapter object that drives the pin using the RMT channel.
@@ -147,7 +147,7 @@ where
         O: PeripheralOutput<'d>,
     {
         let config = Self::tx_channel_config();
-        let channel = channel.configure(pin, config).unwrap();
+        let channel = channel.configure_tx(pin, config).unwrap();
         let pulses = Self::setup_pulses();
 
         Self {
@@ -160,9 +160,11 @@ where
     }
 }
 
-impl<Led, Dm, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Dm, Tx, BUFFER_SIZE>
+impl<Led, Dm, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Channel<Dm, Tx>, BUFFER_SIZE>
 where
     Led: ClocklessLed,
+    Dm: DriverMode,
+    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     /// Writes a single byte of color data to the RMT buffer.
     ///
@@ -228,7 +230,7 @@ where
     }
 }
 
-impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Blocking, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Channel<Blocking, Tx>, BUFFER_SIZE>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -293,7 +295,7 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Async, Tx, BUFFER_SIZE>
+impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Channel<Async, Tx>, BUFFER_SIZE>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -353,7 +355,7 @@ where
 
 /// Implementation of Driver trait for ClocklessRmtDriver.
 impl<Led, Tx, const BUFFER_SIZE: usize> Driver
-    for ClocklessRmtDriver<Led, Blocking, Tx, BUFFER_SIZE>
+    for ClocklessRmtDriver<Led, Channel<Blocking, Tx>, BUFFER_SIZE>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -378,7 +380,7 @@ where
 #[cfg(feature = "async")]
 /// Implementation of DriverAsync trait for ClocklessRmtDriver.
 impl<Led, Tx, const BUFFER_SIZE: usize> DriverAsync
-    for ClocklessRmtDriver<Led, Async, Tx, BUFFER_SIZE>
+    for ClocklessRmtDriver<Led, Channel<Async, Tx>, BUFFER_SIZE>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,

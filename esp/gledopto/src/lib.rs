@@ -310,6 +310,6 @@ macro_rules! ws2812_async {
         let led_pin = $peripherals.GPIO16;
         let rmt = $crate::rmt!($peripherals).into_async();
         let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds);
-        $crate::blinksy_esp::Ws2812Rmt::new_async(rmt.channel0, led_pin, rmt_buffer)
+        $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin, rmt_buffer)
     }};
 }

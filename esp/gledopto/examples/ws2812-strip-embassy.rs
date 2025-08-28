@@ -8,7 +8,9 @@ use blinksy::{
     ControlBuilder,
 };
 use embassy_executor::Spawner;
-use gledopto::{board, elapsed, init_embassy, main_embassy, ws2812_async};
+use gledopto::{board, bootloader, elapsed, init_embassy, main_embassy, ws2812_async};
+
+bootloader!();
 
 #[main_embassy]
 async fn main(_spawner: Spawner) {

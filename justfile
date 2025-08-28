@@ -32,16 +32,14 @@ gledopto-ws2812-strip-embassy:
 gledopto-apa102-grid:
   cd esp && cargo run --release -p gledopto --example apa102-grid --features gl_c_016wl_d
 
-<<<<<<< HEAD
 gledopto-apa102-grid-embassy:
   cd esp && cargo run --release -p gledopto --example apa102-grid-embassy --features gl_c_016wl_d
-=======
+
 gledopto-ws2812-face-cube:
   cd esp && cargo run --release -p gledopto --example ws2812-face-cube --features gl_c_016wl_d
 
 gledopto-ws2812-volume-cube:
   cd esp && cargo run --release -p gledopto --example ws2812-volume-cube --features gl_c_016wl_d
->>>>>>> 42ca8b6cebc6895423b108608123dca1acb888d1
 
 ##
 # Testing

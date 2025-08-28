@@ -18,19 +18,12 @@ blinksy = { path = "../../blinksy", version = "0.8" }
 blinksy-esp = { path = "../blinksy-esp", version = "0.8" }
 button-driver = { version = "0.2.2", features = ["embedded_hal"] }
 defmt = "0.3.10"
-<<<<<<< HEAD
-esp-hal = { version = "1.0.0-beta.0", features = ["defmt", "unstable"] }
+esp-hal = { version = "1.0.0-rc.0", features = ["defmt", "unstable"] }
 esp-hal-embassy = { version = "0.8.0", optional = true, features = ["defmt"] }
 esp-println = { version = "0.13.0", features = ["defmt-espflash"] }
 esp-alloc = { version = "0.7.0", features = ["defmt"] }
-esp-backtrace = { version = "0.15.1", features = ["println", "panic-handler", "exception-handler"] }
-=======
-esp-hal = { version = "1.0.0-rc.0", features = ["defmt", "unstable"] }
-esp-println = { version = "0.13.0", features = ["defmt-espflash"] }
-esp-alloc = { version = "0.7.0", features = ["defmt"] }
-esp-backtrace = { version = "0.15.1", features = ["defmt", "panic-handler"] }
+esp-backtrace = { version = "0.15.1", features = ["defmt", "panic-handler", "exception-handler"] }
 esp-bootloader-esp-idf = { version = "0.2.0", features = ["defmt"] }
->>>>>>> 42ca8b6cebc6895423b108608123dca1acb888d1
 fugit = "0.3.7"
 
 [dev-dependencies]

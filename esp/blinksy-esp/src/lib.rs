@@ -104,9 +104,13 @@ use blinksy::drivers::ws2812::Ws2812Led;
 ///
 /// # Type Parameters
 ///
+/// * `Dm` - `DriverMode` marker
 /// * `Tx` - RMT transmit channel type
 /// * `BUFFER_SIZE` - Size of the RMT buffer
-pub type Ws2812Rmt<Tx, const BUFFER_SIZE: usize> = ClocklessRmtDriver<Ws2812Led, Tx, BUFFER_SIZE>;
+///
+/// [`DriverMode`]: esp_hal::DriverMode
+pub type Ws2812Rmt<Dm, Tx, const BUFFER_SIZE: usize> =
+    ClocklessRmtDriver<Dm, Ws2812Led, Tx, BUFFER_SIZE>;
 
 /// SK6812 LED driver using the ESP32 RMT peripheral.
 ///
@@ -114,6 +118,10 @@ pub type Ws2812Rmt<Tx, const BUFFER_SIZE: usize> = ClocklessRmtDriver<Ws2812Led,
 ///
 /// # Type Parameters
 ///
+/// * `Dm` - `DriverMode` marker
 /// * `Tx` - RMT transmit channel type
 /// * `BUFFER_SIZE` - Size of the RMT buffer
-pub type Sk6812Rmt<Tx, const BUFFER_SIZE: usize> = ClocklessRmtDriver<Sk6812Led, Tx, BUFFER_SIZE>;
+///
+/// [`DriverMode`]: esp_hal::DriverMode
+pub type Sk6812Rmt<Dm, Tx, const BUFFER_SIZE: usize> =
+    ClocklessRmtDriver<Sk6812Led, Dm, Tx, BUFFER_SIZE>;

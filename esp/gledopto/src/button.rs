@@ -78,11 +78,7 @@ impl<'a> FunctionButton<'a> {
     /// # Returns
     ///
     /// A configured FunctionButton instance
-<<<<<<< HEAD
-    pub fn new(pin: GPIO0<'static>) -> Self {
-=======
     pub fn new(pin: GPIO0<'a>) -> Self {
->>>>>>> 42ca8b6cebc6895423b108608123dca1acb888d1
         let input = Input::new(pin, InputConfig::default().with_pull(Pull::Up));
 
         let button_config = ButtonConfig::<Duration> {

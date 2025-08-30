@@ -140,7 +140,7 @@ impl Desktop<Dim1d, ()> {
     /// # Returns
     ///
     /// A Desktop driver configured for the specified 1D layout
-    pub fn new_1d<Layout>() -> Desktop<Dim1d, Layout>
+    pub fn new_1d<Layout>() -> (Desktop<Dim1d, Layout>, DesktopStage)
     where
         Layout: Layout1d,
     {
@@ -160,7 +160,9 @@ impl Desktop<Dim1d, ()> {
     /// # Returns
     ///
     /// A Desktop driver configured for the specified 1D layout
-    pub fn new_1d_with_config<Layout>(config: DesktopConfig) -> Desktop<Dim1d, Layout>
+    pub fn new_1d_with_config<Layout>(
+        config: DesktopConfig,
+    ) -> (Desktop<Dim1d, Layout>, DesktopStage)
     where
         Layout: Layout1d,
     {
@@ -172,21 +174,19 @@ impl Desktop<Dim1d, ()> {
         let (sender, receiver) = channel();
         let is_window_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let is_window_closed_2 = is_window_closed.clone();
+        let stage = DesktopStage::new(positions, receiver, config, is_window_closed_2);
 
-        std::thread::spawn(move || {
-            DesktopStage::start(move || {
-                DesktopStage::new(positions, receiver, config, is_window_closed_2)
-            });
-        });
-
-        Desktop {
-            dim: PhantomData,
-            layout: PhantomData,
-            brightness: 1.0,
-            correction: ColorCorrection::default(),
-            sender,
-            is_window_closed,
-        }
+        (
+            Desktop {
+                dim: PhantomData,
+                layout: PhantomData,
+                brightness: 1.0,
+                correction: ColorCorrection::default(),
+                sender,
+                is_window_closed,
+            },
+            stage,
+        )
     }
 }
 
@@ -916,7 +916,7 @@ impl Renderer {
 }
 
 /// The rendering stage that handles the miniquad window and OpenGL drawing.
-struct DesktopStage {
+pub struct DesktopStage {
     ctx: Box<dyn RenderingBackend>,
     positions: Vec<Vec3>,
     colors: Vec<LinearSrgb>,
@@ -953,7 +953,7 @@ impl DesktopStage {
     }
 
     /// Create a new DesktopStage with the given LED positions, colors, and configuration.
-    pub fn new(
+    fn new(
         positions: Vec<Vec3>,
         receiver: Receiver<LedMessage>,
         config: DesktopConfig,

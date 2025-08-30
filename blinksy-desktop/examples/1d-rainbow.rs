@@ -4,27 +4,32 @@ use blinksy::{
     ControlBuilder,
 };
 use blinksy_desktop::{
-    driver::{Desktop, DesktopError},
+    driver::{Desktop, DesktopError, DesktopStage},
     time::elapsed_in_ms,
 };
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
 
 fn main() {
-    layout1d!(Layout, 30);
+    DesktopStage::start(move || {
+        layout1d!(Layout, 30);
 
-    let mut control = ControlBuilder::new_1d()
-        .with_layout::<Layout>()
-        .with_pattern::<Rainbow>(RainbowParams {
-            ..Default::default()
-        })
-        .with_driver(Desktop::new_1d::<Layout>())
-        .build();
+        let (driver, stage) = Desktop::new_1d::<Layout>();
+        let mut control = ControlBuilder::new_1d()
+            .with_layout::<Layout>()
+            .with_pattern::<Rainbow>(RainbowParams {
+                ..Default::default()
+            })
+            .with_driver(driver)
+            .build();
 
-    loop {
-        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
-            break;
-        }
-
-        sleep(Duration::from_millis(16));
-    }
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(2));
+            loop {
+                if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+                    break;
+                }
+            }
+        });
+        stage
+    });
 }

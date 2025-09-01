@@ -32,7 +32,7 @@ fn main() -> ! {
         .with_driver(apa102!(p))
         .build();
 
-    control.set_brightness(0.02);
+    control.set_brightness(0.2);
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();

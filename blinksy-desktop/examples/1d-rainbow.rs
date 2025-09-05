@@ -22,11 +22,11 @@ fn main() {
             .with_driver(driver)
             .build();
 
-        std::thread::sleep(Duration::from_secs(2));
         loop {
             if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
                 break;
             }
+            std::thread::sleep(Duration::from_millis(16));
         }
     });
 }

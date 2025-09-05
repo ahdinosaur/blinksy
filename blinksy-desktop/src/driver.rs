@@ -30,7 +30,7 @@
 //!
 //! // Define your layout
 //! layout2d!(
-//!     Layout,
+//!     PanelLayout,
 //!     [Shape2d::Grid {
 //!         start: Vec2::new(-1., -1.),
 //!         horizontal_end: Vec2::new(1., -1.),
@@ -41,10 +41,10 @@
 //!     }]
 //! );
 //!
-//! Desktop::new_2d::<Layout>::start(|driver| {
+//! Desktop::new_2d::<PanelLayout>().start(|driver| {
 //!     // Create a control using the Desktop driver instead of physical hardware
 //!     let mut control = ControlBuilder::new_2d()
-//!         .with_layout::<Layout>()
+//!         .with_layout::<PanelLayout>()
 //!         .with_pattern::<Rainbow>(RainbowParams::default())
 //!         .with_driver(driver)
 //!         .build();
@@ -54,7 +54,7 @@
 //!         control.tick(elapsed_in_ms()).unwrap();
 //!         std::thread::sleep(std::time::Duration::from_millis(16));
 //!     }
-//! }
+//! });
 //! ```
 //!
 //! [`Driver`]: blinksy::driver::Driver

@@ -30,7 +30,6 @@
 //!
 //! // Create the Desktop simulator
 //! Desktop::new_2d::<PanelLayout>().start(|driver| {
-//!
 //!     // Create a control using the desktop driver instead of physical hardware
 //!     let mut control = ControlBuilder::new_2d()
 //!         .with_layout::<PanelLayout>()

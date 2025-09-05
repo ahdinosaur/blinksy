@@ -17,7 +17,7 @@
 //!
 //! // Define your layout
 //! layout2d!(
-//!     Layout,
+//!     PanelLayout,
 //!     [Shape2d::Grid {
 //!         start: Vec2::new(-1., -1.),
 //!         horizontal_end: Vec2::new(1., -1.),
@@ -28,18 +28,24 @@
 //!     }]
 //! );
 //!
-//! // Create a control using the Desktop driver instead of physical hardware
-//! let mut control = ControlBuilder::new_2d()
-//!     .with_layout::<Layout>()
-//!     .with_pattern::<Rainbow>(RainbowParams::default())
-//!     .with_driver(Desktop::new_2d::<Layout>())
-//!     .build();
+//! // Create the Desktop simulator
+//! Desktop::new_2d::<PanelLayout>().start(|driver| {
 //!
-//! // Run your normal animation loop
-//! loop {
-//!     control.tick(elapsed_in_ms()).unwrap();
-//!     std::thread::sleep(std::time::Duration::from_millis(16));
-//! }
+//!     // Create a control using the desktop driver instead of physical hardware
+//!     let mut control = ControlBuilder::new_2d()
+//!         .with_layout::<PanelLayout>()
+//!         .with_pattern::<Rainbow>(RainbowParams::default())
+//!         .with_driver(driver)
+//!         .build();
+//!
+//!     // Run your normal animation loop
+//!     loop {
+//!         control.tick(elapsed_in_ms()).unwrap();
+//!
+//!         // Sleep on every frame (16 ms per frame ~= 60 frames per second)
+//!         std::thread::sleep(std::time::Duration::from_millis(16));
+//!     }
+//! });
 //! ```
 
 /// Desktop LED simulation

@@ -7,7 +7,7 @@ use blinksy_desktop::{
     driver::{Desktop, DesktopError},
     time::elapsed_in_ms,
 };
-use std::time::Duration;
+use std::{thread::sleep, time::Duration};
 
 layout1d!(StripLayout, 30);
 
@@ -25,7 +25,8 @@ fn main() {
             if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
                 break;
             }
-            std::thread::sleep(Duration::from_millis(16));
+
+            sleep(Duration::from_millis(16));
         }
     });
 }

@@ -10,9 +10,9 @@ use blinksy_desktop::{
 };
 use std::{iter, thread::sleep, time::Duration};
 
-struct VolumeCubeLayout;
+struct CubeVolumeLayout;
 
-impl Layout3d for VolumeCubeLayout {
+impl Layout3d for CubeVolumeLayout {
     const PIXEL_COUNT: usize = 10 * 10 * 10;
 
     fn shapes() -> impl Iterator<Item = Shape3d> {
@@ -39,17 +39,19 @@ impl Layout3d for VolumeCubeLayout {
 }
 
 fn main() {
-    let mut control = ControlBuilder::new_3d()
-        .with_layout::<VolumeCubeLayout>()
-        .with_pattern::<Rainbow>(RainbowParams::default())
-        .with_driver(Desktop::new_3d::<VolumeCubeLayout>())
-        .build();
+    Desktop::new_3d::<CubeVolumeLayout>().start(|driver| {
+        let mut control = ControlBuilder::new_3d()
+            .with_layout::<CubeVolumeLayout>()
+            .with_pattern::<Rainbow>(RainbowParams::default())
+            .with_driver(driver)
+            .build();
 
-    loop {
-        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
-            break;
+        loop {
+            if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+                break;
+            }
+
+            sleep(Duration::from_millis(16));
         }
-
-        sleep(Duration::from_millis(16));
-    }
+    });
 }

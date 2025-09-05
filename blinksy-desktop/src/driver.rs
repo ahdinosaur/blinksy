@@ -1,8 +1,8 @@
 //! # Desktop Simulation Driver
 //!
 //! This module provides a graphical simulation of LED layouts and patterns for desktop development
-//! and debugging. It implements the [`Driver`] trait, allowing it to be used as a drop-in
-//! replacement for physical LED hardware.
+//! and debugging. It provides an implementation of the [`Driver`] trait, allowing it to be used as
+//! a drop-in replacement for physical LED hardware.
 //!
 //! The simulator creates a 3D visualization window where:
 //!
@@ -41,17 +41,19 @@
 //!     }]
 //! );
 //!
-//! // Create a control using the Desktop driver instead of physical hardware
-//! let mut control = ControlBuilder::new_2d()
-//!     .with_layout::<Layout>()
-//!     .with_pattern::<Rainbow>(RainbowParams::default())
-//!     .with_driver(Desktop::new_2d::<Layout>())
-//!     .build();
+//! Desktop::new_2d::<Layout>::start(|driver| {
+//!     // Create a control using the Desktop driver instead of physical hardware
+//!     let mut control = ControlBuilder::new_2d()
+//!         .with_layout::<Layout>()
+//!         .with_pattern::<Rainbow>(RainbowParams::default())
+//!         .with_driver(driver)
+//!         .build();
 //!
-//! // Run your normal animation loop
-//! loop {
-//!     control.tick(elapsed_in_ms()).unwrap();
-//!     std::thread::sleep(std::time::Duration::from_millis(16));
+//!     // Run your normal animation loop
+//!     loop {
+//!         control.tick(elapsed_in_ms()).unwrap();
+//!         std::thread::sleep(std::time::Duration::from_millis(16));
+//!     }
 //! }
 //! ```
 //!
@@ -110,13 +112,22 @@ impl Default for DesktopConfig {
     }
 }
 
+/// Desktop simulator for LED layouts in a desktop window.
+///
+/// Provides a visual representation of your LED layout using miniquad,
+/// with a `Driver` to render updates.
+///
+/// # Type Parameters
+///
+/// * `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
+/// * `Layout` - The specific layout type
 pub struct Desktop<Dim, Layout> {
     driver: DesktopDriver<Dim, Layout>,
     stage: DesktopStageOptions,
 }
 
 impl Desktop<Dim1d, ()> {
-    /// Creates a new graphics driver for 1D layouts.
+    /// Creates a new graphics simulator for 1D layouts.
     ///
     /// This method initializes a rendering window showing a linear strip of LEDs.
     ///
@@ -126,7 +137,7 @@ impl Desktop<Dim1d, ()> {
     ///
     /// # Returns
     ///
-    /// A Desktop driver configured for the specified 1D layout
+    /// A Desktop simulator configured for the specified 1D layout
     pub fn new_1d<Layout>() -> Desktop<Dim1d, Layout>
     where
         Layout: Layout1d,
@@ -134,7 +145,7 @@ impl Desktop<Dim1d, ()> {
         Self::new_1d_with_config::<Layout>(DesktopConfig::default())
     }
 
-    /// Creates a new graphics driver for 1D layouts with custom configuration.
+    /// Creates a new graphics simulator for 1D layouts with custom configuration.
     ///
     /// # Type Parameters
     ///
@@ -146,7 +157,7 @@ impl Desktop<Dim1d, ()> {
     ///
     /// # Returns
     ///
-    /// A Desktop driver configured for the specified 1D layout
+    /// A Desktop simulator configured for the specified 1D layout
     pub fn new_1d_with_config<Layout>(config: DesktopConfig) -> Desktop<Dim1d, Layout>
     where
         Layout: Layout1d,
@@ -180,7 +191,7 @@ impl Desktop<Dim1d, ()> {
 }
 
 impl Desktop<Dim2d, ()> {
-    /// Creates a new graphics driver for 2D layouts.
+    /// Creates a new graphics simulator for 2D layouts.
     ///
     /// This method initializes a rendering window showing a 2D arrangement of LEDs
     /// based on the layout's coordinates.
@@ -191,7 +202,7 @@ impl Desktop<Dim2d, ()> {
     ///
     /// # Returns
     ///
-    /// A Desktop driver configured for the specified 2D layout
+    /// A Desktop simulator configured for the specified 2D layout
     pub fn new_2d<Layout>() -> Desktop<Dim2d, Layout>
     where
         Layout: Layout2d,
@@ -199,7 +210,7 @@ impl Desktop<Dim2d, ()> {
         Self::new_2d_with_config::<Layout>(DesktopConfig::default())
     }
 
-    /// Creates a new graphics driver for 2D layouts with custom configuration.
+    /// Creates a new graphics simulator for 2D layouts with custom configuration.
     ///
     /// # Type Parameters
     ///
@@ -211,7 +222,7 @@ impl Desktop<Dim2d, ()> {
     ///
     /// # Returns
     ///
-    /// A Desktop driver configured for the specified 2D layout
+    /// A Desktop simulator configured for the specified 2D layout
     pub fn new_2d_with_config<Layout>(config: DesktopConfig) -> Desktop<Dim2d, Layout>
     where
         Layout: Layout2d,
@@ -245,7 +256,7 @@ impl Desktop<Dim2d, ()> {
 }
 
 impl Desktop<Dim3d, ()> {
-    /// Creates a new graphics driver for 3D layouts.
+    /// Creates a new graphics simulator for 3D layouts.
     ///
     /// This method initializes a rendering window showing a 3D arrangement of LEDs
     /// based on the layout's coordinates.
@@ -256,7 +267,7 @@ impl Desktop<Dim3d, ()> {
     ///
     /// # Returns
     ///
-    /// A Desktop driver configured for the specified 3D layout
+    /// A Desktop simulator configured for the specified 3D layout
     pub fn new_3d<Layout>() -> Desktop<Dim3d, Layout>
     where
         Layout: Layout3d,
@@ -264,7 +275,7 @@ impl Desktop<Dim3d, ()> {
         Self::new_3d_with_config::<Layout>(DesktopConfig::default())
     }
 
-    /// Creates a new graphics driver for 3D layouts with custom configuration.
+    /// Creates a new graphics simulator for 3D layouts with custom configuration.
     ///
     /// # Type Parameters
     ///
@@ -276,7 +287,7 @@ impl Desktop<Dim3d, ()> {
     ///
     /// # Returns
     ///
-    /// A Desktop driver configured for the specified 3D layout
+    /// A Desktop simulator configured for the specified 3D layout
     pub fn new_3d_with_config<Layout>(config: DesktopConfig) -> Desktop<Dim3d, Layout>
     where
         Layout: Layout3d,
@@ -328,8 +339,7 @@ where
 
 /// Desktop driver for simulating LED layouts in a desktop window.
 ///
-/// This struct implements the `Driver` trait and renders a visual
-/// representation of your LED layout using miniquad.
+/// This struct implements the `Driver` trait.
 ///
 /// # Type Parameters
 ///
@@ -943,6 +953,7 @@ impl Renderer {
     }
 }
 
+/// Constructor options for `DesktopStage`.
 struct DesktopStageOptions {
     pub positions: Vec<Vec3>,
     pub receiver: Receiver<LedMessage>,

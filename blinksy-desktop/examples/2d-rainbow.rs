@@ -10,31 +10,34 @@ use blinksy_desktop::{
 };
 use std::{thread::sleep, time::Duration};
 
+layout2d!(
+    PanelLayout,
+    [Shape2d::Grid {
+        start: Vec2::new(-1., -1.),
+        horizontal_end: Vec2::new(1., -1.),
+        vertical_end: Vec2::new(-1., 1.),
+        horizontal_pixel_count: 16,
+        vertical_pixel_count: 16,
+        serpentine: true,
+    }]
+);
+
 fn main() {
-    layout2d!(
-        Layout,
-        [Shape2d::Grid {
-            start: Vec2::new(-1., -1.),
-            horizontal_end: Vec2::new(1., -1.),
-            vertical_end: Vec2::new(-1., 1.),
-            horizontal_pixel_count: 16,
-            vertical_pixel_count: 16,
-            serpentine: true,
-        }]
-    );
-    let mut control = ControlBuilder::new_2d()
-        .with_layout::<Layout>()
-        .with_pattern::<Rainbow>(RainbowParams {
-            ..Default::default()
-        })
-        .with_driver(Desktop::new_2d::<Layout>())
-        .build();
+    Desktop::new_2d::<PanelLayout>().start(|driver| {
+        let mut control = ControlBuilder::new_2d()
+            .with_layout::<PanelLayout>()
+            .with_pattern::<Rainbow>(RainbowParams {
+                ..Default::default()
+            })
+            .with_driver(driver)
+            .build();
 
-    loop {
-        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
-            break;
+        loop {
+            if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+                break;
+            }
+
+            sleep(Duration::from_millis(16));
         }
-
-        sleep(Duration::from_millis(16));
-    }
+    });
 }

@@ -13,7 +13,7 @@ use std::{thread::sleep, time::Duration};
 
 layout3d!(
     /// Five half-arches stepping through z ∈ [-1, 1]
-    pub LayoutTunnel,
+    TunnelLayout,
     [
         // Perfect semi-circle (apex at y = 0)
         Shape3d::Arc {
@@ -61,18 +61,20 @@ layout3d!(
 );
 
 fn main() {
-    let mut control = ControlBuilder::new_3d()
-        .with_layout::<LayoutTunnel>()
-        .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
-            ..Default::default()
-        })
-        .with_driver(Desktop::new_3d::<LayoutTunnel>())
-        .build();
+    Desktop::new_3d::<TunnelLayout>().start(|driver| {
+        let mut control = ControlBuilder::new_3d()
+            .with_layout::<TunnelLayout>()
+            .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
+                ..Default::default()
+            })
+            .with_driver(driver)
+            .build();
 
-    loop {
-        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
-            break;
+        loop {
+            if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+                break;
+            }
+            sleep(Duration::from_millis(16));
         }
-        sleep(Duration::from_millis(16));
-    }
+    });
 }

@@ -9,13 +9,12 @@ use blinksy_desktop::{
 };
 use std::time::Duration;
 
-layout1d!(Layout, 30);
+layout1d!(StripLayout, 30);
 
 fn main() {
-    let desktop = Desktop::new_1d::<Layout>();
-    desktop.start(|driver| {
+    Desktop::new_1d::<StripLayout>().start(|driver| {
         let mut control = ControlBuilder::new_1d()
-            .with_layout::<Layout>()
+            .with_layout::<StripLayout>()
             .with_pattern::<Rainbow>(RainbowParams {
                 ..Default::default()
             })

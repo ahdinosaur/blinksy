@@ -12,7 +12,7 @@ use std::{thread::sleep, time::Duration};
 
 fn main() {
     layout3d!(
-        Layout,
+        CubeFaceLayout,
         [
             // bottom face
             Shape3d::Grid {
@@ -71,19 +71,21 @@ fn main() {
         ]
     );
 
-    let mut control = ControlBuilder::new_3d()
-        .with_layout::<Layout>()
-        .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
-            ..Default::default()
-        })
-        .with_driver(Desktop::new_3d::<Layout>())
-        .build();
+    Desktop::new_3d::<CubeFaceLayout>().start(|driver| {
+        let mut control = ControlBuilder::new_3d()
+            .with_layout::<CubeFaceLayout>()
+            .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
+                ..Default::default()
+            })
+            .with_driver(driver)
+            .build();
 
-    loop {
-        if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
-            break;
+        loop {
+            if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
+                break;
+            }
+
+            sleep(Duration::from_millis(16));
         }
-
-        sleep(Duration::from_millis(16));
-    }
+    });
 }

@@ -107,7 +107,6 @@ where
     ///
     /// * `pixels` - Iterator over colors
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `gamma` - Gamma correction factor
     /// * `correction` - Color correction factors
     ///
     /// # Returns

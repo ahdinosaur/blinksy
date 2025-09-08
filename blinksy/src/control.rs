@@ -282,7 +282,7 @@ impl ControlBuilder<(), (), (), (), ()> {
 }
 
 impl ControlBuilder<(), (), (), (), ()> {
-    /// Starts building a two-dimensional blocking control system.
+    /// Starts building a three-dimensional blocking control system.
     ///
     /// # Returns
     ///

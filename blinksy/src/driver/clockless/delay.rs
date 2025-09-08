@@ -4,9 +4,11 @@ use embedded_hal::{delay::DelayNs, digital::OutputPin};
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
 
 use super::ClocklessLed;
+#[cfg(feature = "async")]
+use crate::driver::DriverAsync;
 use crate::{
     color::{ColorCorrection, FromColor, LinearSrgb},
-    driver::{Driver, DriverAsync},
+    driver::Driver,
     util::bits::{u8_to_bits, BitOrder},
 };
 
@@ -220,6 +222,7 @@ where
     }
 }
 
+#[cfg(feature = "async")]
 impl<Led, Pin, Delay> DriverAsync for ClocklessDelayDriver<Led, Pin, Delay>
 where
     Led: ClocklessLed,

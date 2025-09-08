@@ -10,11 +10,13 @@ use core::marker::PhantomData;
 
 use crate::{
     color::{ColorCorrection, FromColor},
-    driver::{Driver as DriverTrait, DriverAsync as DriverAsyncTrait},
+    driver::Driver as DriverTrait,
     layout::LayoutForDim,
-    markers::{Async, Blocking, Dim1d, Dim2d, Dim3d},
+    markers::{Blocking, Dim1d, Dim2d, Dim3d},
     pattern::Pattern as PatternTrait,
 };
+#[cfg(feature = "async")]
+use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 
 /// Central LED control system.
 ///
@@ -172,6 +174,7 @@ where
     }
 }
 
+#[cfg(feature = "async")]
 impl<Dim, Layout, Pattern, Driver> Control<Dim, Async, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
@@ -402,6 +405,7 @@ impl<Dim, Layout, Pattern> ControlBuilder<Dim, Blocking, Layout, Pattern, ()> {
     }
 }
 
+#[cfg(feature = "async")]
 impl<Dim, Layout, Pattern> ControlBuilder<Dim, Async, Layout, Pattern, ()> {
     /// Specifies the LED driver for the control system (async).
     ///
@@ -446,6 +450,7 @@ where
     }
 }
 
+#[cfg(feature = "async")]
 impl<Dim, Layout, Pattern, Driver> ControlBuilder<Dim, Async, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,

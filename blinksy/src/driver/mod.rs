@@ -82,7 +82,6 @@ pub trait Driver {
         Self::Color: FromColor<C>;
 }
 
-#[cfg(feature = "async")]
 /// Core trait for all async LED drivers.
 ///
 /// This trait defines the common interface for asynchronously sending color data to LED hardware,
@@ -116,6 +115,7 @@ pub trait Driver {
 ///     }
 /// }
 /// ```
+#[cfg(feature = "async")]
 pub trait DriverAsync {
     /// The error type that may be returned by the driver.
     type Error;

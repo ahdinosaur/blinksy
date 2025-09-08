@@ -31,7 +31,7 @@ embassy-executor = { version = "0.7.0", features = ["nightly"] }
 embassy-time = "0.4.0"
 
 [features]
-default = ["embassy"]
+default = []
 embassy = [
   "dep:esp-hal-embassy",
   "async"

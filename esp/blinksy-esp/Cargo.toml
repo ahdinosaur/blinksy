@@ -18,7 +18,7 @@ esp-hal = { version = "1.0.0-rc.0", default-features = false, features = ["defmt
 defmt = "0.3.10"
 
 [features]
-default = ["async"]
+default = []
 async = [
   "blinksy/async",
 ]

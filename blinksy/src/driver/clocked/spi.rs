@@ -3,9 +3,11 @@ use embedded_hal::spi::SpiBus;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
 
+#[cfg(feature = "async")]
+use crate::driver::DriverAsync;
 use crate::{
     color::{ColorCorrection, FromColor},
-    driver::{Driver, DriverAsync},
+    driver::Driver,
 };
 
 use super::{ClockedLed, ClockedWriter};

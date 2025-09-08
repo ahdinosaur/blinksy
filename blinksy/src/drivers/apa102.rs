@@ -30,12 +30,11 @@
 //! This implementation includes the "High Definition" color handling from FastLED, which
 //! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 
+#[cfg(feature = "async")]
+use crate::driver::{ClockedLedAsync, ClockedWriterAsync};
 use crate::{
     color::{ColorCorrection, FromColor, LinearSrgb, RgbChannels},
-    driver::{
-        clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
-        ClockedLedAsync, ClockedWriterAsync,
-    },
+    driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
     util::component::Component,
 };
 

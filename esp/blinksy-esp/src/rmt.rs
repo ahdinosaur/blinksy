@@ -23,8 +23,6 @@ use blinksy::{
     util::bits::{u8_to_bits, BitOrder},
 };
 use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
-#[cfg(feature = "async")]
-use esp_hal::rmt::TxChannelAsync;
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
@@ -32,8 +30,10 @@ use esp_hal::{
         Channel, Error as RmtError, PulseCode, RawChannelAccess, TxChannel, TxChannelConfig,
         TxChannelCreator, TxChannelInternal,
     },
-    Async, Blocking, DriverMode,
+    Blocking, DriverMode,
 };
+#[cfg(feature = "async")]
+use esp_hal::{rmt::TxChannelAsync, Async};
 
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands

@@ -23,5 +23,5 @@ num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 smart-leds-trait = "0.3.1"
 
 [features]
-default = ["async"]
+default = []
 async = ["dep:embedded-hal-async"]

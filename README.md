@@ -63,31 +63,73 @@
 - **Desktop simulation**: Simulate your LEDs on your desktop to play with ideas.
 - **RGB+W support**: Supports RGB + White color channels
 
-### Multi‑Chipset Support
+### LED Support
 
-- [clockless][clockless]: One-wire (only data, no clock)
-  - **[WS2812B][ws2812]**: Affordable RGB LED, aka NeoPixel
-- [clocked][clocked]: Two-wire (data and clock)
-  - **[APA102][apa102]**: High-FPS RGB LED, aka DotStar
+#### [Clockless][clockless]: One-wire (only data, no clock)
 
-If you want help to support a new chipset, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
+- **[WS2812B][ws2812]**: Affordable RGB LED, aka NeoPixel
+- **[SK6812][sk6812]**: RGBW LED
 
 [clockless]: https://docs.rs/blinksy/0.10/blinksy/driver/clockless/index.html
 [ws2812]: https://docs.rs/blinksy/0.10/blinksy/drivers/ws2812/index.html
+[sk6812]: https://docs.rs/blinksy/latest/blinksy/drivers/sk6812/index.html
+
+#### [Clocked][clocked]: Two-wire (data and clock)
+
+- **[APA102][apa102]**: High-FPS RGB LED, aka DotStar
+
+If you want help to support a new LED chipset, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
+
 [clocked]: https://docs.rs/blinksy/0.10/blinksy/driver/clocked/index.html
 [apa102]: https://docs.rs/blinksy/0.10/blinksy/drivers/apa102/index.html
 
 ### Pattern (Effect) Library:
 
 - **[Rainbow][rainbow]**: A basic scrolling rainbow
-- **[Noise][noise]**: A flow through random noise functions.
+- **[Noise][noise]**: A flow through random noise functions
 
 If you want help to port a pattern from FastLED / WLED to Rust, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
 [rainbow]: https://docs.rs/blinksy/0.10/blinksy/patterns/rainbow/index.html
 [noise]: https://docs.rs/blinksy/0.10/blinksy/patterns/noise/index.html
 
-### Board Support Packages
+### Microcontroller Family Support
+
+Clocked LED support (e.g. APA102):
+
+|Micro|HAL|Blinksy|Recommended Driver|Backup Driver|
+|---|---|---|---|---|
+|ALL|[embedded-hal]|[blinksy]|[Spi][clocked-spi]|[Delay][clocked-delay]|
+
+[clocked-spi]: https://docs.rs/blinksy/0.10.0/blinksy/driver/clocked/struct.ClockedSpiDriver.html
+[clocked-delay]:https://docs.rs/blinksy/0.10.0/blinksy/driver/clocked/struct.ClockedDelayDriver.html
+
+Clockless LED support (e.g. WS2812)
+
+|Micro|HAL|Blinksy|Recommended Driver|Backup Driver|
+|---|---|---|---|---|
+|ALL|[embedded-hal]|[blinksy]|-|TODO [Spi][clockless-spi]|
+|ESP32|[esp-hal]|[blinksy-esp]|[Rmt][rmt]|-|
+|RP|[rp-hal]|TODO|TODO [Pio][pio]|-|
+[STM32]|[stm32-hal]|TODO|TODO|-|
+|CH32|[ch32-hal]|TODO|TODO|-|
+
+If you want help to support a new microcontroller family, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
+
+[embedded-hal]: https://docs.rs/embedded-hal/latest/embedded_hal/
+[blinksy]: https://docs.rs/blinksy/0.10/blinksy/
+[clockless-spi]: https://github.com/ahdinosaur/blinksy/issues/12
+[esp-hal]: https://docs.espressif.com/projects/rust/esp-hal/latest/
+[blinksy-esp]: https://docs.rs/blinksy-esp/0.10/blinksy-esp/
+[rmt]: https://docs.espressif.com/projects/rust/esp-hal/latest/
+[rp-hal]: https://github.com/rp-rs/rp-hal/
+[pio]: https://github.com/ahdinosaur/blinksy/issues/36
+[stm32-hal]: https://github.com/David-OConnor/stm32-hal
+[ch32-hal]: https://github.com/ch32-rs/ch32-hal
+
+### Board Support
+
+These are ready-to-go LED controllers with board support crates to make things even easier:
 
 - **[Gledopto][gledopto]**: A great LED controller available on AliExpress: [Gledopto GL-C-016WL-D](https://www.aliexpress.com/item/1005008707989546.html)
 - (TODO) [**QuinLED**](https://quinled.info/): The best DIY and pre-assembled LED controller boards
@@ -95,15 +137,6 @@ If you want help to port a pattern from FastLED / WLED to Rust, [make an issue](
 If you want help to support a new target, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
 [gledopto]: https://docs.rs/gledopto/0.10/gledopto
-
-## Modules
-
-[![CI status](https://img.shields.io/github/actions/workflow/status/ahdinosaur/blinksy/ci.yml?branch=main&style=flat-square)](https://github.com/ahdinosaur/blinksy/actions/workflows/ci.yml?query=branch%3Amain)
-
-- [`blinksy`](./blinksy) : [![Crates.io version](https://img.shields.io/crates/v/blinksy.svg?style=flat-square)](https://crates.io/crates/blinksy) [![Doc.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy) [![Crates.io Downloads (total)](https://img.shields.io/crates/d/blinksy?style=flat-square&label=total%20downloads)](https://crates.io/crates/blinksy) [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/blinksy?style=flat-square)](https://crates.io/crates/blinksy)
-- [`blinksy-desktop`](./blinksy-desktop) : [![Crates.io version](https://img.shields.io/crates/v/blinksy-desktop.svg?style=flat-square)](https://crates.io/crates/blinksy-desktop) [![Doc.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy-desktop) [![Crates.io Downloads (total)](https://img.shields.io/crates/d/blinksy-desktop?style=flat-square&label=total%20downloads)](https://crates.io/crates/blinksy-desktop) [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/blinksy-desktop?style=flat-square)](https://crates.io/crates/blinksy-desktop)
-- [`blinksy-esp`](./esp/blinksy-esp) : [![Crates.io version](https://img.shields.io/crates/v/blinksy-esp.svg?style=flat-square)](https://crates.io/crates/blinksy-esp) [![Doc.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy-esp) [![Crates.io Downloads (total)](https://img.shields.io/crates/d/blinksy-esp?style=flat-square&label=total%20downloads)](https://crates.io/crates/blinksy-esp) [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/blinksy-esp?style=flat-square)](https://crates.io/crates/blinksy-esp)
-- [`gledopto`](./esp/gledopto) : [![Crates.io version](https://img.shields.io/crates/v/gledopto.svg?style=flat-square)](https://crates.io/crates/gledopto) [![Doc.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/gledopto) [![Crates.io Downloads (total)](https://img.shields.io/crates/d/gledopto?style=flat-square&label=total%20downloads)](https://crates.io/crates/gledopto) [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/gledopto?style=flat-square)](https://crates.io/crates/gledopto)
 
 ## Quick Start
 
@@ -117,6 +150,15 @@ To start using the library, see [control][control].
 [blinksy-quickstart-1d-rope]: https://github.com/ahdinosaur/blinksy-quickstart-1d-rope
 [blinksy-quickstart-3d-grid]: https://github.com/ahdinosaur/blinksy-quickstart-3d-grid
 [control]: https://docs.rs/blinksy/0.10/blinksy/control/index.html
+
+## Modules
+
+[![CI status](https://img.shields.io/github/actions/workflow/status/ahdinosaur/blinksy/ci.yml?branch=main&style=flat-square)](https://github.com/ahdinosaur/blinksy/actions/workflows/ci.yml?query=branch%3Amain)
+
+- [`blinksy`](./blinksy) : [![Crates.io version](https://img.shields.io/crates/v/blinksy.svg?style=flat-square)](https://crates.io/crates/blinksy) [![Doc.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy) [![Crates.io Downloads (total)](https://img.shields.io/crates/d/blinksy?style=flat-square&label=total%20downloads)](https://crates.io/crates/blinksy) [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/blinksy?style=flat-square)](https://crates.io/crates/blinksy)
+- [`blinksy-desktop`](./blinksy-desktop) : [![Crates.io version](https://img.shields.io/crates/v/blinksy-desktop.svg?style=flat-square)](https://crates.io/crates/blinksy-desktop) [![Doc.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy-desktop) [![Crates.io Downloads (total)](https://img.shields.io/crates/d/blinksy-desktop?style=flat-square&label=total%20downloads)](https://crates.io/crates/blinksy-desktop) [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/blinksy-desktop?style=flat-square)](https://crates.io/crates/blinksy-desktop)
+- [`blinksy-esp`](./esp/blinksy-esp) : [![Crates.io version](https://img.shields.io/crates/v/blinksy-esp.svg?style=flat-square)](https://crates.io/crates/blinksy-esp) [![Doc.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/blinksy-esp) [![Crates.io Downloads (total)](https://img.shields.io/crates/d/blinksy-esp?style=flat-square&label=total%20downloads)](https://crates.io/crates/blinksy-esp) [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/blinksy-esp?style=flat-square)](https://crates.io/crates/blinksy-esp)
+- [`gledopto`](./esp/gledopto) : [![Crates.io version](https://img.shields.io/crates/v/gledopto.svg?style=flat-square)](https://crates.io/crates/gledopto) [![Doc.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/gledopto) [![Crates.io Downloads (total)](https://img.shields.io/crates/d/gledopto?style=flat-square&label=total%20downloads)](https://crates.io/crates/gledopto) [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/gledopto?style=flat-square)](https://crates.io/crates/gledopto)
 
 ## Examples
 

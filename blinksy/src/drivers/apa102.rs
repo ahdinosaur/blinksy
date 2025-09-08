@@ -86,8 +86,8 @@ impl ClockedLed for Apa102Led {
 
         // Color correct
         let red = red * correction.red;
-        let green = green * correction.red;
-        let blue = blue * correction.red;
+        let green = green * correction.green;
+        let blue = blue * correction.blue;
 
         // Convert color components to u16's
         let (red_u16, green_u16, blue_u16) = (

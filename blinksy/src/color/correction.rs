@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+use num_traits::Float;
+
 /// Defines color correction factors for LED hardware.
 ///
 /// `ColorCorrection` contains scaling factors for each RGB component to
@@ -74,27 +77,35 @@ impl ColorCorrection {
     /// // Create a cool white (daylight-like) correction
     /// let cool = ColorCorrection::from_temperature(6500);
     /// ```
-    pub fn from_temperature(temperature: u32) -> Self {
-        let temp = temperature.clamp(1000, 40000) as f32;
-        let temp = (temp - 1000.0) / 39000.0;
+    pub fn from_temperature(kelvin: u32) -> Self {
+        // Clamp to a reasonable range for the approximation.
+        let k = kelvin.clamp(1000, 40000) as f32;
 
-        let r = if temp < 6600.0 {
-            1.0
+        // Use Tanner Helland's approximation (T in hundreds of Kelvin):
+        // https://tannerhelland.com/2012/09/18/convert-temperature-rgb-algorithm-code.html
+        let t = k / 100.0;
+
+        let r = if t <= 66.0 {
+            255.0
         } else {
-            1.0 - (temp * 0.3)
-        };
-        let b = if temp > 6600.0 {
-            1.0
-        } else {
-            0.7 + (temp * 0.3)
-        };
-        let g = if temp < 6600.0 {
-            0.8 + (temp * 0.2)
-        } else {
-            1.0 - (temp * 0.2)
+            (329.698_73 * (t - 60.0).powf(-0.133_204_76)).clamp(0.0, 255.0)
         };
 
-        ColorCorrection::new(r, g, b)
+        let g = if t <= 66.0 {
+            (99.470_8 * t.ln() - 161.119_57).clamp(0.0, 255.0)
+        } else {
+            (288.122_16 * (t - 60.0).powf(-0.075_514_846)).clamp(0.0, 255.0)
+        };
+
+        let b = if t >= 66.0 {
+            255.0
+        } else if t <= 19.0 {
+            0.0
+        } else {
+            (138.517_73 * (t - 10.0).ln() - 305.044_8).clamp(0.0, 255.0)
+        };
+
+        ColorCorrection::new(r / 255.0, g / 255.0, b / 255.0)
     }
 }
 

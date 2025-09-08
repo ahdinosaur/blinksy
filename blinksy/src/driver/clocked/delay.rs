@@ -1,16 +1,20 @@
-use crate::{
-    color::{ColorCorrection, FromColor},
-    driver::{Driver, DriverAsync},
-    time::{Megahertz, Nanoseconds},
-    util::bits::{u8_to_bits, BitOrder},
-};
-
 use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
 
-use super::{ClockedLed, ClockedLedAsync, ClockedWriter, ClockedWriterAsync};
+#[cfg(feature = "async")]
+use crate::driver::DriverAsync;
+use crate::{
+    color::{ColorCorrection, FromColor},
+    driver::Driver,
+    time::{Megahertz, Nanoseconds},
+    util::bits::{u8_to_bits, BitOrder},
+};
+
+use super::{ClockedLed, ClockedWriter};
+#[cfg(feature = "async")]
+use super::{ClockedLedAsync, ClockedWriterAsync};
 
 /// Driver for clocked LEDs using GPIO bit-banging with a delay timer.
 ///

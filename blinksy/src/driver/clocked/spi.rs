@@ -8,7 +8,9 @@ use crate::{
     driver::{Driver, DriverAsync},
 };
 
-use super::{ClockedLed, ClockedLedAsync, ClockedWriter, ClockedWriterAsync};
+use super::{ClockedLed, ClockedWriter};
+#[cfg(feature = "async")]
+use super::{ClockedLedAsync, ClockedWriterAsync};
 
 /// Driver for clocked LEDs using a hardware SPI peripheral.
 ///
@@ -100,6 +102,7 @@ where
     }
 }
 
+#[cfg(feature = "async")]
 impl<Led, Spi> DriverAsync for ClockedSpiDriver<Led, Spi>
 where
     Led: ClockedLedAsync<Word = u8>,
@@ -164,6 +167,7 @@ where
 ///
 /// This allows any type implementing the SpiBus trait to be used
 /// as a writer for clocked LED protocols.
+#[cfg(feature = "async")]
 impl<Spi> ClockedWriterAsync for Spi
 where
     Spi: SpiBusAsync<u8>,

@@ -142,7 +142,7 @@
 //! }
 //! ```
 //!
-//! ### 3D Cube with Noise Pattern
+//! ### 3D Cube with Noise Pattern (Blocking)
 //!
 //! ```rust,ignore
 //! #![no_std]

@@ -24,7 +24,6 @@
 //! ## Drivers
 //!
 //! - [`ClockedDelayDriver`]: Driver using GPIO bit-banging with a delay timer
-//! - [`ClockedDelayDriver`]: Driver using GPIO bit-banging with a delay timer
 //! - [`ClockedSpiDriver`]: (Recommended) Driver using a hardware SPI peripheral
 //!
 //! ## Example

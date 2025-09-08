@@ -200,7 +200,7 @@ pub enum Shape3dPointsIterator {
     Line(LineStepIterator<Vec3, f32>),
     /// Iterator for points in a grid
     Grid(GridStepIterator<Vec3, f32>),
-    /// Iterator for points in a grid
+    /// Iterator for points along an arc
     Arc(ArcStepIterator<Vec3>),
 }
 

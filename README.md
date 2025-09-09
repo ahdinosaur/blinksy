@@ -108,11 +108,15 @@ Clockless LED support (e.g. WS2812)
 
 |Micro|HAL|Blinksy|Recommended Driver|Backup Driver|
 |---|---|---|---|---|
-|ALL|[embedded-hal]|[blinksy]|-|TODO [Spi][clockless-spi]|
+|ALL|[embedded-hal]|[blinksy]|-|TODO [Spi #12][clockless-spi]|
 |ESP32|[esp-hal]|[blinksy-esp]|[Rmt][rmt]|-|
-|RP|[rp-hal]|TODO|TODO [Pio][pio]|-|
-[STM32]|[stm32-hal]|TODO|TODO|-|
-|CH32|[ch32-hal]|TODO|TODO|-|
+|RP (2040 or 2350)|[rp-hal]|TODO|TODO [#36][rp-issue]|-|
+|STM32|[stm32-hal]|TODO|TODO [#78][stm32-issue]|-|
+|nRF|[nrf-hal]|TODO|TODO [#77][nrf-issue]|-|
+|atsamd|[atsamd]|TODO|TODO [#67][atsamd-issue]|-|
+|AVR (Arduino)|[avr-hal]|TODO|TODO [#79][avr-issue]|-|
+|CH32|[ch32-hal]|TODO|TODO [#80][ch32-issue]|-|
+|???|-|-|-|-|
 
 If you want help to support a new microcontroller family, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
@@ -123,9 +127,17 @@ If you want help to support a new microcontroller family, [make an issue](https:
 [blinksy-esp]: https://docs.rs/blinksy-esp/0.10/blinksy-esp/
 [rmt]: https://docs.espressif.com/projects/rust/esp-hal/latest/
 [rp-hal]: https://github.com/rp-rs/rp-hal/
-[pio]: https://github.com/ahdinosaur/blinksy/issues/36
+[rp-issue]: https://github.com/ahdinosaur/blinksy/issues/36
 [stm32-hal]: https://github.com/David-OConnor/stm32-hal
+[stm32-issue]: https://github.com/ahdinosaur/blinksy/issues/78
+[nrf-hal]: https://github.com/nrf-rs/nrf-hal
+[nrf-issue]: https://github.com/ahdinosaur/blinksy/issues/77
+[atsamd]: https://github.com/atsamd-rs/atsamd
+[atsamd-issue]: https://github.com/ahdinosaur/blinksy/issues/67
+[avr-hal]: https://github.com/Rahix/avr-hal
+[avr-issue]: https://github.com/ahdinosaur/blinksy/issues/79
 [ch32-hal]: https://github.com/ch32-rs/ch32-hal
+[ch32-issue]: https://github.com/ahdinosaur/blinksy/issues/80
 
 ### Board Support
 

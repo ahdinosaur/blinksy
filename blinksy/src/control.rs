@@ -8,6 +8,8 @@
 
 use core::marker::PhantomData;
 
+use heapless::Vec;
+
 use crate::{
     color::{ColorCorrection, FromColor},
     driver::Driver as DriverTrait,
@@ -96,17 +98,27 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 ///     control.tick(/* current time in milliseconds */).await.unwrap();
 /// }
 /// ```
-pub struct Control<Dim, Exec, Layout, Pattern, Driver> {
+pub struct Control<Dim, Exec, Layout, const NUM_PIXELS: usize, Pattern, Driver>
+where
+    Layout: LayoutForDim<Dim>,
+    Pattern: PatternTrait<Dim, Layout>,
+{
     dim: PhantomData<Dim>,
     exec: PhantomData<Exec>,
     layout: PhantomData<Layout>,
+    pixels: Vec<Pattern::Color, NUM_PIXELS>,
     pattern: Pattern,
     driver: Driver,
     brightness: f32,
     correction: ColorCorrection,
 }
 
-impl<Dim, Exec, Layout, Pattern, Driver> Control<Dim, Exec, Layout, Pattern, Driver> {
+impl<Dim, Exec, Layout, const NUM_PIXELS: usize, Pattern, Driver>
+    Control<Dim, Exec, Layout, NUM_PIXELS, Pattern, Driver>
+where
+    Layout: LayoutForDim<Dim>,
+    Pattern: PatternTrait<Dim, Layout>,
+{
     /// Creates a new control system.
     ///
     /// # Arguments
@@ -122,6 +134,7 @@ impl<Dim, Exec, Layout, Pattern, Driver> Control<Dim, Exec, Layout, Pattern, Dri
             dim: PhantomData,
             exec: PhantomData,
             layout: PhantomData,
+            pixels: Vec::new(),
             pattern,
             driver,
             brightness: 1.,
@@ -148,7 +161,8 @@ impl<Dim, Exec, Layout, Pattern, Driver> Control<Dim, Exec, Layout, Pattern, Dri
     }
 }
 
-impl<Dim, Layout, Pattern, Driver> Control<Dim, Blocking, Layout, Pattern, Driver>
+impl<Dim, Layout, const NUM_PIXELS: usize, Pattern, Driver>
+    Control<Dim, Blocking, Layout, NUM_PIXELS, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -169,8 +183,13 @@ where
     ///
     /// Result indicating success or an error from the driver
     pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
-        let pixels = self.pattern.tick(time_in_ms);
-        self.driver.write(pixels, self.brightness, self.correction)
+        self.pixels = self.pattern.tick(time_in_ms).collect();
+
+        self.driver.write(
+            self.pixels.drain(0..NUM_PIXELS),
+            self.brightness,
+            self.correction,
+        )
     }
 }
 

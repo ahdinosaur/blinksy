@@ -57,7 +57,7 @@ checksum = "34efbcccd345379ca2868b2b2c9d3782e9cc58ba87bc7d79d5b53d9c9ae6f25d"
 
 [[package]]
 name = "blinksy"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "defmt 0.3.100",
  "embedded-hal 1.0.0",
@@ -72,7 +72,7 @@ dependencies = [
 
 [[package]]
 name = "blinksy-esp"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "blinksy",
  "defmt 0.3.100",
@@ -959,7 +959,7 @@ dependencies = [
 
 [[package]]
 name = "gledopto"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "blinksy",
  "blinksy-esp",

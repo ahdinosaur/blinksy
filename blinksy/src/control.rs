@@ -225,7 +225,7 @@ where
 ///
 /// The builder allows your to build up your [`Control`] system one-by-one
 /// and handles the combination of generic types and contraints that [`Control`] expects.
-pub struct ControlBuilder<Dim, Exec, Layout, Pattern, Driver> {
+pub struct ControlBuilder<Dim, Exec, Layout, const NUM_PIXELS: usize, Pattern, Driver> {
     dim: PhantomData<Dim>,
     exec: PhantomData<Exec>,
     layout: PhantomData<Layout>,
@@ -233,13 +233,13 @@ pub struct ControlBuilder<Dim, Exec, Layout, Pattern, Driver> {
     driver: Driver,
 }
 
-impl ControlBuilder<(), (), (), (), ()> {
+impl ControlBuilder<(), (), (), 0, (), ()> {
     /// Starts building a one-dimensional blocking control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 1D, blocking
-    pub fn new_1d() -> ControlBuilder<Dim1d, Blocking, (), (), ()> {
+    pub fn new_1d() -> ControlBuilder<Dim1d, Blocking, (), 0, (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,
@@ -268,13 +268,13 @@ impl ControlBuilder<(), (), (), (), ()> {
     }
 }
 
-impl ControlBuilder<(), (), (), (), ()> {
+impl ControlBuilder<(), (), (), 0, (), ()> {
     /// Starts building a two-dimensional blocking control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 2D, blocking
-    pub fn new_2d() -> ControlBuilder<Dim2d, Blocking, (), (), ()> {
+    pub fn new_2d() -> ControlBuilder<Dim2d, Blocking, (), 0, (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,
@@ -303,13 +303,13 @@ impl ControlBuilder<(), (), (), (), ()> {
     }
 }
 
-impl ControlBuilder<(), (), (), (), ()> {
+impl ControlBuilder<(), (), (), 0, (), ()> {
     /// Starts building a three-dimensional blocking control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 3D, blocking
-    pub fn new_3d() -> ControlBuilder<Dim3d, Blocking, (), (), ()> {
+    pub fn new_3d() -> ControlBuilder<Dim3d, Blocking, (), 0, (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,
@@ -338,7 +338,7 @@ impl ControlBuilder<(), (), (), (), ()> {
     }
 }
 
-impl<Dim, Exec, Pattern, Driver> ControlBuilder<Dim, Exec, (), Pattern, Driver> {
+impl<Dim, Exec, Pattern, Driver> ControlBuilder<Dim, Exec, (), 0, Pattern, Driver> {
     /// Specifies the layout type for the control system.
     ///
     /// # Type Parameters
@@ -348,7 +348,9 @@ impl<Dim, Exec, Pattern, Driver> ControlBuilder<Dim, Exec, (), Pattern, Driver> 
     /// # Returns
     ///
     /// Builder with layout type specified
-    pub fn with_layout<Layout>(self) -> ControlBuilder<Dim, Exec, Layout, Pattern, Driver>
+    pub fn with_layout<Layout, const NUM_PIXELS: usize>(
+        self,
+    ) -> ControlBuilder<Dim, Exec, Layout, NUM_PIXELS, Pattern, Driver>
     where
         Layout: LayoutForDim<Dim>,
     {

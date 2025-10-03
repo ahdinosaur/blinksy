@@ -25,7 +25,7 @@
 //! use blinksy::{
 //!     ControlBuilder,
 //!     layout2d,
-//!     layout::{Shape2d, Vec2},
+//!     layout::{Layout2d, Shape2d, Vec2},
 //!     patterns::noise::{Noise2d, noise_fns, NoiseParams}
 //! };
 //!
@@ -44,7 +44,7 @@
 //!
 //! // Create a 2D noise pattern with Perlin noise
 //! let control = ControlBuilder::new_2d()
-//!     .with_layout::<Layout>()
+//!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
 //!         time_scalar: 0.001,
 //!         position_scalar: 0.1,

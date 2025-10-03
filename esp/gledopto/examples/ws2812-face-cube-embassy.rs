@@ -1,18 +1,26 @@
+#![no_std]
+#![no_main]
+#![feature(impl_trait_in_assoc_type)]
+
 use blinksy::{
     layout::{Layout3d, Shape3d, Vec3},
     layout3d,
     patterns::noise::{noise_fns, Noise3d, NoiseParams},
     ControlBuilder,
 };
-use blinksy_desktop::{
-    driver::{Desktop, DesktopError},
-    time::elapsed_in_ms,
-};
-use std::{thread::sleep, time::Duration};
+use embassy_executor::Spawner;
+use gledopto::{board, bootloader, elapsed, init_embassy, main_embassy, ws2812_async};
 
-fn main() {
+bootloader!();
+
+#[main_embassy]
+async fn main(_spawner: Spawner) {
+    let p = board!();
+
+    init_embassy!(p);
+
     layout3d!(
-        CubeFaceLayout,
+        Layout,
         [
             // bottom face
             Shape3d::Grid {
@@ -71,21 +79,18 @@ fn main() {
         ]
     );
 
-    Desktop::new_3d::<CubeFaceLayout>().start(|driver| {
-        let mut control = ControlBuilder::new_3d()
-            .with_layout::<CubeFaceLayout, { CubeFaceLayout::PIXEL_COUNT }>()
-            .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
-                ..Default::default()
-            })
-            .with_driver(driver)
-            .build();
+    let mut control = ControlBuilder::new_3d_async()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
+        .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
+            ..Default::default()
+        })
+        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
+        .build();
 
-        loop {
-            if let Err(DesktopError::WindowClosed) = control.tick(elapsed_in_ms()) {
-                break;
-            }
+    control.set_brightness(0.2);
 
-            sleep(Duration::from_millis(16));
-        }
-    });
+    loop {
+        let elapsed_in_ms = elapsed().as_millis();
+        control.tick(elapsed_in_ms).await.unwrap();
+    }
 }

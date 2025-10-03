@@ -76,7 +76,7 @@ fn main() -> ! {
     );
 
     let mut control = ControlBuilder::new_3d()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })

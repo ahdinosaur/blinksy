@@ -267,7 +267,7 @@ fn main() -> ! {
     );
 
     let mut control = ControlBuilder::new_3d()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
@@ -296,7 +296,7 @@ https://github.com/user-attachments/assets/22f388d0-189e-44bd-acbf-186a142b956d
 
 ```rust
 use blinksy::{
-    layout::{Shape2d, Vec2},
+    layout::{Layout2d, Shape2d, Vec2},
     layout2d,
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
@@ -322,7 +322,7 @@ layout2d!(
 fn main() {
     Desktop::new_2d::<PanelLayout>().start(|driver| {
         let mut control = ControlBuilder::new_2d()
-            .with_layout::<PanelLayout>()
+            .with_layout::<PanelLayout, { PanelLayout::PIXEL_COUNT }>()
             .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
                 ..Default::default()
             })
@@ -356,6 +356,7 @@ https://github.com/user-attachments/assets/703fe31d-e7ca-4e08-ae2b-7829c0d4d52e
 #![no_main]
 
 use blinksy::{
+    layout::Layout1d,
     layout1d,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
@@ -369,7 +370,7 @@ fn main() -> ! {
     layout1d!(Layout, 60 * 5);
 
     let mut control = ControlBuilder::new_1d()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
         .build();
@@ -396,6 +397,7 @@ fn main() -> ! {
 #![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
+    layout::Layout1d,
     layout1d,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
@@ -412,7 +414,7 @@ async fn main(_spawner: Spawner) {
     layout1d!(Layout, 60 * 5);
 
     let mut control = ControlBuilder::new_1d_async()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
         .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
         .build();
@@ -442,7 +444,7 @@ https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
 #![no_main]
 
 use blinksy::{
-    layout::{Shape2d, Vec2},
+    layout::{Layout2d, Shape2d, Vec2},
     layout2d,
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
@@ -467,7 +469,7 @@ fn main() -> ! {
         }]
     );
     let mut control = ControlBuilder::new_2d()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
         .with_driver(apa102!(p))
         .build();
@@ -494,7 +496,7 @@ fn main() -> ! {
 #![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
-    layout::{Shape2d, Vec2},
+    layout::{Layout2d, Shape2d, Vec2},
     layout2d,
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
@@ -520,7 +522,7 @@ async fn main(_spawner: Spawner) {
         }]
     );
     let mut control = ControlBuilder::new_2d_async()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
         .with_driver(apa102_async!(p))
         .build();

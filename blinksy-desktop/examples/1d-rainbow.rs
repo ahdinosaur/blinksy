@@ -1,4 +1,5 @@
 use blinksy::{
+    layout::Layout1d,
     layout1d,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
@@ -14,7 +15,7 @@ layout1d!(StripLayout, 30);
 fn main() {
     Desktop::new_1d::<StripLayout>().start(|driver| {
         let mut control = ControlBuilder::new_1d()
-            .with_layout::<StripLayout>()
+            .with_layout::<StripLayout, { StripLayout::PIXEL_COUNT }>()
             .with_pattern::<Rainbow>(RainbowParams {
                 ..Default::default()
             })

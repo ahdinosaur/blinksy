@@ -3,6 +3,7 @@
 #![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
+    layout::Layout1d,
     layout1d,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
@@ -21,7 +22,7 @@ async fn main(_spawner: Spawner) {
     layout1d!(Layout, 60 * 5);
 
     let mut control = ControlBuilder::new_1d_async()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
         .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
         .build();

@@ -1,5 +1,5 @@
 use blinksy::{
-    layout::{Shape3d, Vec3},
+    layout::{Layout3d, Shape3d, Vec3},
     layout3d,
     patterns::noise::{noise_fns, Noise3d, NoiseParams},
     ControlBuilder,
@@ -73,7 +73,7 @@ fn main() {
 
     Desktop::new_3d::<CubeFaceLayout>().start(|driver| {
         let mut control = ControlBuilder::new_3d()
-            .with_layout::<CubeFaceLayout>()
+            .with_layout::<CubeFaceLayout, { CubeFaceLayout::PIXEL_COUNT }>()
             .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
                 ..Default::default()
             })

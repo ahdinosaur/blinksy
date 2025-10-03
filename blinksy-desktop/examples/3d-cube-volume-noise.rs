@@ -41,7 +41,7 @@ impl Layout3d for CubeVolumeLayout {
 fn main() {
     Desktop::new_3d::<CubeVolumeLayout>().start(|driver| {
         let mut control = ControlBuilder::new_3d()
-            .with_layout::<CubeVolumeLayout>()
+            .with_layout::<CubeVolumeLayout, { CubeVolumeLayout::PIXEL_COUNT }>()
             .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
                 time_scalar: 0.25 / 1e3,
                 position_scalar: 0.25,

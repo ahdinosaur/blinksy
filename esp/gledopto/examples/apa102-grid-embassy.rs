@@ -3,7 +3,7 @@
 #![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
-    layout::{Shape2d, Vec2},
+    layout::{Layout2d, Shape2d, Vec2},
     layout2d,
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
@@ -29,7 +29,7 @@ async fn main(_spawner: Spawner) {
         }]
     );
     let mut control = ControlBuilder::new_2d_async()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
         .with_driver(apa102_async!(p))
         .build();

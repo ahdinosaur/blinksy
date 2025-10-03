@@ -1,5 +1,5 @@
 use blinksy::{
-    layout::{Shape2d, Vec2},
+    layout::{Layout2d, Shape2d, Vec2},
     layout2d,
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
@@ -25,7 +25,7 @@ layout2d!(
 fn main() {
     Desktop::new_2d::<PanelLayout>().start(|driver| {
         let mut control = ControlBuilder::new_2d()
-            .with_layout::<PanelLayout>()
+            .with_layout::<PanelLayout, { PanelLayout::PIXEL_COUNT }>()
             .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
                 ..Default::default()
             })

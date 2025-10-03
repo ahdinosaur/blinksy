@@ -38,12 +38,12 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 ///
 /// # Type Parameters
 ///
-/// * `NUM_PIXELS` - The number of LEDs in the layout
+/// * `PIXEL_COUNT` - The number of LEDs in the layout
 /// * `Dim` - The dimension marker ([`Dim1d`] or [`Dim2d`])
 /// * `Layout` - The [`layout`](crate::layout) type
 /// * `Pattern` - The [`pattern`](crate::pattern) type
 /// * `Driver` - The LED [`driver`](crate::driver) type
-pub struct Control<const NUM_PIXELS: usize, Dim, Exec, Layout, Pattern, Driver>
+pub struct Control<const PIXEL_COUNT: usize, Dim, Exec, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -51,15 +51,15 @@ where
     dim: PhantomData<Dim>,
     exec: PhantomData<Exec>,
     layout: PhantomData<Layout>,
-    pixels: Vec<Pattern::Color, NUM_PIXELS>,
+    pixels: Vec<Pattern::Color, PIXEL_COUNT>,
     pattern: Pattern,
     driver: Driver,
     brightness: f32,
     correction: ColorCorrection,
 }
 
-impl<const NUM_PIXELS: usize, Dim, Exec, Layout, Pattern, Driver>
-    Control<NUM_PIXELS, Dim, Exec, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, Dim, Exec, Layout, Pattern, Driver>
+    Control<PIXEL_COUNT, Dim, Exec, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -86,8 +86,8 @@ where
     }
 }
 
-impl<const NUM_PIXELS: usize, Dim, Layout, Pattern, Driver>
-    Control<NUM_PIXELS, Dim, Blocking, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
+    Control<PIXEL_COUNT, Dim, Blocking, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -98,7 +98,7 @@ where
         self.pixels = self.pattern.tick(time_in_ms).collect();
 
         self.driver.write(
-            self.pixels.drain(0..NUM_PIXELS),
+            self.pixels.drain(0..PIXEL_COUNT),
             self.brightness,
             self.correction,
         )
@@ -106,8 +106,8 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<const NUM_PIXELS: usize, Dim, Layout, Pattern, Driver>
-    Control<NUM_PIXELS, Dim, Async, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
+    Control<PIXEL_COUNT, Dim, Async, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -125,7 +125,7 @@ where
 ///
 /// The builder allows you to build up your [`Control`] system one-by-one
 /// and handles the combination of generic types and constraints that [`Control`] expects.
-pub struct ControlBuilder<const NUM_PIXELS: usize, Dim, Exec, Layout, Pattern, Driver> {
+pub struct ControlBuilder<const PIXEL_COUNT: usize, Dim, Exec, Layout, Pattern, Driver> {
     dim: PhantomData<Dim>,
     exec: PhantomData<Exec>,
     layout: PhantomData<Layout>,
@@ -209,9 +209,9 @@ impl ControlBuilder<0, (), (), (), (), ()> {
 }
 
 impl<Dim, Exec, Pattern, Driver> ControlBuilder<0, Dim, Exec, (), Pattern, Driver> {
-    pub fn with_layout<Layout, const NUM_PIXELS: usize>(
+    pub fn with_layout<Layout, const PIXEL_COUNT: usize>(
         self,
-    ) -> ControlBuilder<NUM_PIXELS, Dim, Exec, Layout, Pattern, Driver>
+    ) -> ControlBuilder<PIXEL_COUNT, Dim, Exec, Layout, Pattern, Driver>
     where
         Layout: LayoutForDim<Dim>,
     {
@@ -225,15 +225,15 @@ impl<Dim, Exec, Pattern, Driver> ControlBuilder<0, Dim, Exec, (), Pattern, Drive
     }
 }
 
-impl<const NUM_PIXELS: usize, Dim, Exec, Layout, Driver>
-    ControlBuilder<NUM_PIXELS, Dim, Exec, Layout, (), Driver>
+impl<const PIXEL_COUNT: usize, Dim, Exec, Layout, Driver>
+    ControlBuilder<PIXEL_COUNT, Dim, Exec, Layout, (), Driver>
 where
     Layout: LayoutForDim<Dim>,
 {
     pub fn with_pattern<Pattern>(
         self,
         params: Pattern::Params,
-    ) -> ControlBuilder<NUM_PIXELS, Dim, Exec, Layout, Pattern, Driver>
+    ) -> ControlBuilder<PIXEL_COUNT, Dim, Exec, Layout, Pattern, Driver>
     where
         Pattern: PatternTrait<Dim, Layout>,
     {
@@ -248,13 +248,13 @@ where
     }
 }
 
-impl<const NUM_PIXELS: usize, Dim, Layout, Pattern>
-    ControlBuilder<NUM_PIXELS, Dim, Blocking, Layout, Pattern, ()>
+impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
+    ControlBuilder<PIXEL_COUNT, Dim, Blocking, Layout, Pattern, ()>
 {
     pub fn with_driver<Driver>(
         self,
         driver: Driver,
-    ) -> ControlBuilder<NUM_PIXELS, Dim, Blocking, Layout, Pattern, Driver>
+    ) -> ControlBuilder<PIXEL_COUNT, Dim, Blocking, Layout, Pattern, Driver>
     where
         Driver: DriverTrait,
     {
@@ -269,13 +269,13 @@ impl<const NUM_PIXELS: usize, Dim, Layout, Pattern>
 }
 
 #[cfg(feature = "async")]
-impl<const NUM_PIXELS: usize, Dim, Layout, Pattern>
-    ControlBuilder<NUM_PIXELS, Dim, Async, Layout, Pattern, ()>
+impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
+    ControlBuilder<PIXEL_COUNT, Dim, Async, Layout, Pattern, ()>
 {
     pub fn with_driver<Driver>(
         self,
         driver: Driver,
-    ) -> ControlBuilder<NUM_PIXELS, Dim, Async, Layout, Pattern, Driver>
+    ) -> ControlBuilder<PIXEL_COUNT, Dim, Async, Layout, Pattern, Driver>
     where
         Driver: DriverAsyncTrait,
     {
@@ -289,29 +289,29 @@ impl<const NUM_PIXELS: usize, Dim, Layout, Pattern>
     }
 }
 
-impl<const NUM_PIXELS: usize, Dim, Layout, Pattern, Driver>
-    ControlBuilder<NUM_PIXELS, Dim, Blocking, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
+    ControlBuilder<PIXEL_COUNT, Dim, Blocking, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
     Driver: DriverTrait,
     Driver::Color: FromColor<Pattern::Color>,
 {
-    pub fn build(self) -> Control<NUM_PIXELS, Dim, Blocking, Layout, Pattern, Driver> {
+    pub fn build(self) -> Control<PIXEL_COUNT, Dim, Blocking, Layout, Pattern, Driver> {
         Control::new(self.pattern, self.driver)
     }
 }
 
 #[cfg(feature = "async")]
-impl<const NUM_PIXELS: usize, Dim, Layout, Pattern, Driver>
-    ControlBuilder<NUM_PIXELS, Dim, Async, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
+    ControlBuilder<PIXEL_COUNT, Dim, Async, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
     Driver: DriverAsyncTrait,
     Driver::Color: FromColor<Pattern::Color>,
 {
-    pub fn build(self) -> Control<NUM_PIXELS, Dim, Async, Layout, Pattern, Driver> {
+    pub fn build(self) -> Control<PIXEL_COUNT, Dim, Async, Layout, Pattern, Driver> {
         Control::new(self.pattern, self.driver)
     }
 }

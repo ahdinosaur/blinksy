@@ -9,6 +9,7 @@
 //! ```rust,ignore
 //! use blinksy::{
 //!     ControlBuilder,
+//!     layout::Layout1d,
 //!     layout1d,
 //!     patterns::rainbow::{Rainbow, RainbowParams}
 //! };
@@ -18,7 +19,7 @@
 //!
 //! // Create a Rainbow pattern with custom parameters
 //! let control = ControlBuilder::new_1d()
-//!     .with_layout::<Layout>()
+//!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Rainbow>(RainbowParams {
 //!         time_scalar: 0.1,
 //!         position_scalar: 1.0,

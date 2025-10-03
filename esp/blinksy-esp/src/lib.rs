@@ -61,7 +61,7 @@
 //!
 //!     // Build the Blinky controller
 //!     let mut control = ControlBuilder::new_1d()
-//!         .with_layout::<Layout>()
+//!         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!         .with_pattern::<Rainbow>(RainbowParams {
 //!             ..Default::default()
 //!         })

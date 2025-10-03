@@ -49,7 +49,7 @@
 //!     layout1d!(Layout, 60 * 5);
 //!
 //!     let mut control = ControlBuilder::new_1d()
-//!         .with_layout::<Layout>()
+//!         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!         .with_pattern::<Rainbow>(RainbowParams {
 //!             ..Default::default()
 //!         })
@@ -97,7 +97,7 @@
 //!         }]
 //!     );
 //!     let mut control = ControlBuilder::new_2d()
-//!         .with_layout::<Layout>()
+//!         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
 //!             ..Default::default()
 //!         })

@@ -10,7 +10,7 @@
 //! use blinksy::{
 //!     ControlBuilder,
 //!     layout2d,
-//!     layout::{Shape2d, Vec2},
+//!     layout::{Layout2d, Shape2d, Vec2},
 //!     patterns::rainbow::{Rainbow, RainbowParams}
 //! };
 //! use blinksy_desktop::{driver::Desktop, time::elapsed_in_ms};
@@ -32,7 +32,7 @@
 //! Desktop::new_2d::<PanelLayout>().start(|driver| {
 //!     // Create a control using the desktop driver instead of physical hardware
 //!     let mut control = ControlBuilder::new_2d()
-//!         .with_layout::<PanelLayout>()
+//!         .with_layout::<PanelLayout, { PanelLayout::PIXEL_COUNT }>()
 //!         .with_pattern::<Rainbow>(RainbowParams::default())
 //!         .with_driver(driver)
 //!         .build();

@@ -120,13 +120,13 @@
 //! ### 1D Strip with Rainbow Pattern (Blocking)
 //!
 //! ```rust,ignore
-//! use blinksy::{ControlBuilder, layout1d, patterns::rainbow::{Rainbow, RainbowParams}};
-//!
+//! # use blinksy::{ControlBuilder, layout::Layout1d, layout1d, patterns::rainbow::{Rainbow, RainbowParams}};
+//! #
 //! // Define a 1D layout with 60 LEDs
 //! layout1d!(Layout, 60);
 //!
 //! let mut control = ControlBuilder::new_1d()
-//!     .with_layout::<Layout>()
+//!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Rainbow>(RainbowParams::default())
 //!     .with_driver(/* insert your LED driver here */)
 //!     .build();
@@ -141,13 +141,13 @@
 //! ### 1D Strip with Rainbow Pattern (Async)
 //!
 //! ```rust,ignore
-//! use blinksy::{ControlBuilder, layout1d, patterns::rainbow::{Rainbow, RainbowParams}};
-//!
+//! # use blinksy::{ControlBuilder, layout::Layout1d, layout1d, patterns::rainbow::{Rainbow, RainbowParams}};
+//! #
 //! // Define a 1D layout with 60 LEDs
 //! layout1d!(Layout, 60);
 //!
 //! let mut control = ControlBuilder::new_1d_async()
-//!     .with_layout::<Layout>()
+//!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Rainbow>(RainbowParams::default())
 //!     .with_driver(/* insert your LED driver here */)
 //!     .build();
@@ -162,13 +162,13 @@
 //! ### 2D Grid with Noise Pattern (Blocking)
 //!
 //! ```rust,ignore
-//! use blinksy::{
-//!     ControlBuilder,
-//!     layout::{Shape2d, Vec2},
-//!     layout2d,
-//!     patterns::noise::{noise_fns, Noise2d, NoiseParams},
-//! };
-//!
+//! # use blinksy::{
+//! #     ControlBuilder,
+//! #     layout::{Layout2d, Shape2d, Vec2},
+//! #     layout2d,
+//! #     patterns::noise::{noise_fns, Noise2d, NoiseParams},
+//! # };
+//! #
 //! layout2d!(
 //!     Layout,
 //!     [Shape2d::Grid {
@@ -181,7 +181,7 @@
 //!     }]
 //! );
 //! let mut control = ControlBuilder::new_2d()
-//!     .with_layout::<Layout>()
+//!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
 //!     .with_driver(/* insert your LED driver here */)
 //!     .build();
@@ -196,16 +196,13 @@
 //! ### 3D Cube with Noise Pattern (Blocking)
 //!
 //! ```rust,ignore
-//! #![no_std]
-//! #![no_main]
-//!
-//! use blinksy::{
-//!     layout::{Layout3d, Shape3d, Vec3},
-//!     layout3d,
-//!     patterns::noise::{noise_fns, Noise3d, NoiseParams},
-//!     ControlBuilder,
-//! };
-//!
+//! # use blinksy::{
+//! #     layout::{Layout3d, Shape3d, Vec3},
+//! #     layout3d,
+//! #     patterns::noise::{noise_fns, Noise3d, NoiseParams},
+//! #     ControlBuilder,
+//! # };
+//! #
 //! layout3d!(
 //!     Layout,
 //!     [
@@ -267,7 +264,7 @@
 //! );
 //!
 //! let mut control = ControlBuilder::new_3d()
-//!     .with_layout::<Layout>()
+//!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams::default())
 //!     .with_driver(/* insert your LED driver here */)
 //!     .build();

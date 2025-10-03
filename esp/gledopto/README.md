@@ -34,7 +34,7 @@ https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
 #![no_main]
 
 use blinksy::{
-    layout::{Shape2d, Vec2},
+    layout::{Layout2d, Shape2d, Vec2},
     layout2d,
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
@@ -59,7 +59,7 @@ fn main() -> ! {
         }]
     );
     let mut control = ControlBuilder::new_2d()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
@@ -107,7 +107,7 @@ fn main() -> ! {
     layout1d!(Layout, 60 * 5);
 
     let mut control = ControlBuilder::new_1d()
-        .with_layout::<Layout>()
+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams {
             ..Default::default()
         })

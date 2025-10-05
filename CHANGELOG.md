@@ -1,5 +1,22 @@
 # Changelog
 
+## UNRELEASED
+
+Migration guide (0.10 -> UNRELEASED)
+
+- `ControlBuilder::with_layout` now expects a new const generic `<Layout, const PIXEL_COUNT: usize>`
+
+```diff
+-        .with_layout::<Layout>()
++        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
+```
+
+Breaking changes:
+
+- [#82](https://github.com/ahdinosaur/blinksy/pull/82): Use pixels buffer
+  - Write all colors from `Pattern` iterator to pixel buffer, then write pixel buffer to LEDs with `Driver`.
+
+
 ## 0.10
 
 Yee haw `blinksy` now supports async!

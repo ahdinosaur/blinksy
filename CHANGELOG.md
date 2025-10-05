@@ -4,11 +4,12 @@
 
 Migration guide (0.10 -> UNRELEASED)
 
-- `ControlBuilder::with_layout` now expects a new const generic `<Layout, const PIXEL_COUNT: usize>`
+- `ControlBuilder::with_layout` generic type signature changes from `<Layout`> to `<Layout, const PIXEL_COUNT: usize>`
+  - If your layout is `Layout`, then change `.with_layout<Layout>()` to `.with_layout::<Layout, { Layout::PIXEL_COUNT }>()`
 
 ```diff
--        .with_layout::<Layout>()
-+        .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
+-  .with_layout::<Layout>()
++  .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 ```
 
 Breaking changes:

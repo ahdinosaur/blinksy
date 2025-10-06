@@ -39,7 +39,7 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 /// # Type Parameters
 ///
 /// * `PIXEL_COUNT` - The number of LEDs in the layout
-/// * `Dim` - The dimension marker ([`Dim1d`] or [`Dim2d`])
+/// * `Dim` - The dimension marker ([`Dim1d`] or [`Dim2d`] or [`Dim3d`])
 /// * `Layout` - The [`layout`](crate::layout) type
 /// * `Pattern` - The [`pattern`](crate::pattern) type
 /// * `Driver` - The LED [`driver`](crate::driver) type
@@ -49,6 +49,7 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 /// ```rust,ignore
 /// use blinksy::{
 ///     ControlBuilder,
+///     layout::Layout1d,
 ///     layout1d,
 ///     patterns::rainbow::{Rainbow, RainbowParams}
 /// };
@@ -58,7 +59,7 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 ///
 /// // Create a control system
 /// let mut control = ControlBuilder::new_1d()
-///     .with_layout::<Layout>()
+///     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 ///     .with_pattern::<Rainbow>(RainbowParams::default())
 ///     .with_driver(/* LED driver */)
 ///     .build();
@@ -77,6 +78,7 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 /// ```rust,ignore
 /// use blinksy::{
 ///     ControlBuilder,
+///     layout::Layout1d,
 ///     layout1d,
 ///     patterns::rainbow::{Rainbow, RainbowParams}
 /// };
@@ -86,7 +88,7 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 ///
 /// // Create a control system
 /// let mut control = ControlBuilder::new_1d_async()
-///     .with_layout::<Layout>()
+///     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 ///     .with_pattern::<Rainbow>(RainbowParams::default())
 ///     .with_driver(/* LED driver */)
 ///     .build();
@@ -346,6 +348,7 @@ impl<Dim, Exec, Pattern, Driver> ControlBuilder<0, Dim, Exec, (), Pattern, Drive
     /// # Type Parameters
     ///
     /// * `Layout` - The layout type implementing Layout that corresponds to Dim
+    /// * `PIXEL_COUNT` - A constant for the number of pixels (`Layout::PIXEL_COUNT`)
     ///
     /// # Returns
     ///

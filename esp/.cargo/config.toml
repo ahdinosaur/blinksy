@@ -3,6 +3,7 @@ runner = "espflash flash --monitor --chip esp32 --log-format defmt"
 
 [env]
 DEFMT_LOG="info"
+ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM="true"
 
 [build]
 rustflags = [

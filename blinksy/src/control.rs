@@ -220,9 +220,15 @@ where
     ///
     /// Result indicating success or an error from the driver
     pub async fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
-        let pixels = self.pattern.tick(time_in_ms);
+        // Write colors from Pattern to pixel buffer.
+        self.pixels.extend(self.pattern.tick(time_in_ms));
+        // Write colors in pixel buffer to Driver.
         self.driver
-            .write(pixels, self.brightness, self.correction)
+            .write(
+                self.pixels.drain(0..PIXEL_COUNT),
+                self.brightness,
+                self.correction,
+            )
             .await
     }
 }

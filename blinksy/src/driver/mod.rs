@@ -71,14 +71,13 @@ pub trait Driver {
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn write<I, C>(
+    fn write<const PIXEL_COUNT: usize, C>(
         &mut self,
-        pixels: I,
+        pixels: [C; PIXEL_COUNT],
         brightness: f32,
         correction: ColorCorrection,
     ) -> Result<(), Self::Error>
     where
-        I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>;
 }
 

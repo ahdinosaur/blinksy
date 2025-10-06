@@ -6,7 +6,7 @@
 //! As [`Control`] has a complex generic type signature, [`ControlBuilder`] is a builder to help
 //! you create [`Control`] instances.
 
-use core::marker::PhantomData;
+use core::{fmt::Debug, marker::PhantomData};
 
 use heapless::Vec;
 
@@ -109,7 +109,6 @@ where
     dim: PhantomData<Dim>,
     exec: PhantomData<Exec>,
     layout: PhantomData<Layout>,
-    pixels: Vec<Pattern::Color, PIXEL_COUNT>,
     pattern: Pattern,
     driver: Driver,
     brightness: f32,
@@ -137,7 +136,6 @@ where
             dim: PhantomData,
             exec: PhantomData,
             layout: PhantomData,
-            pixels: Vec::new(),
             pattern,
             driver,
             brightness: 1.0,
@@ -169,8 +167,9 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
+    Pattern::Color: Debug,
     Driver: DriverTrait,
-    Driver::Color: FromColor<Pattern::Color>,
+    Driver::Color: FromColor<Pattern::Color> + Debug,
 {
     /// Updates the LED state based on the current time.
     ///
@@ -187,10 +186,12 @@ where
     /// Result indicating success or an error from the driver
     pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
         // Write colors from Pattern to pixel buffer.
-        self.pixels.extend(self.pattern.tick(time_in_ms));
+        let pixels: Vec<_, PIXEL_COUNT> = Vec::from_iter(self.pattern.tick(time_in_ms));
         // Write colors in pixel buffer to Driver.
         self.driver.write(
-            self.pixels.drain(0..PIXEL_COUNT),
+            pixels
+                .into_array::<PIXEL_COUNT>()
+                .expect("Failed to convert pixel buffer to array, unexpected length."),
             self.brightness,
             self.correction,
         )

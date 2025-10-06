@@ -27,19 +27,19 @@ gledopto-ws2812-strip:
   cd esp && cargo run --release -p gledopto --example ws2812-strip --features gl_c_016wl_d
 
 gledopto-ws2812-strip-embassy:
-  cd esp && ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true cargo run --release -p gledopto --example ws2812-strip-embassy --features gl_c_016wl_d,embassy
+  cd esp && cargo run --release -p gledopto --example ws2812-strip-embassy --features gl_c_016wl_d,embassy
 
 gledopto-apa102-grid:
   cd esp && cargo run --release -p gledopto --example apa102-grid --features gl_c_016wl_d
 
 gledopto-apa102-grid-embassy:
-  cd esp && ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true cargo run --release -p gledopto --example apa102-grid-embassy --features gl_c_016wl_d,embassy
+  cd esp && cargo run --release -p gledopto --example apa102-grid-embassy --features gl_c_016wl_d,embassy
 
 gledopto-ws2812-face-cube:
   cd esp && cargo run --release -p gledopto --example ws2812-face-cube --features gl_c_016wl_d
 
 gledopto-ws2812-face-cube-embassy:
-  cd esp && ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true cargo run --release -p gledopto --example ws2812-face-cube-embassy --features gl_c_016wl_d,embassy
+  cd esp && cargo run --release -p gledopto --example ws2812-face-cube-embassy --features gl_c_016wl_d,embassy
 
 gledopto-ws2812-volume-cube:
   cd esp && cargo run --release -p gledopto --example ws2812-volume-cube --features gl_c_016wl_d

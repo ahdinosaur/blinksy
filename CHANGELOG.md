@@ -12,10 +12,13 @@ Migration guide (0.10 -> UNRELEASED)
 +  .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 ```
 
+- `Driver::write` now expects a `const PIXEL_COUNT: usize` generic constant as the first type argument.
+
 Breaking changes:
 
 - [#82](https://github.com/ahdinosaur/blinksy/pull/82): Use pixels buffer
   - Write all colors from `Pattern` iterator to pixel buffer, then write pixel buffer to LEDs with `Driver`.
+- [#87](https://github.com/ahdinosaur/blinksy/pull/87): Refactor clocked LED drivers
 
 
 ## 0.10

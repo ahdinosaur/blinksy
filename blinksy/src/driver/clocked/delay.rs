@@ -12,9 +12,9 @@ use crate::{
     util::bits::{u8_to_bits, BitOrder},
 };
 
-use super::{ClockedLed, ClockedWriter};
 #[cfg(feature = "async")]
-use super::{ClockedLedAsync, ClockedWriterAsync};
+use super::ClockedWriterAsync;
+use super::{ClockedLed, ClockedWriter};
 
 /// Driver for clocked LEDs using GPIO bit-banging with a delay timer.
 ///
@@ -122,14 +122,15 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        self.0.write(pixels, brightness, correction)
+        self.0
+            .write::<PIXEL_COUNT, _, _>(pixels, brightness, correction)
     }
 }
 
 #[cfg(feature = "async")]
 impl<Led, Data, Clock, Delay> DriverAsync for ClockedDelayDriver<Led, Data, Clock, Delay>
 where
-    Led: ClockedLedAsync<Word = u8>,
+    Led: ClockedLed<Word = u8>,
     Data: OutputPin,
     Clock: OutputPin,
     Delay: DelayNsAsync,
@@ -139,7 +140,7 @@ where
 
     /// Writes a sequence of colors to the LED chain, asynchronously.
     ///
-    /// Delegates to the Led::clocked_write method to handle the protocol-specific details.
+    /// Orchestrates start, per-LED frames, and end frame using the async writer.
     ///
     /// # Arguments
     ///
@@ -150,7 +151,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if transmission fails
-    async fn write<I, C>(
+    async fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -160,7 +161,9 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Led::clocked_write(&mut self.writer, pixels, brightness, correction).await
+        self.0
+            .write::<PIXEL_COUNT, _, _>(pixels, brightness, correction)
+            .await
     }
 }
 
@@ -240,7 +243,7 @@ where
     type Error = ClockedDelayError<Data, Clock>;
     type Word = u8;
 
-    /// Writes a slice of bytes using the bit-banging technique.
+    /// Writes an iterator of bytes using the bit-banging technique.
     ///
     /// For each bit:
     /// 1. Sets the data line to the bit value
@@ -289,7 +292,7 @@ where
     type Error = ClockedDelayError<Data, Clock>;
     type Word = u8;
 
-    /// Writes a slice of bytes using the bit-banging technique, asynchronously.
+    /// Writes an iterator of bytes using the bit-banging technique, asynchronously.
     ///
     /// For each bit:
     /// 1. Sets the data line to the bit value
@@ -305,12 +308,12 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    async fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: IntoIterator<Item = &Self::Word>,
+        Words: IntoIterator<Item = Self::Word>,
     {
         for byte in words {
-            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+            for bit in u8_to_bits(&byte, BitOrder::MostSignificantBit) {
                 match bit {
                     false => self.data.set_low(),
                     true => self.data.set_high(),

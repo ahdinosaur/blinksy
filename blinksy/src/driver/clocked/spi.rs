@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{marker::PhantomData, slice::from_ref};
 use embedded_hal::spi::SpiBus;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
@@ -7,12 +7,12 @@ use embedded_hal_async::spi::SpiBus as SpiBusAsync;
 use crate::driver::DriverAsync;
 use crate::{
     color::{ColorCorrection, FromColor},
-    driver::Driver,
+    driver::{ClockedDriver, Driver},
 };
 
-use super::{ClockedLed, ClockedWriter};
 #[cfg(feature = "async")]
-use super::{ClockedLedAsync, ClockedWriterAsync};
+use super::ClockedWriterAsync;
+use super::{ClockedLed, ClockedWriter};
 
 /// Driver for clocked LEDs using a hardware SPI peripheral.
 ///
@@ -43,13 +43,7 @@ use super::{ClockedLedAsync, ClockedWriterAsync};
 /// * `Led` - The LED protocol implementation (must implement ClockedLed<Word=u8>)
 /// * `Spi` - The SPI interface type
 #[derive(Debug)]
-pub struct ClockedSpiDriver<Led, Spi> {
-    /// Marker for the LED protocol type
-    led: PhantomData<Led>,
-
-    /// SPI interface for data transmission
-    writer: Spi,
-}
+pub struct ClockedSpiDriver<Led, Spi>(ClockedDriver<Led, Spi>);
 
 impl<Led, Spi> ClockedSpiDriver<Led, Spi> {
     /// Creates a new SPI-based clocked LED driver.
@@ -62,10 +56,10 @@ impl<Led, Spi> ClockedSpiDriver<Led, Spi> {
     ///
     /// A new ClockedSpiDriver instance
     pub fn new(spi: Spi) -> Self {
-        Self {
+        Self(ClockedDriver {
             led: PhantomData,
             writer: spi,
-        }
+        })
     }
 }
 
@@ -79,7 +73,8 @@ where
 
     /// Writes a sequence of colors to the LED chain using SPI.
     ///
-    /// Delegates to the Led::clocked_write method to handle the protocol-specific details.
+    /// Orchestrates start, per-LED frames, and end frame by generating frames
+    /// from the `Led` implementation and sending them via SPI.
     ///
     /// # Arguments
     ///
@@ -90,7 +85,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if SPI transmission fails
-    fn write<I, C>(
+    fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -100,14 +95,15 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Led::clocked_write(&mut self.writer, pixels, brightness, correction)
+        self.0
+            .write::<PIXEL_COUNT, _, _>(pixels, brightness, correction)
     }
 }
 
 #[cfg(feature = "async")]
 impl<Led, Spi> DriverAsync for ClockedSpiDriver<Led, Spi>
 where
-    Led: ClockedLedAsync<Word = u8>,
+    Led: ClockedLed<Word = u8>,
     Spi: SpiBusAsync<u8>,
 {
     type Error = Spi::Error;
@@ -115,7 +111,8 @@ where
 
     /// Writes a sequence of colors to the LED chain using SPI, asynchronously.
     ///
-    /// Delegates to the Led::clocked_write method to handle the protocol-specific details.
+    /// Orchestrates start, per-LED frames, and end frame by generating frames
+    /// from the `Led` implementation and sending them via SPI.
     ///
     /// # Arguments
     ///
@@ -126,7 +123,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if SPI transmission fails
-    async fn write<I, C>(
+    async fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -136,7 +133,22 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Led::clocked_write(&mut self.writer, pixels, brightness, correction).await
+        // Start frame
+        ClockedWriterAsync::write(&mut self.0.writer, Led::start()).await?;
+
+        // Per-LED frames
+        let mut pixel_count = 0;
+        for color in pixels.into_iter() {
+            let color = Led::Color::from_color(color);
+            ClockedWriterAsync::write(&mut self.0.writer, Led::led(color, brightness, correction))
+                .await?;
+            pixel_count += 1;
+        }
+
+        // End frame
+        ClockedWriterAsync::write(&mut self.0.writer, Led::end(pixel_count)).await?;
+
+        Ok(())
     }
 }
 
@@ -151,17 +163,23 @@ where
     type Error = Spi::Error;
     type Word = u8;
 
-    /// Writes a slice of bytes using the SPI interface.
+    /// Writes an iterator of bytes using the SPI interface.
     ///
     /// # Arguments
     ///
-    /// * `words` - Slice of bytes to write
+    /// * `words` - Iterator of bytes to write
     ///
     /// # Returns
     ///
     /// Ok(()) on success or an error if SPI transmission fails
-    fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
-        self.write(words)
+    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    where
+        Words: IntoIterator<Item = Self::Word>,
+    {
+        for w in words {
+            self.write(from_ref(&w))?;
+        }
+        Ok(())
     }
 }
 
@@ -177,16 +195,22 @@ where
     type Error = Spi::Error;
     type Word = u8;
 
-    /// Writes a slice of bytes using the SPI interface.
+    /// Writes an iterator of bytes using the SPI interface.
     ///
     /// # Arguments
     ///
-    /// * `words` - Slice of bytes to write
+    /// * `words` - Iterator of bytes to write
     ///
     /// # Returns
     ///
     /// Ok(()) on success or an error if SPI transmission fails
-    async fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
-        self.write(words).await
+    async fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    where
+        Words: IntoIterator<Item = Self::Word>,
+    {
+        for w in words {
+            self.write(from_ref(&w)).await?;
+        }
+        Ok(())
     }
 }

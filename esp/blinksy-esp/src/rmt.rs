@@ -363,7 +363,7 @@ where
     type Error = ClocklessRmtDriverError;
     type Color = LinearSrgb;
 
-    fn write<I, C>(
+    fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -388,7 +388,7 @@ where
     type Error = ClocklessRmtDriverError;
     type Color = LinearSrgb;
 
-    async fn write<I, C>(
+    async fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,

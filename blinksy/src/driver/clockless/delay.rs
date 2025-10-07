@@ -202,7 +202,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if transmission fails
-    fn write<I, C>(
+    fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -250,7 +250,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if transmission fails
-    async fn write<I, C>(
+    async fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,

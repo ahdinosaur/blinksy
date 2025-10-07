@@ -189,7 +189,7 @@ where
         // Write colors from Pattern to pixel buffer.
         self.pixels.extend(self.pattern.tick(time_in_ms));
         // Write colors in pixel buffer to Driver.
-        self.driver.write(
+        self.driver.write::<PIXEL_COUNT, _, _>(
             self.pixels.drain(0..PIXEL_COUNT),
             self.brightness,
             self.correction,
@@ -224,7 +224,7 @@ where
         self.pixels.extend(self.pattern.tick(time_in_ms));
         // Write colors in pixel buffer to Driver.
         self.driver
-            .write(
+            .write::<PIXEL_COUNT, _, _>(
                 self.pixels.drain(0..PIXEL_COUNT),
                 self.brightness,
                 self.correction,

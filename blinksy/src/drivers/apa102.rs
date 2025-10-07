@@ -30,11 +30,11 @@
 //! This implementation includes the "High Definition" color handling from FastLED, which
 //! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 
-#[cfg(feature = "async")]
-use crate::driver::{ClockedLedAsync, ClockedWriterAsync};
+use core::iter::repeat_n;
+
 use crate::{
-    color::{ColorCorrection, FromColor, LinearSrgb, RgbChannels},
-    driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver, ClockedWriter},
+    color::{ColorCorrection, LinearSrgb, RgbChannels},
+    driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver},
     util::component::Component,
 };
 
@@ -61,23 +61,20 @@ pub type Apa102Spi<Spi> = ClockedSpiDriver<Apa102Led, Spi>;
 #[derive(Debug)]
 pub struct Apa102Led;
 
-impl Apa102Led {
-    fn start_bytes() -> &'static [u8; 4] {
-        &[0x00, 0x00, 0x00, 0x00]
+impl ClockedLed for Apa102Led {
+    type Word = u8;
+    type Color = LinearSrgb;
+
+    fn start() -> impl IntoIterator<Item = Self::Word> {
+        [0x00, 0x00, 0x00, 0x00]
     }
 
-    fn end_bytes() -> &'static [u8; 1] {
-        &[0x00]
-    }
-
-    fn color_bytes(
-        color: LinearSrgb,
+    fn led(
+        linear_rgb: LinearSrgb,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> ([u8; 1], [u8; 3]) {
-        // Convert color to linear sRGB
-        let linear = LinearSrgb::from_color(color);
-        let (red, green, blue) = (linear.red, linear.green, linear.blue);
+    ) -> impl IntoIterator<Item = Self::Word> {
+        let (red, green, blue) = (linear_rgb.red, linear_rgb.green, linear_rgb.blue);
 
         // Color correct
         let red = red * correction.red;
@@ -96,97 +93,15 @@ impl Apa102Led {
         let ((red_u8, green_u8, blue_u8), brightness) =
             five_bit_bitshift(red_u16, green_u16, blue_u16, brightness);
 
-        let brightness_bytes = [0b11100000 | (brightness & 0b00011111)];
+        let brightness_byte = 0b11100000 | (brightness & 0b00011111);
         let led_bytes = RgbChannels::BGR.reorder([red_u8, green_u8, blue_u8]);
 
-        (brightness_bytes, led_bytes)
-    }
-}
-
-impl ClockedLed for Apa102Led {
-    type Word = u8;
-    type Color = LinearSrgb;
-
-    /// Writes the APA102 start frame (32 bits of zeros).
-    fn start<Writer: ClockedWriter<Word = Self::Word>>(
-        writer: &mut Writer,
-    ) -> Result<(), Writer::Error> {
-        writer.write(Self::start_bytes())
+        [brightness_byte, led_bytes[0], led_bytes[1], led_bytes[2]]
     }
 
-    /// Writes a color frame for one LED, including the 5-bit global brightness.
-    ///
-    /// Uses the "High Definition" color handling algorithm from FastLED to optimize
-    /// the use of the 5-bit brightness and 8-bit per-channel color values.
-    fn color<Writer: ClockedWriter<Word = Self::Word>>(
-        writer: &mut Writer,
-        color: Self::Color,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), Writer::Error> {
-        let (brightness_bytes, led_bytes) = Self::color_bytes(color, brightness, correction);
-        writer.write(&brightness_bytes)?;
-        writer.write(&led_bytes)?;
-        Ok(())
-    }
-
-    /// Writes the APA102 end frame.
-    ///
-    /// The end frame needs to be at least (n-1)/16 + 1 bytes of zeros, where n is
-    /// the number of LEDs in the chain.
-    fn end<Writer: ClockedWriter<Word = Self::Word>>(
-        writer: &mut Writer,
-        length: usize,
-    ) -> Result<(), Writer::Error> {
-        let num_bytes = (length - 1).div_ceil(16);
-        for _ in 0..num_bytes {
-            writer.write(Self::end_bytes())?
-        }
-        Ok(())
-    }
-}
-
-#[cfg(feature = "async")]
-impl ClockedLedAsync for Apa102Led {
-    type Word = u8;
-    type Color = LinearSrgb;
-
-    /// Writes the APA102 start frame (32 bits of zeros).
-    async fn start<Writer: ClockedWriterAsync<Word = Self::Word>>(
-        writer: &mut Writer,
-    ) -> Result<(), Writer::Error> {
-        writer.write(Self::start_bytes()).await
-    }
-
-    /// Writes a color frame for one LED, including the 5-bit global brightness.
-    ///
-    /// Uses the "High Definition" color handling algorithm from FastLED to optimize
-    /// the use of the 5-bit brightness and 8-bit per-channel color values.
-    async fn color<Writer: ClockedWriterAsync<Word = Self::Word>>(
-        writer: &mut Writer,
-        color: Self::Color,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), Writer::Error> {
-        let (brightness_bytes, led_bytes) = Self::color_bytes(color, brightness, correction);
-        writer.write(&brightness_bytes).await?;
-        writer.write(&led_bytes).await?;
-        Ok(())
-    }
-
-    /// Writes the APA102 end frame.
-    ///
-    /// The end frame needs to be at least (n-1)/16 + 1 bytes of zeros, where n is
-    /// the number of LEDs in the chain.
-    async fn end<Writer: ClockedWriterAsync<Word = Self::Word>>(
-        writer: &mut Writer,
-        length: usize,
-    ) -> Result<(), Writer::Error> {
-        let num_bytes = (length - 1).div_ceil(16);
-        for _ in 0..num_bytes {
-            writer.write(Self::end_bytes()).await?
-        }
-        Ok(())
+    fn end(pixel_count: usize) -> impl IntoIterator<Item = Self::Word> {
+        let num_bytes = (pixel_count - 1).div_ceil(16);
+        repeat_n(0u8, num_bytes)
     }
 }
 

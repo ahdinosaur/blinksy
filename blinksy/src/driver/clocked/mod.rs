@@ -181,6 +181,41 @@ pub trait ClockedLed {
     ///
     /// An iterator of words to write
     fn end(pixel_count: usize) -> impl IntoIterator<Item = Self::Word>;
+
+    /// A complete update frame:
+    ///
+    /// 1. Start frame
+    /// 2. For each pixel: Led frame
+    /// 3. End frame
+    ///
+    /// # Arguments
+    ///
+    /// * `pixel` - The pixel color to write
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
+    /// * `pixel_count` - The number of LEDs that were written
+    ///
+    /// # Returns
+    ///
+    /// An iterator of words to write
+    fn update<I>(
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+        pixel_count: usize,
+    ) -> impl IntoIterator<Item = Self::Word>
+    where
+        I: IntoIterator<Item = Self::Color>,
+    {
+        Self::start()
+            .into_iter()
+            .chain(
+                pixels
+                    .into_iter()
+                    .flat_map(move |color| Self::led(color, brightness, correction).into_iter()),
+            )
+            .chain(Self::end(pixel_count))
+    }
 }
 
 /// # Type Parameters
@@ -205,11 +240,6 @@ where
 
     /// Writes a complete sequence of colors to the LED chain.
     ///
-    /// This method orchestrates the process of:
-    /// 1. Writing the start frame
-    /// 2. Writing each LED color
-    /// 4. Writing the end frame
-    ///
     /// # Arguments
     ///
     /// * `pixels` - Iterator over colors
@@ -229,16 +259,9 @@ where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,
     {
-        self.writer.write(Led::start())?;
-
-        for color in pixels.into_iter() {
-            let color = Led::Color::from_color(color);
-            self.writer.write(Led::led(color, brightness, correction))?;
-        }
-
-        self.writer.write(Led::end(PIXEL_COUNT))?;
-
-        Ok(())
+        let pixels = pixels.into_iter().map(Led::Color::from_color);
+        self.writer
+            .write(Led::update(pixels, brightness, correction, PIXEL_COUNT))
     }
 }
 
@@ -252,11 +275,6 @@ where
     type Color = Led::Color;
 
     /// Writes a complete sequence of colors to the LED chain.
-    ///
-    /// This method orchestrates the process of:
-    /// 1. Writing the start frame
-    /// 2. Writing each LED color
-    /// 4. Writing the end frame
     ///
     /// # Arguments
     ///
@@ -277,17 +295,9 @@ where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,
     {
-        self.writer.write(Led::start()).await?;
-
-        for color in pixels.into_iter() {
-            let color = Led::Color::from_color(color);
-            self.writer
-                .write(Led::led(color, brightness, correction))
-                .await?;
-        }
-
-        self.writer.write(Led::end(PIXEL_COUNT)).await?;
-
-        Ok(())
+        let pixels = pixels.into_iter().map(Led::Color::from_color);
+        self.writer
+            .write(Led::update(pixels, brightness, correction, PIXEL_COUNT))
+            .await
     }
 }

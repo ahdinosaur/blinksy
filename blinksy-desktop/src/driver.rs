@@ -416,7 +416,7 @@ where
     type Error = DesktopError;
     type Color = LinearSrgb;
 
-    fn write<I, C>(
+    fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,

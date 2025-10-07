@@ -73,8 +73,7 @@ where
 
     /// Writes a sequence of colors to the LED chain using SPI.
     ///
-    /// Orchestrates start, per-LED frames, and end frame by generating frames
-    /// from the `Led` implementation and sending them via SPI.
+    /// Delegates to the ClockedDriver::write method.
     ///
     /// # Arguments
     ///
@@ -111,8 +110,7 @@ where
 
     /// Writes a sequence of colors to the LED chain using SPI, asynchronously.
     ///
-    /// Orchestrates start, per-LED frames, and end frame by generating frames
-    /// from the `Led` implementation and sending them via SPI.
+    /// Delegates to the ClockedDriverAsync::write method.
     ///
     /// # Arguments
     ///

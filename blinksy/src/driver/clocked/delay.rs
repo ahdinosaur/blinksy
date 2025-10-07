@@ -101,7 +101,7 @@ where
 
     /// Writes a sequence of colors to the LED chain.
     ///
-    /// Delegates to the Led::clocked_write method to handle the protocol-specific details.
+    /// Delegates to the ClockedDriver::write method.
     ///
     /// # Arguments
     ///
@@ -140,7 +140,7 @@ where
 
     /// Writes a sequence of colors to the LED chain, asynchronously.
     ///
-    /// Orchestrates start, per-LED frames, and end frame using the async writer.
+    /// Delegates to the ClockedDriverAsync::write method.
     ///
     /// # Arguments
     ///

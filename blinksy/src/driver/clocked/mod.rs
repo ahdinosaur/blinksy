@@ -191,20 +191,20 @@ where
         correction: ColorCorrection,
     ) -> Result<(), Writer::Error>
     where
-        Writer: ClockedWriter<Word = Self::Word>,
+        Writer: ClockedWriter<Word = Led::Word>,
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        Led::Color: FromColor<C>,
     {
-        writer.write(Self::start())?;
+        self.writer.write(Led::start())?;
 
         let mut pixel_count = 0;
         for color in pixels.into_iter() {
-            let color = Self::Color::from_color(color);
-            writer.write(Self::led(color, brightness, correction));
+            let color = Led::Color::from_color(color);
+            self.writer.write(Led::led(color, brightness, correction));
             pixel_count += 1;
         }
 
-        writer.write(Self::end(pixel_count))?;
+        self.writer.write(Led::end(pixel_count))?;
 
         Ok(())
     }

@@ -7,7 +7,7 @@ use embedded_hal_async::delay::DelayNs as DelayNsAsync;
 use crate::driver::DriverAsync;
 use crate::{
     color::{ColorCorrection, FromColor},
-    driver::Driver,
+    driver::{ClockedDriver, Driver},
     time::{Megahertz, Nanoseconds},
     util::bits::{u8_to_bits, BitOrder},
 };
@@ -57,16 +57,12 @@ use super::{ClockedLedAsync, ClockedWriterAsync};
 /// * `Clock` - The GPIO pin type for clock output
 /// * `Delay` - The delay provider
 #[derive(Debug)]
-pub struct ClockedDelayDriver<Led, Data, Clock, Delay>
+pub struct ClockedDelayDriver<Led, Data, Clock, Delay>(
+    ClockedDriver<Led, ClockedDelayWriter<Data, Clock, Delay>>,
+)
 where
     Data: OutputPin,
-    Clock: OutputPin,
-{
-    /// Marker for the LED protocol type
-    led: PhantomData<Led>,
-    /// Writer implementation for the clocked protocol
-    writer: ClockedDelayWriter<Data, Clock, Delay>,
-}
+    Clock: OutputPin;
 
 impl<Led, Data, Clock, Delay> ClockedDelayDriver<Led, Data, Clock, Delay>
 where
@@ -86,10 +82,10 @@ where
     ///
     /// A new ClockedDelayDriver instance
     pub fn new(data: Data, clock: Clock, delay: Delay, data_rate: Megahertz) -> Self {
-        Self {
+        Self(ClockedDriver {
             led: PhantomData,
             writer: ClockedDelayWriter::new(data, clock, delay, data_rate),
-        }
+        })
     }
 }
 
@@ -116,7 +112,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if transmission fails
-    fn write<I, C>(
+    fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -126,7 +122,7 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Led::clocked_write(&mut self.writer, pixels, brightness, correction)
+        self.0.write(pixels, brightness, correction)
     }
 }
 

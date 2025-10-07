@@ -231,14 +231,12 @@ where
     {
         self.writer.write(Led::start())?;
 
-        let mut pixel_count = 0;
         for color in pixels.into_iter() {
             let color = Led::Color::from_color(color);
             self.writer.write(Led::led(color, brightness, correction))?;
-            pixel_count += 1;
         }
 
-        self.writer.write(Led::end(pixel_count))?;
+        self.writer.write(Led::end(PIXEL_COUNT))?;
 
         Ok(())
     }
@@ -281,16 +279,14 @@ where
     {
         self.writer.write(Led::start()).await?;
 
-        let mut pixel_count = 0;
         for color in pixels.into_iter() {
             let color = Led::Color::from_color(color);
             self.writer
                 .write(Led::led(color, brightness, correction))
                 .await?;
-            pixel_count += 1;
         }
 
-        self.writer.write(Led::end(pixel_count)).await?;
+        self.writer.write(Led::end(PIXEL_COUNT)).await?;
 
         Ok(())
     }

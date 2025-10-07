@@ -65,26 +65,43 @@ pub trait Driver {
     /// The color type accepted by the driver.
     type Color;
 
-    /// Writes a sequence of colors to the LED hardware.
+    /// The buffer type used by the driver to prepare an update frame.
+    type FrameBuffer<const PIXEL_COUNT: usize>;
+
+    /// Prepares an update frame for the LED hardware.
     ///
     /// # Arguments
     ///
-    /// * `pixels` - Iterator over colors
+    /// * `pixels` - Iterator of colors for each pixel
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
     /// * `correction` - Color correction factors
     ///
     /// # Returns
     ///
-    /// Result indicating success or an error
-    fn write<const PIXEL_COUNT: usize, I, C>(
+    /// Result with frame buffer
+    fn frame<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
+    ) -> Result<Self::FrameBuffer<PIXEL_COUNT>, Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>;
+
+    /// Writes a sequence of colors to the LED hardware.
+    ///
+    /// # Arguments
+    ///
+    /// * `frame` - Frame buffer
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
+    fn write<const PIXEL_COUNT: usize>(
+        &mut self,
+        frame: Self::FrameBuffer<PIXEL_COUNT>,
+    ) -> Result<(), Self::Error>;
 }
 
 /// Core trait for all async LED drivers.

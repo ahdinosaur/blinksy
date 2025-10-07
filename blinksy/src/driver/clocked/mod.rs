@@ -66,6 +66,8 @@
 
 use core::marker::PhantomData;
 
+use heapless::Vec;
+
 use crate::color::{ColorCorrection, FromColor};
 use crate::driver::Driver;
 #[cfg(feature = "async")]
@@ -237,6 +239,7 @@ where
 {
     type Error = Writer::Error;
     type Color = Led::Color;
+    type FrameBuffer<const PIXEL_COUNT: usize> = Vec<Led::Word, { PIXEL_COUNT + 2 }>;
 
     /// Writes a complete sequence of colors to the LED chain.
     ///

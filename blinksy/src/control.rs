@@ -109,7 +109,6 @@ where
     dim: PhantomData<Dim>,
     exec: PhantomData<Exec>,
     layout: PhantomData<Layout>,
-    pixels: Vec<Pattern::Color, PIXEL_COUNT>,
     pattern: Pattern,
     driver: Driver,
     brightness: f32,
@@ -137,7 +136,6 @@ where
             dim: PhantomData,
             exec: PhantomData,
             layout: PhantomData,
-            pixels: Vec::new(),
             pattern,
             driver,
             brightness: 1.0,
@@ -186,14 +184,11 @@ where
     ///
     /// Result indicating success or an error from the driver
     pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
-        // Write colors from Pattern to pixel buffer.
-        self.pixels.extend(self.pattern.tick(time_in_ms));
-        // Write colors in pixel buffer to Driver.
-        self.driver.write::<PIXEL_COUNT, _, _>(
-            self.pixels.drain(0..PIXEL_COUNT),
-            self.brightness,
-            self.correction,
-        )
+        let pixels = self.pattern.tick(time_in_ms);
+        let frame =
+            self.driver
+                .frame::<PIXEL_COUNT, _, _>(pixels, self.brightness, self.correction)?;
+        self.driver.write(frame)
     }
 }
 

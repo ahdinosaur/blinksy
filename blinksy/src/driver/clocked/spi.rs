@@ -131,22 +131,9 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        // Start frame
-        ClockedWriterAsync::write(&mut self.0.writer, Led::start()).await?;
-
-        // Per-LED frames
-        let mut pixel_count = 0;
-        for color in pixels.into_iter() {
-            let color = Led::Color::from_color(color);
-            ClockedWriterAsync::write(&mut self.0.writer, Led::led(color, brightness, correction))
-                .await?;
-            pixel_count += 1;
-        }
-
-        // End frame
-        ClockedWriterAsync::write(&mut self.0.writer, Led::end(pixel_count)).await?;
-
-        Ok(())
+        self.0
+            .write::<PIXEL_COUNT, _, _>(pixels, brightness, correction)
+            .await
     }
 }
 

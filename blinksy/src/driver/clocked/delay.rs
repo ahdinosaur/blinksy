@@ -255,14 +255,17 @@ where
     ///
     /// # Arguments
     ///
-    /// * `words` - Slice of bytes to write
+    /// * `words` - Iterator of bytes to write
     ///
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
+    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    where
+        Words: IntoIterator<Item = Self::Word>,
+    {
         for byte in words {
-            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+            for bit in u8_to_bits(&byte, BitOrder::MostSignificantBit) {
                 match bit {
                     false => self.data.set_low(),
                     true => self.data.set_high(),
@@ -301,12 +304,15 @@ where
     ///
     /// # Arguments
     ///
-    /// * `words` - Slice of bytes to write
+    /// * `words` - Iterator of bytes to write
     ///
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    async fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error> {
+    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    where
+        Words: IntoIterator<Item = &Self::Word>,
+    {
         for byte in words {
             for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
                 match bit {

@@ -62,6 +62,9 @@
 //! }
 //! ```
 
+use core::marker::PhantomData;
+
+use crate::color::LinearSrgb;
 use crate::color::{ColorCorrection, FromColor};
 
 mod delay;
@@ -90,7 +93,9 @@ pub trait ClockedWriter {
     /// # Returns
     ///
     /// Ok(()) on success or an error if the write fails
-    fn write(&mut self, words: &[Self::Word]) -> Result<(), Self::Error>;
+    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    where
+        Words: IntoIterator<Item = Self::Word>;
 }
 
 /// Trait that defines the protocol specifics for a clocked LED chipset.
@@ -109,61 +114,64 @@ pub trait ClockedLed {
     /// The color representation type.
     type Color;
 
-    /// Writes a start frame to begin a transmission.
-    ///
-    /// This typically sends some form of header that identifies the beginning
-    /// of an LED update sequence.
-    ///
-    /// # Arguments
-    ///
-    /// * `writer` - The writer implementation to use
+    /// A start frame to begin a transmission.
     ///
     /// # Returns
     ///
-    /// Ok(()) on success or an error if the write fails
-    fn start<Writer: ClockedWriter<Word = Self::Word>>(
-        writer: &mut Writer,
-    ) -> Result<(), Writer::Error>;
+    /// An iterator of words to write
+    fn start() -> impl IntoIterator<Item = Self::Word>;
 
-    /// Writes a single color frame for one LED.
+    /// A color frame for a single LED.
     ///
     /// # Arguments
     ///
-    /// * `writer` - The writer implementation to use
     /// * `color` - The color to write
     /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
     /// * `correction` - Color correction factors
     ///
     /// # Returns
     ///
-    /// Ok(()) on success or an error if the write fails
-    fn color<Writer: ClockedWriter<Word = Self::Word>>(
-        writer: &mut Writer,
+    /// An iterator of words to write
+    fn led(
         color: Self::Color,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Writer::Error>;
+    ) -> impl IntoIterator<Item = Self::Word>;
 
-    /// Writes an end frame to conclude a transmission.
+    /// An end frame to conclude a transmission.
     ///
     /// # Arguments
     ///
-    /// * `writer` - The writer implementation to use
     /// * `pixel_count` - The number of LEDs that were written
     ///
     /// # Returns
     ///
-    /// Ok(()) on success or an error if the write fails
-    fn end<Writer: ClockedWriter<Word = Self::Word>>(
-        writer: &mut Writer,
-        pixel_count: usize,
-    ) -> Result<(), Writer::Error>;
+    /// An iterator of words to write
+    fn end(pixel_count: usize) -> impl IntoIterator<Item = Self::Word>;
+}
 
+/// # Type Parameters
+///
+/// * `Led` - The LED protocol implementation (must implement ClockedLed)
+/// * `Writer` - The clocked writer
+#[derive(Debug)]
+pub struct ClockedDriver<Led, Writer> {
+    /// Marker for the LED protocol type
+    led: PhantomData<Led>,
+    /// Writer implementation for the clocked protocol
+    writer: Writer,
+}
+
+impl<Led, Writer> ClockedDriver<Led, Writer>
+where
+    Led: ClockedLed,
+    Writer: ClockedWriter,
+{
     /// Writes a complete sequence of colors to the LED chain.
     ///
     /// This method orchestrates the process of:
     /// 1. Writing the start frame
-    /// 2. Writing each LED color
+    /// 2. Writing each LED frame
     /// 4. Writing the end frame
     ///
     /// # Arguments
@@ -176,8 +184,8 @@ pub trait ClockedLed {
     /// # Returns
     ///
     /// Ok(()) on success or an error if any write operation fails
-    fn clocked_write<Writer, I, C>(
-        writer: &mut Writer,
+    fn write<I, C>(
+        &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
@@ -187,16 +195,17 @@ pub trait ClockedLed {
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Self::start(writer)?;
+        writer.write(Self::start())?;
 
         let mut pixel_count = 0;
         for color in pixels.into_iter() {
             let color = Self::Color::from_color(color);
-            Self::color(writer, color, brightness, correction)?;
+            writer.write(Self::led(color, brightness, correction));
             pixel_count += 1;
         }
 
-        Self::end(writer, pixel_count)?;
+        writer.write(Self::end(pixel_count))?;
+
         Ok(())
     }
 }

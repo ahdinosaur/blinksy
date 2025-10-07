@@ -43,7 +43,12 @@ pub use clockless::*;
 ///     type Error = ();
 ///     type Color = LinearSrgb;
 ///
-///     fn write<I, C>(&mut self, pixels: I, brightness: f32, correction: ColorCorrection) -> Result<(), Self::Error>
+///     fn write<const PIXEL_COUNT: usize, I, C>(
+///         &mut self,
+///         pixels: I,
+///         brightness: f32,
+///         correction: ColorCorrection,
+///     ) -> Result<(), Self::Error>
 ///     where
 ///         I: IntoIterator<Item = C>,
 ///         Self::Color: FromColor<C>,
@@ -71,7 +76,7 @@ pub trait Driver {
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn write<I, C>(
+    fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -105,7 +110,12 @@ pub trait Driver {
 ///     type Error = ();
 ///     type Color = LinearSrgb;
 ///
-///     async fn write<I, C>(&mut self, pixels: I, brightness: f32, correction: ColorCorrection) -> Result<(), Self::Error>
+///     async fn write<const PIXEL_COUNT: usize, I, C>(
+///         &mut self,
+///         pixels: I,
+///         brightness: f32,
+///         correction: ColorCorrection
+///     ) -> Result<(), Self::Error>
 ///     where
 ///         I: IntoIterator<Item = C>,
 ///         Self::Color: FromColor<C>,
@@ -137,7 +147,7 @@ pub trait DriverAsync {
     /// # Returns
     ///
     /// Future that resolves to a Result indicating success or an error
-    async fn write<I, C>(
+    async fn write<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,

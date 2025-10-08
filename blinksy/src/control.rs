@@ -8,8 +8,6 @@
 
 use core::marker::PhantomData;
 
-use heapless::Vec;
-
 use crate::{
     color::{ColorCorrection, FromColor},
     driver::Driver as DriverTrait,

@@ -1,4 +1,4 @@
-use core::ops::Index;
+use core::{array::IntoIter, iter::Iterator, ops::Index};
 
 use crate::util::component::Component;
 
@@ -51,6 +51,36 @@ impl<C> AsRef<[C]> for LedColor<C> {
         match self {
             Rgb(rgb) => rgb.as_ref(),
             Rgbw(rgbw) => rgbw.as_ref(),
+        }
+    }
+}
+
+enum LedColorIntoIter<C> {
+    Rgb(IntoIter<C, 3>),
+    Rgbw(IntoIter<C, 4>),
+}
+
+impl<C> Iterator for LedColorIntoIter<C> {
+    type Item = C;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use LedColorIntoIter::*;
+        match self {
+            Rgb(rgb_iter) => rgb_iter.next(),
+            Rgbw(rgbw_iter) => rgbw_iter.next(),
+        }
+    }
+}
+
+impl<C> IntoIterator for LedColor<C> {
+    type Item = C;
+    type IntoIter = LedColorIntoIter<C>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        use LedColor::*;
+        match self {
+            Rgb(rgb) => LedColorIntoIter::Rgb(rgb.into_iter()),
+            Rgbw(rgbw) => LedColorIntoIter::Rgbw(rgbw.into_iter()),
         }
     }
 }
@@ -109,6 +139,15 @@ impl<C: Component> LedRgb<C> {
 impl<C> AsRef<[C]> for LedRgb<C> {
     fn as_ref(&self) -> &[C] {
         &self.0
+    }
+}
+
+impl<C> IntoIterator for LedRgb<C> {
+    type Item = C;
+    type IntoIter = IntoIter<C, 3>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -189,6 +228,15 @@ impl<C: Component> LedRgbw<C> {
 impl<C> AsRef<[C]> for LedRgbw<C> {
     fn as_ref(&self) -> &[C] {
         &self.0
+    }
+}
+
+impl<C> IntoIterator for LedRgbw<C> {
+    type Item = C;
+    type IntoIter = IntoIter<C, 4>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

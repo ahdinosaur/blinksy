@@ -85,7 +85,7 @@ pub trait Driver {
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<Vec<Self::Word, BUFFER_SIZE>, Self::Error>
+    ) -> Vec<Self::Word, BUFFER_SIZE>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>;

@@ -48,8 +48,11 @@
 //! }
 //! ```
 
-use crate::color::LedChannels;
+use heapless::Vec;
+
+use crate::color::{ColorCorrection, FromColor, LedChannels, LedColor, LinearSrgb};
 use crate::time::Nanoseconds;
+use crate::util::component::Component;
 
 mod delay;
 
@@ -78,6 +81,9 @@ pub use self::delay::*;
 /// }
 /// ```
 pub trait ClocklessLed {
+    /// The word type (typically u8).
+    type Word: Component + Copy + 'static;
+
     /// Duration of high signal for transmitting a '0' bit.
     const T_0H: Nanoseconds;
 
@@ -107,5 +113,23 @@ pub trait ClocklessLed {
     /// timing is correct regardless of bit value.
     fn t_cycle() -> Nanoseconds {
         (Self::T_0H + Self::T_0L).max(Self::T_1H + Self::T_1L)
+    }
+
+    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Vec<Self::Word, BUFFER_SIZE>
+    where
+        I: IntoIterator<Item = C>,
+        LinearSrgb: FromColor<C>,
+    {
+        Vec::from_iter(pixels.into_iter().flat_map(|pixel| {
+            let linear_srgb = LinearSrgb::from_color(pixel);
+            let data: LedColor<Self::Word> =
+                linear_srgb.to_led(Self::LED_CHANNELS, brightness, correction);
+            data.into_iter()
+        }))
     }
 }

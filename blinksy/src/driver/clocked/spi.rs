@@ -1,4 +1,4 @@
-use core::{marker::PhantomData, slice::from_ref};
+use core::marker::PhantomData;
 use embedded_hal::spi::SpiBus;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
@@ -78,7 +78,7 @@ where
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<Vec<Self::Word, BUFFER_SIZE>, Self::Error>
+    ) -> Vec<Self::Word, BUFFER_SIZE>
     where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,

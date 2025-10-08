@@ -247,7 +247,7 @@ where
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<Vec<Self::Word, BUFFER_SIZE>, Writer::Error>
+    ) -> Vec<Self::Word, BUFFER_SIZE>
     where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,
@@ -255,7 +255,7 @@ where
         let pixels = pixels.into_iter().map(Led::Color::from_color);
         let update_frame = Led::update(pixels, brightness, correction, PIXEL_COUNT);
         let framebuffer: Vec<_, BUFFER_SIZE> = Vec::from_iter(update_frame);
-        Ok(framebuffer)
+        framebuffer
     }
 
     fn render<const BUFFER_SIZE: usize>(

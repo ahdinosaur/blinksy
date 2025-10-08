@@ -115,8 +115,28 @@ pub trait ClocklessLed {
         (Self::T_0H + Self::T_0L).max(Self::T_1H + Self::T_1L)
     }
 
+    /// Creates a buffer to represent the next update frame.
+    ///
+    /// This method:
+    /// 1. Converts each input color to linear sRGB.
+    /// 2. Applies the global brightness scaling
+    /// 3. Reorders color channels according to the LED protocol
+    ///
+    /// # Type Arguments
+    ///
+    /// * `PIXEL_COUNT`: Number of pixels
+    /// * `BUFFER_SIZE`: Size of the frame buffer
+    ///
+    /// # Arguments
+    ///
+    /// * `pixels` - Iterator over colors
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if transmission fails
     fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
-        &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,

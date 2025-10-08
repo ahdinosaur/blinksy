@@ -2,6 +2,7 @@ use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
+use heapless::Vec;
 
 use super::ClocklessLed;
 #[cfg(feature = "async")]
@@ -99,7 +100,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    fn write_buffer(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
+    fn write_bytes(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
         for byte in buffer {
             for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
                 if !bit {
@@ -145,7 +146,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    async fn write_buffer_async(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
+    async fn write_bytes_async(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
         for byte in buffer {
             for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
                 if !bit {
@@ -177,46 +178,32 @@ where
 
 impl<Led, Pin, Delay> Driver for ClocklessDelayDriver<Led, Pin, Delay>
 where
-    Led: ClocklessLed,
+    Led: ClocklessLed<Word = u8>,
     Pin: OutputPin,
     Delay: DelayNs,
 {
     type Error = Pin::Error;
     type Color = LinearSrgb;
+    type Word = Led::Word;
 
-    /// Writes a sequence of colors to the LED chain.
-    ///
-    /// This method:
-    /// 1. Converts each input color to the appropriate format
-    /// 2. Applies the global brightness scaling
-    /// 3. Reorders color channels according to the LED protocol
-    /// 4. Transmits all data
-    /// 5. Sends the reset signal
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over colors
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if transmission fails
-    fn write<const PIXEL_COUNT: usize, I, C>(
+    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
+    ) -> Vec<Self::Word, BUFFER_SIZE>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        for color in pixels {
-            let linear_srgb = LinearSrgb::from_color(color);
-            let data = linear_srgb.to_led(Led::LED_CHANNELS, brightness, correction);
-            self.write_buffer(data.as_ref())?;
-        }
+        Led::framebuffer::<PIXEL_COUNT, BUFFER_SIZE, _, _>(pixels, brightness, correction)
+    }
+
+    fn render<const BUFFER_SIZE: usize>(
+        &mut self,
+        frame: Vec<Self::Word, BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        self.write_bytes(frame.as_slice())?;
         self.delay_for_reset();
         Ok(())
     }
@@ -263,7 +250,7 @@ where
         for color in pixels {
             let linear_srgb = LinearSrgb::from_color(color);
             let data = linear_srgb.to_led(Led::LED_CHANNELS, brightness, correction);
-            self.write_buffer_async(data.as_ref()).await?;
+            self.write_bytes_async(data.as_ref()).await?;
         }
         self.delay_for_reset_async().await;
         Ok(())

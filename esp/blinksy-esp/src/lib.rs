@@ -99,7 +99,7 @@ use crate::rmt::ClocklessRmtDriver;
 use blinksy::drivers::sk6812::Sk6812Led;
 use blinksy::drivers::ws2812::Ws2812Led;
 
-pub use crate::rmt::rmt_buffer_size;
+pub use crate::rmt::{rmt_buffer_size, ClocklessRmt};
 
 /// WS2812 LED driver using the ESP32 RMT peripheral.
 ///

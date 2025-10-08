@@ -22,7 +22,7 @@ use blinksy::{
     driver::{clockless::ClocklessLed, Driver},
     util::bits::{u8_to_bits, BitOrder},
 };
-use core::{fmt::Debug, iter, marker::PhantomData};
+use core::{fmt::Debug, marker::PhantomData};
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
@@ -71,33 +71,51 @@ pub const fn rmt_buffer_size(chunk_size: usize, channel_count: usize) -> usize {
     chunk_size * channel_count * 8 + 1
 }
 
-pub struct ClocklessRmtDriverBuilder<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize>;
+pub struct ClocklessRmt<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led> {
+    led: PhantomData<Led>,
+}
 
-impl<const RMT_BUFFER_SIZE: usize> ClocklessRmtDriverBuilder<0, RMT_BUFFER_SIZE> {
-    pub fn with_chunk_size<const CHUNK_SIZE: usize>(
-        self,
-    ) -> ClocklessRmtDriverBuilder<{ CHUNK_SIZE }, RMT_BUFFER_SIZE> {
-        ClocklessRmtDriverBuilder
+impl ClocklessRmt<0, 0, ()> {
+    pub fn new() -> ClocklessRmt<0, 0, ()> {
+        ClocklessRmt { led: PhantomData }
     }
 }
 
-impl<const CHUNK_SIZE: usize> ClocklessRmtDriverBuilder<CHUNK_SIZE, 0> {
+impl<const RMT_BUFFER_SIZE: usize, Led> ClocklessRmt<0, RMT_BUFFER_SIZE, Led> {
+    pub fn with_chunk_size<const CHUNK_SIZE: usize>(
+        self,
+    ) -> ClocklessRmt<{ CHUNK_SIZE }, RMT_BUFFER_SIZE, Led> {
+        ClocklessRmt { led: PhantomData }
+    }
+}
+
+impl<const CHUNK_SIZE: usize, Led> ClocklessRmt<CHUNK_SIZE, 0, Led> {
     pub fn with_rmt_buffer_size<const RMT_BUFFER_SIZE: usize>(
         self,
-    ) -> ClocklessRmtDriverBuilder<CHUNK_SIZE, { RMT_BUFFER_SIZE }> {
-        ClocklessRmtDriverBuilder
+    ) -> ClocklessRmt<CHUNK_SIZE, { RMT_BUFFER_SIZE }, Led> {
+        ClocklessRmt { led: PhantomData }
     }
 }
 
 impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize>
-    ClocklessRmtDriverBuilder<CHUNK_SIZE, RMT_BUFFER_SIZE>
+    ClocklessRmt<CHUNK_SIZE, RMT_BUFFER_SIZE, ()>
 {
-    pub fn build<'d, Led, Dm, Tx, C, O>(
+    pub fn with_led<Led>(self) -> ClocklessRmt<CHUNK_SIZE, RMT_BUFFER_SIZE, Led> {
+        ClocklessRmt { led: PhantomData }
+    }
+}
+
+impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led>
+    ClocklessRmt<CHUNK_SIZE, RMT_BUFFER_SIZE, Led>
+where
+    Led: ClocklessLed,
+{
+    pub fn build<'d, Dm, Tx, C, O>(
+        self,
         channel: C,
         pin: O,
     ) -> ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
     where
-        Led: ClocklessLed,
         Dm: DriverMode,
         Tx: RawChannelAccess + TxChannelInternal + 'static,
         C: TxChannelCreator<'d, Dm, Raw = Tx>,

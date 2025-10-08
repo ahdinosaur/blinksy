@@ -287,9 +287,11 @@ macro_rules! ws2812 {
         let led_pin = $peripherals.GPIO16;
         let rmt = $crate::rmt!($peripherals);
 
-        $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin)
+        $crate::blinksy_esp::ClocklessRmt::new()
             .with_chunk_size::<$chunk_size>()
             .with_rmt_buffer_size::<{ $crate::blinksy_esp::rmt_buffer_size($chunk_size, $crate::ws2812_channel_count!()) }>()
+            .with_led::<$crate::blinksy::drivers::ws2812::Ws2812Led>()
+            .build(rmt.channel0, led_pin)
     }}
 }
 

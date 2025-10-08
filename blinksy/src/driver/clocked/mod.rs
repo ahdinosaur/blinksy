@@ -150,18 +150,12 @@ pub trait ClockedLed {
     /// The type for the color system used by the LED.
     type Color;
 
-    /// The type for the beginning of a transmission.
-    type StartFrame: AsRef<[Self::Word]> + Debug;
-
     /// A start frame to begin a transmission.
     ///
     /// # Returns
     ///
     /// An iterator of words to write
-    fn start() -> Self::StartFrame;
-
-    /// The type for a single LED in a transmission.
-    type LedFrame: AsRef<[Self::Word]> + Debug;
+    fn start() -> impl AsRef<[Self::Word]>;
 
     /// A color frame for a single LED.
     ///
@@ -174,10 +168,11 @@ pub trait ClockedLed {
     /// # Returns
     ///
     /// An iterator of words to write
-    fn led(color: Self::Color, brightness: f32, correction: ColorCorrection) -> Self::LedFrame;
-
-    /// The type for the conclusion of a transmission.
-    type EndFrame: AsRef<[Self::Word]> + Debug;
+    fn led(
+        color: Self::Color,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> impl AsRef<[Self::Word]>;
 
     /// An end frame to conclude a transmission.
     ///
@@ -188,7 +183,7 @@ pub trait ClockedLed {
     /// # Returns
     ///
     /// An iterator of words to write
-    fn end(pixel_count: usize) -> Self::EndFrame;
+    fn end(pixel_count: usize) -> impl AsRef<[Self::Word]>;
 }
 
 /// # Type Parameters
@@ -203,14 +198,14 @@ pub struct ClockedDriver<Led, Writer> {
     writer: Writer,
 }
 
-impl<Led, Writer> Driver for ClockedDriver<Led, Writer>
+impl<const BUFFER_SIZE: usize, Led, Writer> Driver<BUFFER_SIZE> for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
     Writer: ClockedWriter<Word = Led::Word>,
 {
     type Error = Writer::Error;
     type Color = Led::Color;
-    type Framebuffer<const PIXEL_COUNT: usize> = Vec<Led::LedFrame, PIXEL_COUNT>;
+    type Word = Led::Word;
 
     /// Writes a complete sequence of colors to the LED chain.
     ///
@@ -228,7 +223,7 @@ where
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<Self::Framebuffer<PIXEL_COUNT>, Writer::Error>
+    ) -> Result<[Self::Word; BUFFER_SIZE]>, Writer::Error>
     where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,

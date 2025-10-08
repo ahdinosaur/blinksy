@@ -58,15 +58,15 @@ pub use clockless::*;
 ///     }
 /// }
 /// ```
-pub trait Driver {
+pub trait Driver<const BUFFER_SIZE: usize> {
     /// The error type that may be returned by the driver.
     type Error;
 
     /// The color type accepted by the driver.
     type Color;
 
-    /// The type of a frame iterator.
-    type Framebuffer<const PIXEL_COUNT: usize>;
+    /// The word of the frame buffer.
+    type Word;
 
     /// Prepares an update framebuffer for the LED hardware.
     ///
@@ -84,7 +84,7 @@ pub trait Driver {
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<Self::Framebuffer<PIXEL_COUNT>, Self::Error>
+    ) -> Result<[Self::Word; BUFFER_SIZE], Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>;
@@ -100,7 +100,7 @@ pub trait Driver {
     /// Result indicating success or an error
     fn render<const PIXEL_COUNT: usize>(
         &mut self,
-        frame: Self::Framebuffer<PIXEL_COUNT>,
+        frame: [Self::Word; BUFFER_SIZE],
     ) -> Result<(), Self::Error>;
 }
 

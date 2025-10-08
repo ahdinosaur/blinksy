@@ -61,6 +61,12 @@ pub type Apa102Spi<Spi> = ClockedSpiDriver<Apa102Led, Spi>;
 #[derive(Debug)]
 pub struct Apa102Led;
 
+impl Apa102Led {
+    pub const fn frame_buffer_size(pixel_count: usize) -> usize {
+        4 + pixel_count * 4 + (pixel_count - 1).div_ceil(16)
+    }
+}
+
 impl ClockedLed for Apa102Led {
     type Word = u8;
     type Color = LinearSrgb;

@@ -18,11 +18,11 @@
 #[cfg(feature = "async")]
 use blinksy::driver::DriverAsync;
 use blinksy::{
-    color::{ColorCorrection, FromColor, LedColor, LinearSrgb},
+    color::{ColorCorrection, FromColor, LinearSrgb},
     driver::{clockless::ClocklessLed, Driver},
     util::bits::{u8_to_bits, BitOrder},
 };
-use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
+use core::{fmt::Debug, iter, marker::PhantomData};
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
@@ -34,6 +34,7 @@ use esp_hal::{
 };
 #[cfg(feature = "async")]
 use esp_hal::{rmt::TxChannelAsync, Async};
+use heapless::Vec;
 
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands
@@ -71,24 +72,47 @@ macro_rules! create_rmt_buffer {
 ///
 /// # Type Parameters
 ///
+/// * `RMT_BUFFER_SIZE` - Size of the RMT buffer
 /// * `Led` - The LED protocol implementation (must implement ClocklessLed)
 /// * `TxChannel` - The RMT transmit channel
-/// * `RMT_BUFFER_SIZE` - Size of the RMT buffer
-pub struct ClocklessRmtDriver<Led, TxChannel, const RMT_BUFFER_SIZE: usize>
+pub struct ClocklessRmtDriver<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, TxChannel>
 where
     Led: ClocklessLed,
 {
     led: PhantomData<Led>,
     channel: Option<TxChannel>,
-    rmt_end_buffer: [u32; 2],
     pulses: (u32, u32, u32),
 }
 
-impl<Led, TxChannel, const RMT_BUFFER_SIZE: usize>
-    ClocklessRmtDriver<Led, TxChannel, RMT_BUFFER_SIZE>
+impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, TxChannel>
+    ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, TxChannel>
 where
     Led: ClocklessLed,
 {
+    pub fn with_chunk_size<const NEW_CHUNK_SIZE: usize>(
+        self,
+    ) -> ClocklessRmtDriver<{ NEW_CHUNK_SIZE }, RMT_BUFFER_SIZE, Led, TxChannel> {
+        ClocklessRmtDriver {
+            led: PhantomData,
+            channel: self.channel,
+            pulses: self.pulses,
+        }
+    }
+
+    pub const fn rmt_buffer_size(channel_count: usize) -> usize {
+        CHUNK_SIZE * channel_count * 8 + 1
+    }
+
+    pub fn with_rmt_buffer_size<const NEW_RMT_BUFFER_SIZE: usize>(
+        self,
+    ) -> ClocklessRmtDriver<CHUNK_SIZE, { NEW_RMT_BUFFER_SIZE }, Led, TxChannel> {
+        ClocklessRmtDriver {
+            led: PhantomData,
+            channel: self.channel,
+            pulses: self.pulses,
+        }
+    }
+
     fn clock_divider() -> u8 {
         1
     }
@@ -119,13 +143,35 @@ where
         )
     }
 
-    fn setup_rmt_end_buffer(pulses: (u32, u32, u32)) -> [u32; 2] {
-        [pulses.2, 0]
+    fn rmt_led<const FRAME_BUFFER_SIZE: usize>(
+        &self,
+        framebuffer: Vec<u8, FRAME_BUFFER_SIZE>,
+    ) -> impl Iterator<Item = u32> {
+        let pulses = self.pulses.clone();
+        framebuffer.into_iter().flat_map(move |byte| {
+            u8_to_bits(&byte, BitOrder::MostSignificantBit)
+                .into_iter()
+                .map(move |bit| match bit {
+                    false => pulses.0,
+                    true => pulses.1,
+                })
+        })
+    }
+
+    fn rmt_end(&self) -> impl IntoIterator<Item = u32> {
+        [self.pulses.2, 0]
+    }
+
+    fn rmt<const FRAME_BUFFER_SIZE: usize>(
+        &self,
+        framebuffer: Vec<u8, FRAME_BUFFER_SIZE>,
+    ) -> impl Iterator<Item = u32> {
+        self.rmt_led(framebuffer).into_iter().chain(self.rmt_end())
     }
 }
 
-impl<Led, Dm, Tx, const RMT_BUFFER_SIZE: usize>
-    ClocklessRmtDriver<Led, Channel<Dm, Tx>, RMT_BUFFER_SIZE>
+impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, Dm, Tx>
+    ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
 where
     Led: ClocklessLed,
     Dm: DriverMode,
@@ -154,33 +200,22 @@ where
         Self {
             led: PhantomData,
             channel: Some(channel),
-            rmt_end_buffer: Self::setup_rmt_end_buffer(pulses),
             pulses,
         }
     }
 }
 
-impl<Led, Dm, Tx, const RMT_BUFFER_SIZE: usize>
-    ClocklessRmtDriver<Led, Channel<Dm, Tx>, RMT_BUFFER_SIZE>
+impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, Dm, Tx>
+    ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
 where
     Led: ClocklessLed,
     Dm: DriverMode,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
-    fn rmt_led_buffer(&mut self, framebuffer: &[u8]) -> Result<Vec, ClocklessRmtDriverError> {
-        Vec::from_iter(framebuffer.into_iter().flat_map(|byte| {
-            u8_to_bits(byte, BitOrder::MostSignificantBit)
-                .iter()
-                .map(|bit| match bit {
-                    false => self.pulses.0,
-                    true => self.pulses.1,
-                })
-        }))
-    }
 }
 
-impl<Led, Tx, const RMT_BUFFER_SIZE: usize>
-    ClocklessRmtDriver<Led, Channel<Blocking, Tx>, RMT_BUFFER_SIZE>
+impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, Tx>
+    ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -269,9 +304,8 @@ where
     }
 }
 
-/// Implementation of Driver trait for ClocklessRmtDriver.
-impl<Led, Tx, const RMT_BUFFER_SIZE: usize> Driver
-    for ClocklessRmtDriver<Led, Channel<Blocking, Tx>, RMT_BUFFER_SIZE>
+impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, Tx> Driver
+    for ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
 where
     Led: ClocklessLed<Word = u8>,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -297,18 +331,47 @@ where
         &mut self,
         framebuffer: Vec<Self::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        let rmt_led_buffer = self.rmt_led_buffer(framebuffer);
-        self.transmit_blocking(&rmt_led_buffer)?;
-
-        let rmt_end_buffer = self.rmt_end_buffer;
-        self.transmit_blocking(&rmt_end_buffer)?;
+        for rmt_buffer in chunked::<_, CHUNK_SIZE>(self.rmt(framebuffer)) {
+            self.transmit_blocking(&rmt_buffer)?;
+        }
 
         Ok(())
     }
 }
 
+/// Returns an iterator that yields heapless::Vec chunks from `iter`.
+pub fn chunked<I, const CHUNK_SIZE: usize>(
+    mut iter: I,
+) -> impl Iterator<Item = heapless::Vec<I::Item, CHUNK_SIZE>>
+where
+    I: Iterator,
+{
+    iter::from_fn(move || {
+        if CHUNK_SIZE == 0 {
+            return None;
+        }
+
+        let mut buf: Vec<I::Item, CHUNK_SIZE> = Vec::new();
+
+        for _ in 0..CHUNK_SIZE {
+            match iter.next() {
+                Some(item) => {
+                    // Guaranteed to fit because we push at most CHUNK_SIZE items.
+                    let _ = buf.push(item);
+                }
+                None => break,
+            }
+        }
+
+        if buf.is_empty() {
+            None
+        } else {
+            Some(buf)
+        }
+    })
+}
+
 #[cfg(feature = "async")]
-/// Implementation of DriverAsync trait for ClocklessRmtDriver.
 impl<Led, Tx, const RMT_BUFFER_SIZE: usize> DriverAsync
     for ClocklessRmtDriver<Led, Channel<Async, Tx>, RMT_BUFFER_SIZE>
 where

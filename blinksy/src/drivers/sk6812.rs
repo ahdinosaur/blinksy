@@ -41,7 +41,16 @@ use crate::{
 /// including timing requirements and color channel ordering.
 pub struct Sk6812Led;
 
+impl Sk6812Led {
+    // TODO make generic across all clockless leds
+    pub const fn frame_buffer_size(pixel_count: usize) -> usize {
+        pixel_count * 3
+    }
+}
+
 impl ClocklessLed for Sk6812Led {
+    type Word = u8;
+
     /// Duration of high signal for '0' bit (~300ns)
     const T_0H: Nanoseconds = Nanoseconds::nanos(300);
 

@@ -55,7 +55,7 @@ impl<C> AsRef<[C]> for LedColor<C> {
     }
 }
 
-enum LedColorIntoIter<C> {
+pub enum LedColorIntoIter<C> {
     Rgb(IntoIter<C, 3>),
     Rgbw(IntoIter<C, 4>),
 }

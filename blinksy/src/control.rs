@@ -194,7 +194,7 @@ where
             pixels,
             self.brightness,
             self.correction,
-        )?;
+        );
         self.driver.render(frame)
     }
 }

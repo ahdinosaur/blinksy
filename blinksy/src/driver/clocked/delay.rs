@@ -260,7 +260,7 @@ where
         Words: AsRef<[Self::Word]>,
     {
         for byte in words.as_ref() {
-            for bit in u8_to_bits(&byte, BitOrder::MostSignificantBit) {
+            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
                 match bit {
                     false => self.data.set_low(),
                     true => self.data.set_high(),

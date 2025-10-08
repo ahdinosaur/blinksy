@@ -2,6 +2,7 @@ use core::{marker::PhantomData, slice::from_ref};
 use embedded_hal::spi::SpiBus;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
+use heapless::Vec;
 
 #[cfg(feature = "async")]
 use crate::driver::DriverAsync;
@@ -70,32 +71,27 @@ where
 {
     type Error = Spi::Error;
     type Color = Led::Color;
+    type Word = Led::Word;
 
-    /// Writes a sequence of colors to the LED chain using SPI.
-    ///
-    /// Delegates to the ClockedDriver::write method.
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over colors
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if SPI transmission fails
-    fn write<const PIXEL_COUNT: usize, I, C>(
+    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
+    ) -> Result<Vec<Self::Word, BUFFER_SIZE>, Self::Error>
     where
         I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
+        Led::Color: FromColor<C>,
     {
         self.0
-            .write::<PIXEL_COUNT, _, _>(pixels, brightness, correction)
+            .framebuffer::<PIXEL_COUNT, BUFFER_SIZE, _, _>(pixels, brightness, correction)
+    }
+
+    fn render<const BUFFER_SIZE: usize>(
+        &mut self,
+        framebuffer: Vec<Self::Word, BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        self.0.render(framebuffer)
     }
 }
 
@@ -159,12 +155,9 @@ where
     /// Ok(()) on success or an error if SPI transmission fails
     fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: IntoIterator<Item = Self::Word>,
+        Words: AsRef<[Self::Word]>,
     {
-        for w in words {
-            self.write(from_ref(&w))?;
-        }
-        Ok(())
+        self.write(words.as_ref())
     }
 }
 

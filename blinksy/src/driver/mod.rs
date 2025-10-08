@@ -19,6 +19,7 @@ pub mod clockless;
 
 pub use clocked::*;
 pub use clockless::*;
+use heapless::Vec;
 
 /// Core trait for all blocking LED drivers.
 ///
@@ -58,7 +59,7 @@ pub use clockless::*;
 ///     }
 /// }
 /// ```
-pub trait Driver<const BUFFER_SIZE: usize> {
+pub trait Driver {
     /// The error type that may be returned by the driver.
     type Error;
 
@@ -79,12 +80,12 @@ pub trait Driver<const BUFFER_SIZE: usize> {
     /// # Returns
     ///
     /// Result with frame buffer
-    fn framebuffer<const PIXEL_COUNT: usize, I, C>(
+    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<[Self::Word; BUFFER_SIZE], Self::Error>
+    ) -> Result<Vec<Self::Word, BUFFER_SIZE>, Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>;
@@ -98,9 +99,9 @@ pub trait Driver<const BUFFER_SIZE: usize> {
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn render<const PIXEL_COUNT: usize>(
+    fn render<const BUFFER_SIZE: usize>(
         &mut self,
-        frame: [Self::Word; BUFFER_SIZE],
+        frame: Vec<Self::Word, BUFFER_SIZE>,
     ) -> Result<(), Self::Error>;
 }
 

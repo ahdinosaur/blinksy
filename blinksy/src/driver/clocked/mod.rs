@@ -131,7 +131,7 @@ pub trait ClockedWriterAsync {
     /// Ok(()) on success or an error if the write fails
     async fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: IntoIterator<Item = Self::Word>;
+        Words: AsRef<[Self::Word]>;
 }
 
 /// Trait that defines the protocol specifics for a clocked LED chipset.
@@ -147,7 +147,7 @@ pub trait ClockedLed {
     /// The word type (typically u8).
     type Word: Copy + 'static;
 
-    /// The type for the color system used by the LED.
+    /// The color representation type.
     type Color;
 
     /// A start frame to begin a transmission.
@@ -155,7 +155,7 @@ pub trait ClockedLed {
     /// # Returns
     ///
     /// An iterator of words to write
-    fn start() -> impl AsRef<[Self::Word]>;
+    fn start() -> impl IntoIterator<Item = Self::Word>;
 
     /// A color frame for a single LED.
     ///
@@ -172,7 +172,7 @@ pub trait ClockedLed {
         color: Self::Color,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> impl AsRef<[Self::Word]>;
+    ) -> impl IntoIterator<Item = Self::Word>;
 
     /// An end frame to conclude a transmission.
     ///
@@ -183,7 +183,42 @@ pub trait ClockedLed {
     /// # Returns
     ///
     /// An iterator of words to write
-    fn end(pixel_count: usize) -> impl AsRef<[Self::Word]>;
+    fn end(pixel_count: usize) -> impl IntoIterator<Item = Self::Word>;
+
+    /// A complete update frame:
+    ///
+    /// 1. Start frame
+    /// 2. For each pixel: Led frame
+    /// 3. End frame
+    ///
+    /// # Arguments
+    ///
+    /// * `pixel` - The pixel color to write
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
+    /// * `pixel_count` - The number of LEDs that were written
+    ///
+    /// # Returns
+    ///
+    /// An iterator of words to write
+    fn update<I>(
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+        pixel_count: usize,
+    ) -> impl IntoIterator<Item = Self::Word>
+    where
+        I: IntoIterator<Item = Self::Color>,
+    {
+        Self::start()
+            .into_iter()
+            .chain(
+                pixels
+                    .into_iter()
+                    .flat_map(move |color| Self::led(color, brightness, correction).into_iter()),
+            )
+            .chain(Self::end(pixel_count))
+    }
 }
 
 /// # Type Parameters
@@ -198,7 +233,7 @@ pub struct ClockedDriver<Led, Writer> {
     writer: Writer,
 }
 
-impl<const BUFFER_SIZE: usize, Led, Writer> Driver<BUFFER_SIZE> for ClockedDriver<Led, Writer>
+impl<Led, Writer> Driver for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
     Writer: ClockedWriter<Word = Led::Word>,
@@ -207,51 +242,28 @@ where
     type Color = Led::Color;
     type Word = Led::Word;
 
-    /// Writes a complete sequence of colors to the LED chain.
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over colors
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if any write operation fails
-    fn framebuffer<const PIXEL_COUNT: usize, I, C>(
+    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<[Self::Word; BUFFER_SIZE]>, Writer::Error>
+    ) -> Result<Vec<Self::Word, BUFFER_SIZE>, Writer::Error>
     where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,
     {
         let pixels = pixels.into_iter().map(Led::Color::from_color);
-        let led_frames = pixels.map(|pixel| Led::led(pixel, brightness, correction));
-        let framebuffer: Vec<_, PIXEL_COUNT> = Vec::from_iter(led_frames);
+        let update_frame = Led::update(pixels, brightness, correction, PIXEL_COUNT);
+        let framebuffer: Vec<_, BUFFER_SIZE> = Vec::from_iter(update_frame);
         Ok(framebuffer)
     }
 
-    fn render<const PIXEL_COUNT: usize>(
+    fn render<const BUFFER_SIZE: usize>(
         &mut self,
-        frame: Self::Framebuffer<PIXEL_COUNT>,
+        framebuffer: Vec<Self::Word, BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        self.writer.write(Led::start())?;
-        self.writer.write(flatten_arrays(&frame))?;
-        self.writer.write(Led::end(PIXEL_COUNT))?;
-        Ok(())
+        self.writer.write(framebuffer)
     }
-}
-
-pub fn flatten_arrays<'a, Word, const K: usize, const N: usize>(
-    v: &'a Vec<[Word; K], N>,
-) -> &'a [Word] {
-    // [[W; K]] is laid out as contiguous Ws with the same alignment as W.
-    let (head, center, tail) = unsafe { v.as_slice().align_to::<Word>() };
-    debug_assert!(head.is_empty() && tail.is_empty());
-    center
 }
 
 #[cfg(feature = "async")]

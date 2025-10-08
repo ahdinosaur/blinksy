@@ -64,6 +64,7 @@
 //! }
 //! ```
 
+use core::fmt::Debug;
 use core::marker::PhantomData;
 
 use heapless::Vec;
@@ -150,7 +151,7 @@ pub trait ClockedLed {
     type Color;
 
     /// The type for the beginning of a transmission.
-    type StartFrame: AsRef<[Self::Word]>;
+    type StartFrame: AsRef<[Self::Word]> + Debug;
 
     /// A start frame to begin a transmission.
     ///
@@ -160,7 +161,7 @@ pub trait ClockedLed {
     fn start() -> Self::StartFrame;
 
     /// The type for a single LED in a transmission.
-    type LedFrame: AsRef<[Self::Word]>;
+    type LedFrame: AsRef<[Self::Word]> + Debug;
 
     /// A color frame for a single LED.
     ///
@@ -176,7 +177,7 @@ pub trait ClockedLed {
     fn led(color: Self::Color, brightness: f32, correction: ColorCorrection) -> Self::LedFrame;
 
     /// The type for the conclusion of a transmission.
-    type EndFrame: AsRef<[Self::Word]>;
+    type EndFrame: AsRef<[Self::Word]> + Debug;
 
     /// An end frame to conclude a transmission.
     ///
@@ -234,7 +235,8 @@ where
     {
         let pixels = pixels.into_iter().map(Led::Color::from_color);
         let led_frames = pixels.map(|pixel| Led::led(pixel, brightness, correction));
-        Ok(Vec::from_iter(led_frames))
+        let framebuffer: Vec<_, PIXEL_COUNT> = Vec::from_iter(led_frames);
+        Ok(framebuffer)
     }
 
     fn render<const PIXEL_COUNT: usize>(
@@ -242,16 +244,19 @@ where
         frame: Self::Framebuffer<PIXEL_COUNT>,
     ) -> Result<(), Self::Error> {
         self.writer.write(Led::start())?;
-        self.writer.write(as_bytes(frame))?;
+        self.writer.write(flatten_arrays(&frame))?;
         self.writer.write(Led::end(PIXEL_COUNT))?;
         Ok(())
     }
 }
-fn as_bytes<const N: usize>(v: &HVec<[u8; 4], N>) -> &[u8] {
-    // Safe: u8 has alignment 1; head and tail are always empty here.
-    let (head, bytes, tail) = v.as_slice().align_to::<u8>();
+
+pub fn flatten_arrays<'a, Word, const K: usize, const N: usize>(
+    v: &'a Vec<[Word; K], N>,
+) -> &'a [Word] {
+    // [[W; K]] is laid out as contiguous Ws with the same alignment as W.
+    let (head, center, tail) = unsafe { v.as_slice().align_to::<Word>() };
     debug_assert!(head.is_empty() && tail.is_empty());
-    bytes
+    center
 }
 
 #[cfg(feature = "async")]

@@ -239,7 +239,7 @@ where
 {
     type Error = Writer::Error;
     type Color = Led::Color;
-    type FrameBuffer<const PIXEL_COUNT: usize> = Vec<Led::Word, { PIXEL_COUNT + 2 }>;
+    type FrameItem = Led::Word;
 
     /// Writes a complete sequence of colors to the LED chain.
     ///
@@ -252,19 +252,27 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if any write operation fails
-    fn write<const PIXEL_COUNT: usize, I, C>(
+    fn frame<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Writer::Error>
+    ) -> Result<impl IntoIterator<Item = Self::FrameItem>, Writer::Error>
     where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,
     {
         let pixels = pixels.into_iter().map(Led::Color::from_color);
-        self.writer
-            .write(Led::update(pixels, brightness, correction, PIXEL_COUNT))
+        let frame = Led::update(pixels, brightness, correction, PIXEL_COUNT);
+        let frame: Vec<_, { PIXEL_COUNT + 2 }> = Vec::from_iter(frame);
+        Ok(frame)
+    }
+
+    fn write(
+        &mut self,
+        frame: impl IntoIterator<Item = Self::FrameItem>,
+    ) -> Result<(), Self::Error> {
+        self.writer.write(frame)
     }
 }
 

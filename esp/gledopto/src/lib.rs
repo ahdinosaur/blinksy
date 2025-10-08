@@ -263,14 +263,12 @@ macro_rules! rmt {
 }
 
 #[macro_export]
-macro_rules! ws2812_rmt_buffer {
-    ($num_leds:expr) => {{
-        const CHANNEL_COUNT: usize = <
-                        $crate::blinksy::drivers::ws2812::Ws2812Led as $crate::blinksy::driver::ClocklessLed
-                    >::LED_CHANNELS.channel_count();
-
-        $crate::blinksy_esp::create_rmt_buffer!(CHANNEL_COUNT)
-    }}
+macro_rules! ws2812_channel_count {
+    () => {{
+            <
+                $crate::blinksy::drivers::ws2812::Ws2812Led as $crate::blinksy::driver::ClocklessLed
+            >::LED_CHANNELS.channel_count()
+    }};
 }
 
 /// Creates a WS2812 LED driver using the RMT peripheral.
@@ -285,12 +283,14 @@ macro_rules! ws2812_rmt_buffer {
 /// A WS2812 driver configured for the Gledopto board
 #[macro_export]
 macro_rules! ws2812 {
-    ($peripherals:ident, $num_leds:expr) => {{
+    ($peripherals:ident, $num_leds:expr, $chunk_size:expr) => {{
         let led_pin = $peripherals.GPIO16;
         let rmt = $crate::rmt!($peripherals);
-        let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds);
-        $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin, rmt_buffer)
-    }};
+
+        $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin)
+            .with_chunk_size::<$chunk_size>()
+            .with_rmt_buffer_size::<{ $crate::blinksy_esp::rmt_buffer_size($chunk_size, $crate::ws2812_channel_count!()) }>()
+    }}
 }
 
 /// Creates an async WS2812 LED driver using the RMT peripheral.

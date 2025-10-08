@@ -30,7 +30,8 @@ fn main() -> ! {
     let mut control = ControlBuilder::new_2d()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
-        .with_driver::<_, { Apa102Led::frame_buffer_size(Layout::PIXEL_COUNT) }>(apa102!(p))
+        .with_driver(apa102!(p))
+        .with_frame_buffer_size::<{ Apa102Led::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.2);

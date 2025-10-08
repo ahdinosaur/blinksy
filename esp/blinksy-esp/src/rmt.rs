@@ -36,6 +36,8 @@ use esp_hal::{
 use esp_hal::{rmt::TxChannelAsync, Async};
 use heapless::Vec;
 
+use crate::util::chunked;
+
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands
 #[derive(Debug, defmt::Format)]
@@ -65,6 +67,46 @@ macro_rules! create_rmt_buffer {
     };
 }
 
+pub const fn rmt_buffer_size(chunk_size: usize, channel_count: usize) -> usize {
+    chunk_size * channel_count * 8 + 1
+}
+
+pub struct ClocklessRmtDriverBuilder<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize>;
+
+impl<const RMT_BUFFER_SIZE: usize> ClocklessRmtDriverBuilder<0, RMT_BUFFER_SIZE> {
+    pub fn with_chunk_size<const CHUNK_SIZE: usize>(
+        self,
+    ) -> ClocklessRmtDriverBuilder<{ CHUNK_SIZE }, RMT_BUFFER_SIZE> {
+        ClocklessRmtDriverBuilder
+    }
+}
+
+impl<const CHUNK_SIZE: usize> ClocklessRmtDriverBuilder<CHUNK_SIZE, 0> {
+    pub fn with_rmt_buffer_size<const RMT_BUFFER_SIZE: usize>(
+        self,
+    ) -> ClocklessRmtDriverBuilder<CHUNK_SIZE, { RMT_BUFFER_SIZE }> {
+        ClocklessRmtDriverBuilder
+    }
+}
+
+impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize>
+    ClocklessRmtDriverBuilder<CHUNK_SIZE, RMT_BUFFER_SIZE>
+{
+    pub fn build<'d, Led, Dm, Tx, C, O>(
+        channel: C,
+        pin: O,
+    ) -> ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
+    where
+        Led: ClocklessLed,
+        Dm: DriverMode,
+        Tx: RawChannelAccess + TxChannelInternal + 'static,
+        C: TxChannelCreator<'d, Dm, Raw = Tx>,
+        O: PeripheralOutput<'d>,
+    {
+        ClocklessRmtDriver::new(channel, pin)
+    }
+}
+
 /// RMT-based driver for clockless LED protocols.
 ///
 /// This driver uses the ESP32's RMT peripheral to generate precisely timed signals
@@ -89,30 +131,6 @@ impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, TxChannel>
 where
     Led: ClocklessLed,
 {
-    pub fn with_chunk_size<const NEW_CHUNK_SIZE: usize>(
-        self,
-    ) -> ClocklessRmtDriver<{ NEW_CHUNK_SIZE }, RMT_BUFFER_SIZE, Led, TxChannel> {
-        ClocklessRmtDriver {
-            led: PhantomData,
-            channel: self.channel,
-            pulses: self.pulses,
-        }
-    }
-
-    pub const fn rmt_buffer_size(channel_count: usize) -> usize {
-        CHUNK_SIZE * channel_count * 8 + 1
-    }
-
-    pub fn with_rmt_buffer_size<const NEW_RMT_BUFFER_SIZE: usize>(
-        self,
-    ) -> ClocklessRmtDriver<CHUNK_SIZE, { NEW_RMT_BUFFER_SIZE }, Led, TxChannel> {
-        ClocklessRmtDriver {
-            led: PhantomData,
-            channel: self.channel,
-            pulses: self.pulses,
-        }
-    }
-
     fn clock_divider() -> u8 {
         1
     }
@@ -337,38 +355,6 @@ where
 
         Ok(())
     }
-}
-
-/// Returns an iterator that yields heapless::Vec chunks from `iter`.
-pub fn chunked<I, const CHUNK_SIZE: usize>(
-    mut iter: I,
-) -> impl Iterator<Item = heapless::Vec<I::Item, CHUNK_SIZE>>
-where
-    I: Iterator,
-{
-    iter::from_fn(move || {
-        if CHUNK_SIZE == 0 {
-            return None;
-        }
-
-        let mut buf: Vec<I::Item, CHUNK_SIZE> = Vec::new();
-
-        for _ in 0..CHUNK_SIZE {
-            match iter.next() {
-                Some(item) => {
-                    // Guaranteed to fit because we push at most CHUNK_SIZE items.
-                    let _ = buf.push(item);
-                }
-                None => break,
-            }
-        }
-
-        if buf.is_empty() {
-            None
-        } else {
-            Some(buf)
-        }
-    })
 }
 
 #[cfg(feature = "async")]

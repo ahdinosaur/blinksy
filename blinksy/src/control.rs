@@ -101,7 +101,7 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 /// ```
 pub struct Control<
     const PIXEL_COUNT: usize,
-    const BUFFER_SIZE: usize,
+    const FRAME_BUFFER_SIZE: usize,
     Dim,
     Exec,
     Layout,
@@ -120,8 +120,15 @@ pub struct Control<
     correction: ColorCorrection,
 }
 
-impl<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, Dim, Exec, Layout, Pattern, Driver>
-    Control<PIXEL_COUNT, BUFFER_SIZE, Dim, Exec, Layout, Pattern, Driver>
+impl<
+        const PIXEL_COUNT: usize,
+        const FRAME_BUFFER_SIZE: usize,
+        Dim,
+        Exec,
+        Layout,
+        Pattern,
+        Driver,
+    > Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Exec, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -167,8 +174,8 @@ where
     }
 }
 
-impl<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, Dim, Layout, Pattern, Driver>
-    Control<PIXEL_COUNT, BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Pattern, Driver>
+    Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -190,11 +197,13 @@ where
     /// Result indicating success or an error from the driver
     pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
-        let frame = self.driver.framebuffer::<PIXEL_COUNT, BUFFER_SIZE, _, _>(
-            pixels,
-            self.brightness,
-            self.correction,
-        );
+        let frame = self
+            .driver
+            .framebuffer::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(
+                pixels,
+                self.brightness,
+                self.correction,
+            );
         self.driver.render(frame)
     }
 }
@@ -240,7 +249,7 @@ where
 /// and handles the combination of generic types and contraints that [`Control`] expects.
 pub struct ControlBuilder<
     const PIXEL_COUNT: usize,
-    const BUFFER_SIZE: usize,
+    const FRAME_BUFFER_SIZE: usize,
     Dim,
     Exec,
     Layout,
@@ -359,8 +368,8 @@ impl ControlBuilder<0, (), (), (), (), ()> {
     }
 }
 
-impl<const BUFFER_SIZE: usize, Dim, Exec, Pattern, Driver>
-    ControlBuilder<0, BUFFER_SIZE, Dim, Exec, (), Pattern, Driver>
+impl<const FRAME_BUFFER_SIZE: usize, Dim, Exec, Pattern, Driver>
+    ControlBuilder<0, FRAME_BUFFER_SIZE, Dim, Exec, (), Pattern, Driver>
 {
     /// Specifies the layout type for the control system.
     ///
@@ -374,7 +383,7 @@ impl<const BUFFER_SIZE: usize, Dim, Exec, Pattern, Driver>
     /// Builder with layout type specified
     pub fn with_layout<Layout, const PIXEL_COUNT: usize>(
         self,
-    ) -> ControlBuilder<PIXEL_COUNT, BUFFER_SIZE, Dim, Exec, Layout, Pattern, Driver>
+    ) -> ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Exec, Layout, Pattern, Driver>
     where
         Layout: LayoutForDim<Dim>,
     {
@@ -388,8 +397,8 @@ impl<const BUFFER_SIZE: usize, Dim, Exec, Pattern, Driver>
     }
 }
 
-impl<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, Dim, Exec, Layout, Driver>
-    ControlBuilder<PIXEL_COUNT, BUFFER_SIZE, Dim, Exec, Layout, (), Driver>
+impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Exec, Layout, Driver>
+    ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Exec, Layout, (), Driver>
 where
     Layout: LayoutForDim<Dim>,
 {
@@ -409,7 +418,7 @@ where
     pub fn with_pattern<Pattern>(
         self,
         params: Pattern::Params,
-    ) -> ControlBuilder<PIXEL_COUNT, BUFFER_SIZE, Dim, Exec, Layout, Pattern, Driver>
+    ) -> ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Exec, Layout, Pattern, Driver>
     where
         Pattern: PatternTrait<Dim, Layout>,
     {
@@ -419,6 +428,34 @@ where
             exec: self.exec,
             layout: self.layout,
             pattern,
+            driver: self.driver,
+        }
+    }
+}
+
+impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
+    ControlBuilder<PIXEL_COUNT, 0, Dim, Blocking, Layout, Pattern, Driver>
+{
+    /// Specifies the LED driver for the control system (blocking).
+    ///
+    /// # Arguments
+    ///
+    /// * `driver` - The LED driver instance (blocking)
+    ///
+    /// # Returns
+    ///
+    /// Builder with driver specified
+    pub fn with_frame_buffer_size<const FRAME_BUFFER_SIZE: usize>(
+        self,
+    ) -> ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
+    where
+        Driver: DriverTrait,
+    {
+        ControlBuilder {
+            dim: self.dim,
+            exec: self.exec,
+            layout: self.layout,
+            pattern: self.pattern,
             driver: self.driver,
         }
     }
@@ -436,10 +473,10 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
     /// # Returns
     ///
     /// Builder with driver specified
-    pub fn with_driver<Driver, const BUFFER_SIZE: usize>(
+    pub fn with_driver<Driver, const FRAME_BUFFER_SIZE: usize>(
         self,
         driver: Driver,
-    ) -> ControlBuilder<PIXEL_COUNT, BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
+    ) -> ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
     where
         Driver: DriverTrait,
     {
@@ -483,8 +520,8 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
     }
 }
 
-impl<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, Dim, Layout, Pattern, Driver>
-    ControlBuilder<PIXEL_COUNT, BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Pattern, Driver>
+    ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -498,7 +535,7 @@ where
     /// A fully configured Control instance
     pub fn build(
         self,
-    ) -> Control<PIXEL_COUNT, BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver> {
+    ) -> Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver> {
         Control::new(self.pattern, self.driver)
     }
 }

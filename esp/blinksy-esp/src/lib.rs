@@ -93,10 +93,13 @@
 
 pub mod rmt;
 pub mod time;
+pub(crate) mod util;
 
 use crate::rmt::ClocklessRmtDriver;
 use blinksy::drivers::sk6812::Sk6812Led;
 use blinksy::drivers::ws2812::Ws2812Led;
+
+pub use crate::rmt::rmt_buffer_size;
 
 /// WS2812 LED driver using the ESP32 RMT peripheral.
 ///

@@ -65,10 +65,10 @@ pub trait Driver {
     /// The color type accepted by the driver.
     type Color;
 
-    /// The type of a item in a frame iterator.
-    type FrameItem;
+    /// The type of a frame iterator.
+    type Framebuffer<const PIXEL_COUNT: usize>;
 
-    /// Prepares an update frame for the LED hardware.
+    /// Prepares an update framebuffer for the LED hardware.
     ///
     /// # Arguments
     ///
@@ -79,17 +79,17 @@ pub trait Driver {
     /// # Returns
     ///
     /// Result with frame buffer
-    fn frame<const PIXEL_COUNT: usize, I, C>(
+    fn framebuffer<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<impl IntoIterator<Item = Self::FrameItem>, Self::Error>
+    ) -> Result<Self::Framebuffer<PIXEL_COUNT>, Self::Error>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>;
 
-    /// Writes a sequence of colors to the LED hardware.
+    /// Renders a sequence of colors to the LED hardware.
     ///
     /// # Arguments
     ///
@@ -98,9 +98,9 @@ pub trait Driver {
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn write(
+    fn render<const PIXEL_COUNT: usize>(
         &mut self,
-        frame: impl IntoIterator<Item = Self::FrameItem>,
+        frame: Self::Framebuffer<PIXEL_COUNT>,
     ) -> Result<(), Self::Error>;
 }
 

@@ -101,7 +101,7 @@ pub trait ClockedWriter {
     /// Ok(()) on success or an error if the write fails
     fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: IntoIterator<Item = Self::Word>;
+        Words: AsRef<[Self::Word]>;
 }
 
 #[cfg(feature = "async")]
@@ -146,15 +146,21 @@ pub trait ClockedLed {
     /// The word type (typically u8).
     type Word: Copy + 'static;
 
-    /// The color representation type.
+    /// The type for the color system used by the LED.
     type Color;
+
+    /// The type for the beginning of a transmission.
+    type StartFrame: AsRef<[Self::Word]>;
 
     /// A start frame to begin a transmission.
     ///
     /// # Returns
     ///
     /// An iterator of words to write
-    fn start() -> impl IntoIterator<Item = Self::Word>;
+    fn start() -> Self::StartFrame;
+
+    /// The type for a single LED in a transmission.
+    type LedFrame: AsRef<[Self::Word]>;
 
     /// A color frame for a single LED.
     ///
@@ -167,11 +173,10 @@ pub trait ClockedLed {
     /// # Returns
     ///
     /// An iterator of words to write
-    fn led(
-        color: Self::Color,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> impl IntoIterator<Item = Self::Word>;
+    fn led(color: Self::Color, brightness: f32, correction: ColorCorrection) -> Self::LedFrame;
+
+    /// The type for the conclusion of a transmission.
+    type EndFrame: AsRef<[Self::Word]>;
 
     /// An end frame to conclude a transmission.
     ///
@@ -182,42 +187,7 @@ pub trait ClockedLed {
     /// # Returns
     ///
     /// An iterator of words to write
-    fn end(pixel_count: usize) -> impl IntoIterator<Item = Self::Word>;
-
-    /// A complete update frame:
-    ///
-    /// 1. Start frame
-    /// 2. For each pixel: Led frame
-    /// 3. End frame
-    ///
-    /// # Arguments
-    ///
-    /// * `pixel` - The pixel color to write
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
-    /// * `pixel_count` - The number of LEDs that were written
-    ///
-    /// # Returns
-    ///
-    /// An iterator of words to write
-    fn update<I>(
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-        pixel_count: usize,
-    ) -> impl IntoIterator<Item = Self::Word>
-    where
-        I: IntoIterator<Item = Self::Color>,
-    {
-        Self::start()
-            .into_iter()
-            .chain(
-                pixels
-                    .into_iter()
-                    .flat_map(move |color| Self::led(color, brightness, correction).into_iter()),
-            )
-            .chain(Self::end(pixel_count))
-    }
+    fn end(pixel_count: usize) -> Self::EndFrame;
 }
 
 /// # Type Parameters
@@ -239,7 +209,7 @@ where
 {
     type Error = Writer::Error;
     type Color = Led::Color;
-    type FrameItem = Led::Word;
+    type Framebuffer<const PIXEL_COUNT: usize> = Vec<Led::LedFrame, PIXEL_COUNT>;
 
     /// Writes a complete sequence of colors to the LED chain.
     ///
@@ -252,28 +222,36 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if any write operation fails
-    fn frame<const PIXEL_COUNT: usize, I, C>(
+    fn framebuffer<const PIXEL_COUNT: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<impl IntoIterator<Item = Self::FrameItem>, Writer::Error>
+    ) -> Result<Self::Framebuffer<PIXEL_COUNT>, Writer::Error>
     where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,
     {
         let pixels = pixels.into_iter().map(Led::Color::from_color);
-        let frame = Led::update(pixels, brightness, correction, PIXEL_COUNT);
-        let frame: Vec<_, { PIXEL_COUNT + 2 }> = Vec::from_iter(frame);
-        Ok(frame)
+        let led_frames = pixels.map(|pixel| Led::led(pixel, brightness, correction));
+        Ok(Vec::from_iter(led_frames))
     }
 
-    fn write(
+    fn render<const PIXEL_COUNT: usize>(
         &mut self,
-        frame: impl IntoIterator<Item = Self::FrameItem>,
+        frame: Self::Framebuffer<PIXEL_COUNT>,
     ) -> Result<(), Self::Error> {
-        self.writer.write(frame)
+        self.writer.write(Led::start())?;
+        self.writer.write(as_bytes(frame))?;
+        self.writer.write(Led::end(PIXEL_COUNT))?;
+        Ok(())
     }
+}
+fn as_bytes<const N: usize>(v: &HVec<[u8; 4], N>) -> &[u8] {
+    // Safe: u8 has alignment 1; head and tail are always empty here.
+    let (head, bytes, tail) = v.as_slice().align_to::<u8>();
+    debug_assert!(head.is_empty() && tail.is_empty());
+    bytes
 }
 
 #[cfg(feature = "async")]

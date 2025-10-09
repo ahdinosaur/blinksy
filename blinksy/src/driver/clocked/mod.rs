@@ -1,18 +1,17 @@
-//! # Clocked LED Driver Abstractions
+//! # Clocked LED Driver
 //!
 //! This module provides abstractions for driving "clocked" LED protocols, such as
 //! APA102 (DotStar), SK9822, and similar. These protocols are based on
 //! [SPI](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface), where chipsets
 //! have a data line and a clock line.
 //!
-//! ## Clocked Protocols
+//! ## Clocked Protocol
 //!
-//! Unlike clockless protocols, clocked protocols:
+//! Unlike the clockless protocol, the clocked protocol:
 //!
-//! - Use separate data and clock lines
-//! - Don't rely on precise timing (only clock frequency matters)
-//! - Often provide more control over brightness and color precision
-//! - Can work with hardware SPI peripherals
+//! - Uses separate data and clock lines
+//! - Doesn't rely on precise timing (only clock frequency matters)
+//! - Often provides more control over brightness and color precision
 //!
 //! ## Traits
 //!
@@ -23,6 +22,13 @@
 //! ## Driver
 //!
 //! - [`ClockedDriver`]: Generic driver for clocked LEDs and writers.
+//!
+//! ## Writers
+//!
+//! - [`ClockedDelay`]
+//! - Spi
+//!   - blocking: [`embedded_hal::spi::SpiBus`]
+//!   - async: [`embedded_hal_async::spi::SpiBus`]
 //!
 //! ## Example
 //!
@@ -66,6 +72,7 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 
 use heapless::Vec;
+use num_traits::ToBytes;
 
 use crate::color::{ColorCorrection, FromColor};
 use crate::driver::Driver;
@@ -76,60 +83,6 @@ mod delay;
 mod spi;
 
 pub use self::delay::*;
-
-/// Trait for types that can write data words to a clocked protocol.
-///
-/// This trait abstracts over different implementation methods for writing data
-/// to a clocked protocol, such as bit-banging with GPIOs or using hardware SPI.
-pub trait ClockedWriter {
-    /// The word type (typically u8).
-    type Word: Copy + 'static;
-
-    /// The error type that may be returned by write operations.
-    type Error;
-
-    /// Writes an iterator of words to the protocol.
-    ///
-    /// # Arguments
-    ///
-    /// * `words` - Iterator of words to write
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if the write fails
-    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
-    where
-        Words: AsRef<[Self::Word]>;
-}
-
-#[cfg(feature = "async")]
-/// Async trait for types that can write data words to a clocked protocol.
-///
-/// This trait abstracts over different implementation methods for writing data
-/// to a clocked protocol, such as bit-banging with GPIOs or using hardware SPI.
-pub trait ClockedWriterAsync {
-    /// The word type (typically u8).
-    type Word: Copy + 'static;
-
-    /// The error type that may be returned by write operations.
-    type Error;
-
-    // See note about allow(async_fn_in_trait) in smart-leds-trait:
-    //   https://github.com/smart-leds-rs/smart-leds-trait/blob/faad5eba0f9c9aa80b1dd17e078e4644f11e7ee0/src/lib.rs#L59-L68
-    #[allow(async_fn_in_trait)]
-    /// Writes an iterator of words to the protocol, asynchronously.
-    ///
-    /// # Arguments
-    ///
-    /// * `words` - Iterator of words to write
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if the write fails
-    async fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
-    where
-        Words: AsRef<[Self::Word]>;
-}
 
 /// Trait that defines the protocol specifics for a clocked LED chipset.
 ///
@@ -142,7 +95,7 @@ pub trait ClockedWriterAsync {
 /// * `Color` - The color representation type
 pub trait ClockedLed {
     /// The word type (typically u8).
-    type Word: Copy + 'static;
+    type Word: ToBytes;
 
     /// The color representation type.
     type Color;
@@ -218,6 +171,58 @@ pub trait ClockedLed {
     }
 }
 
+/// Trait for types that can write data words to a clocked protocol.
+///
+/// This trait abstracts over different implementation methods for writing data
+/// to a clocked protocol, such as bit-banging with GPIOs or using hardware SPI.
+pub trait ClockedWriter {
+    /// The error type that may be returned by write operations.
+    type Error;
+
+    /// Writes an iterator of words to the protocol.
+    ///
+    /// # Arguments
+    ///
+    /// * `words` - Iterator of words to write
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if the write fails
+    fn write<Word, Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    where
+        Word: ToBytes,
+        Word::Bytes: IntoIterator<Item = u8>,
+        Words: AsRef<[Word]>;
+}
+
+#[cfg(feature = "async")]
+/// Async trait for types that can write data words to a clocked protocol.
+///
+/// This trait abstracts over different implementation methods for writing data
+/// to a clocked protocol, such as bit-banging with GPIOs or using hardware SPI.
+pub trait ClockedWriterAsync {
+    /// The error type that may be returned by write operations.
+    type Error;
+
+    // See note about allow(async_fn_in_trait) in smart-leds-trait:
+    //   https://github.com/smart-leds-rs/smart-leds-trait/blob/faad5eba0f9c9aa80b1dd17e078e4644f11e7ee0/src/lib.rs#L59-L68
+    #[allow(async_fn_in_trait)]
+    /// Writes an iterator of words to the protocol, asynchronously.
+    ///
+    /// # Arguments
+    ///
+    /// * `words` - Iterator of words to write
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if the write fails
+    async fn write<Word, Word>(&mut self, words: Words) -> Result<(), Self::Error>
+    where
+        Word: ToBytes,
+        Word::Bytes: IntoIterator<Item = u8>,
+        Words: AsRef<[Word]>;
+}
+
 /// # Type Parameters
 ///
 /// * `Led` - The LED protocol implementation (must implement ClockedLed)
@@ -260,7 +265,9 @@ impl<Led> ClockedDriver<Led, ()> {
 impl<Led, Writer> Driver for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
-    Writer: ClockedWriter<Word = Led::Word>,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Writer: ClockedWriter,
 {
     type Error = Writer::Error;
     type Color = Led::Color;
@@ -294,7 +301,7 @@ where
 impl<Led, Writer> DriverAsync for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
-    Writer: ClockedWriterAsync<Word = Led::Word>,
+    Writer: ClockedWriterAsync,
 {
     type Error = Writer::Error;
     type Color = Led::Color;

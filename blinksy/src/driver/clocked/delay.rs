@@ -1,12 +1,13 @@
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
+use num_traits::{PrimInt, ToBytes};
 
 #[cfg(feature = "async")]
 use crate::driver::DriverAsync;
 use crate::{
     time::{Megahertz, Nanoseconds},
-    util::bits::{u8_to_bits, BitOrder},
+    util::bits::{bits_of, BitOrder},
 };
 
 use super::ClockedWriter;
@@ -120,7 +121,6 @@ where
     Delay: DelayNs,
 {
     type Error = ClockedDelayError<Data, Clock>;
-    type Word = u8;
 
     /// Writes an iterator of bytes using the bit-banging technique.
     ///
@@ -138,12 +138,14 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    fn write<Word, Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: AsRef<[Self::Word]>,
+        Words: AsRef<[Word]>,
+        Word: ToBytes,
+        Word::Bytes: IntoIterator<Item = u8>,
     {
-        for byte in words.as_ref() {
-            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+        for word in words.as_ref() {
+            for bit in bits_of(word, BitOrder::MostSignificantBit) {
                 match bit {
                     false => self.data.set_low(),
                     true => self.data.set_high(),
@@ -162,7 +164,7 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<Data, Clock, Delay> ClockedWriterAsync for ClockedDelay<Data, Clock, Delay>
+impl<Word, Data, Clock, Delay> ClockedWriterAsync<Word> for ClockedDelay<Data, Clock, Delay>
 where
     Data: OutputPin,
     Clock: OutputPin,
@@ -191,8 +193,8 @@ where
     where
         Words: AsRef<[Self::Word]>,
     {
-        for byte in words.as_ref() {
-            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+        for word in words.as_ref() {
+            for bit in bits_of(word, BitOrder::MostSignificantBit) {
                 match bit {
                     false => self.data.set_low(),
                     true => self.data.set_high(),

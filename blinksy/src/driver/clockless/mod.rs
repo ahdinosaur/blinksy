@@ -1,25 +1,33 @@
-//! # Clockless LED Driver Abstractions
+//! # Clockless LED Driver
 //!
 //! This module provides abstractions for driving "clockless" LED protocols, such as
 //! WS2812 (NeoPixel), SK6812, and similar. These protocols use a single data line
 //! with precise timing to encode bits.
 //!
-//! ## Clockless Protocols
+//! ## Clockless Protocol
 //!
-//! Clockless protocols encode data bits using precise pulse timings on a single data line:
+//! The clockless protocol encodes data bits using precise pulse timings on a single data line:
 //!
 //! - Each bit is represented by a high pulse followed by a low pulse
 //! - The duration of the high and low pulses determines whether it's a '0' or '1' bit
 //! - After all bits are sent, a longer reset period is required
 //!
+//! This self-clocked pattern is called [Manchester encoding](https://en.wikipedia.org/wiki/Manchester_code).
+//!
 //! ## Traits
 //!
 //! - [`ClocklessLed`]: Trait defining the timing parameters for a clockless LED chipset
+//! - [`ClockedWriter`]: Trait for how to write data for the clockless protocol
+//! - [`ClockedWriterAsync`]: Trait for how to write data for the clockless protocol, asynchronously
 //!
-//! ## Drivers
+//! ## Driver
 //!
-//! - [`ClocklessDelay`]: Driver using GPIO bit-banging with a delay timer
-//! - [`blinksy-esp::ClocklessRmt`]: Driver using RMT on the ESP32
+//! - [`ClocklessDriver`]: Generic driver for clockless LEDs and writers.
+//!
+//! ## Writers
+//!
+//! - [`ClocklessDelay`]: Writer using GPIO bit-banging with a delay timer
+//! - [`blinksy-esp::ClocklessRmt`]: Writer using RMT on the ESP32
 //!
 //! [`blinksy-esp::ClocklessRmt`]: https://docs.rs/blinksy-esp/0.10/blinksy_esp/type.ClocklessRmt.html
 //!
@@ -51,11 +59,18 @@
 //! }
 //! ```
 
+use core::marker::PhantomData;
 use heapless::Vec;
+use num_traits::ToBytes;
 
-use crate::color::{ColorCorrection, FromColor, LedChannels, LedColor, LinearSrgb};
-use crate::time::Nanoseconds;
-use crate::util::component::Component;
+#[cfg(feature = "async")]
+use crate::driver::DriverAsync;
+use crate::{
+    color::{ColorCorrection, FromColor, LedChannels, LedColor, LinearSrgb},
+    driver::Driver,
+    time::Nanoseconds,
+    util::component::Component,
+};
 
 mod delay;
 
@@ -85,7 +100,7 @@ pub use self::delay::*;
 /// ```
 pub trait ClocklessLed {
     /// The word type (typically u8).
-    type Word: Component + Copy + 'static;
+    type Word: ToBytes + Component;
 
     /// Duration of high signal for transmitting a '0' bit.
     const T_0H: Nanoseconds;
@@ -155,5 +170,134 @@ pub trait ClocklessLed {
                 linear_srgb.to_led(Self::LED_CHANNELS, brightness, correction);
             data.into_iter()
         }))
+    }
+}
+
+/// Trait for types that can write data words to a clockless protocol.
+pub trait ClocklessWriter {
+    type Error;
+
+    fn write<const FRAME_BUFFER_SIZE: usize, Led>(
+        &mut self,
+        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error>
+    where
+        Led: ClocklessLed;
+}
+
+#[cfg(feature = "async")]
+/// Async trait for types that can write data words to a clockless protocol.
+pub trait ClocklessWriterAsync {
+    type Error;
+
+    fn write<const FRAME_BUFFER_SIZE: usize, Led>(
+        &mut self,
+        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error>
+    where
+        Led: ClocklessLed;
+}
+
+/// # Type Parameters
+///
+/// * `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// * `Writer` - The clocked writer
+#[derive(Debug)]
+pub struct ClocklessDriver<Led, Writer> {
+    /// Marker for the LED protocol type
+    led: PhantomData<Led>,
+    /// Writer implementation for the clocked protocol
+    writer: Writer,
+}
+
+impl Default for ClocklessDriver<(), ()> {
+    fn default() -> Self {
+        ClocklessDriver {
+            led: PhantomData,
+            writer: (),
+        }
+    }
+}
+
+impl<Writer> ClocklessDriver<(), Writer> {
+    pub fn with_led<Led>(self) -> ClocklessDriver<Led, Writer> {
+        ClocklessDriver {
+            led: PhantomData,
+            writer: self.writer,
+        }
+    }
+}
+
+impl<Led> ClocklessDriver<Led, ()> {
+    pub fn with_writer<Writer>(self, writer: Writer) -> ClocklessDriver<Led, Writer> {
+        ClocklessDriver {
+            led: self.led,
+            writer,
+        }
+    }
+}
+
+impl<Led, Writer> Driver for ClocklessDriver<Led, Writer>
+where
+    Led: ClocklessLed,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Writer: ClocklessWriter,
+{
+    type Error = Writer::Error;
+    type Color = LinearSrgb;
+    type Word = Led::Word;
+
+    fn encode<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Vec<Self::Word, FRAME_BUFFER_SIZE>
+    where
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
+    {
+        Led::encode::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(pixels, brightness, correction)
+    }
+
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        self.writer.write::<FRAME_BUFFER_SIZE, Led>(frame)
+    }
+}
+
+#[cfg(feature = "async")]
+impl<Led, Writer> DriverAsync for ClocklessDriver<Led, Writer>
+where
+    Led: ClocklessLed,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Writer: ClocklessWriterAsync,
+{
+    type Error = Writer::Error;
+    type Color = LinearSrgb;
+    type Word = Led::Word;
+
+    fn encode<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Vec<Self::Word, FRAME_BUFFER_SIZE>
+    where
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
+    {
+        Led::encode::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(pixels, brightness, correction)
+    }
+
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        self.writer.write::<FRAME_BUFFER_SIZE, Led>(frame).await
     }
 }

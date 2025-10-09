@@ -47,7 +47,7 @@ use crate::{
 /// * `Led` - The LED protocol implementation (must implement ClocklessLed)
 /// * `Pin` - The GPIO pin type for data output (must implement OutputPin)
 /// * `Delay` - The delay provider
-pub struct ClocklessDelayDriver<Led: ClocklessLed, Pin: OutputPin, Delay> {
+pub struct ClocklessDelay<Led: ClocklessLed, Pin: OutputPin, Delay> {
     /// Marker for the LED protocol type
     led: PhantomData<Led>,
 

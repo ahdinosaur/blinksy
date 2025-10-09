@@ -140,9 +140,9 @@ where
     /// Ok(()) on success or an error if pin operation fails
     fn write<Word, Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: AsRef<[Word]>,
         Word: ToBytes,
         Word::Bytes: IntoIterator<Item = u8>,
+        Words: AsRef<[Word]>,
     {
         for word in words.as_ref() {
             for bit in bits_of(word, BitOrder::MostSignificantBit) {

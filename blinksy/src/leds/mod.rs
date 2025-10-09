@@ -13,3 +13,7 @@ mod ws2812;
 pub use apa102::*;
 pub use sk6812::*;
 pub use ws2812::*;
+
+pub const fn clockless_frame_buffer_size(pixel_count: usize) -> usize {
+    pixel_count * 3
+}

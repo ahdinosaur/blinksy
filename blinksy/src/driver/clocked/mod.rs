@@ -10,6 +10,7 @@
 //! Unlike the clockless protocol, the clocked protocol:
 //!
 //! - Uses separate data and clock lines
+//! - The output device determines the clock rate, not the LEDs
 //! - Doesn't rely on precise timing (only clock frequency matters)
 //! - Often provides more control over brightness and color precision
 //!
@@ -223,6 +224,10 @@ pub trait ClockedWriterAsync {
         Words: AsRef<[Word]>;
 }
 
+/// A generic driver for clocked LEDs and writers.
+///
+/// For available writers, see [clocked module](crate::driver::clocked).
+///
 /// # Type Parameters
 ///
 /// * `Led` - The LED protocol implementation (must implement ClockedLed)

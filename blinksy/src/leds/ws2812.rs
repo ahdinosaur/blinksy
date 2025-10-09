@@ -4,14 +4,13 @@
 //! single-wire, timing-sensitive protocol. WS2812 LEDs are widely used due to their
 //! simplicity and low cost.
 //!
-//! # Drivers
+//! # Driver
 //!
-//! - [`ClocklessDelay`]: Uses bit-banged GPIO
-//! - [`blinksy-esp::ClocklessRmt`]: On ESP devices, uses RMT peripheral
+//! - [`ClocklessDriver`](crate::driver::ClocklessDriver)
 //!
 //! ## Key Features
 //!
-//! - Single-wire protocol (data only, no clock)
+//! - Single-wire [clockless protocol](crate::driver::clockless) (data only, no clock)
 //! - 24-bit color (8 bits per channel)
 //! - Timing-sensitive protocol
 //! - Fixed update rate: 30μs per pixel
@@ -44,9 +43,8 @@ use crate::{
 pub struct Ws2812;
 
 impl Ws2812 {
-    // TODO make generic across all clockless leds
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
-        pixel_count * 3
+        super::clockless_frame_buffer_size(pixel_count)
     }
 }
 

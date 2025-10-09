@@ -5,15 +5,14 @@
 //!
 //! ## Driver
 //!
-//! - [`ClockedDriver`]: crate::driver::ClockedDriver
+//! - [`ClockedDriver`](crate::driver::ClockedDriver)
 //!
 //! ## Key Features
 //!
-//! - Two-wire protocol (data and clock)
+//! - Two-wire [clocked protocol](crate::driver::clocked) (data and clock)
 //! - 24-bit color (8 bits per channel)
 //! - 5-bit global brightness control (0-31)
-//! - Bring-your-own clock rate (unlike WS2812)
-//! - Supports high update rates
+//! - Supports high update rates (Bring-your-own clock rate)
 //!
 //! ## Protocol Details
 //!

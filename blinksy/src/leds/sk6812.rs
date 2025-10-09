@@ -3,14 +3,13 @@
 //! This module provides driver support for SK6812 LEDs, which use a
 //! single-wire, timing-sensitive protocol similar to [`super::ws2812`].
 //!
-//! # Drivers
+//! # Driver
 //!
-//! - [`Sk6812Delay`]: Uses bit-banged GPIO
-//! - [`blinksy-esp::Sk6812Rmt`]: On ESP devices, uses RMT peripheral
+//! - [`ClocklessDriver`](crate::driver::ClocklessDriver)
 //!
 //! ## Key Features
 //!
-//! - Single-wire protocol (data only, no clock)
+//! - Single-wire [clockless protocol](crate::driver::clockless) (data only, no clock)
 //! - 32-bit color (8 bits per channel)
 //! - Timing-sensitive protocol
 //!
@@ -25,15 +24,10 @@
 //! (References: [Datasheet](https://cdn-shop.adafruit.com/product-files/2757/p2757_SK6812RGBW_REV01.pdf))
 //!
 //! Each LED receives 32 bits (RGBW) and then passes subsequent data to the next LED in the chain.
-//!
-//! [`blinksy-esp::Sk6812Rmt`]: https://docs.rs/blinksy-esp/0.10/blinksy_esp/type.Sk6812Rmt.html
 
 use fugit::NanosDurationU32 as Nanoseconds;
 
-use crate::{
-    color::LedChannels,
-    driver::{ClocklessDelayDriver, ClocklessLed},
-};
+use crate::{color::LedChannels, driver::ClocklessLed};
 
 /// LED implementation for SK6812 protocol.
 ///
@@ -42,9 +36,8 @@ use crate::{
 pub struct Sk6812;
 
 impl Sk6812 {
-    // TODO make generic across all clockless leds
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
-        pixel_count * 3
+        super::clockless_frame_buffer_size(pixel_count)
     }
 }
 

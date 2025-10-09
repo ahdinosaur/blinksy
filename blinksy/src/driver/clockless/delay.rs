@@ -3,14 +3,14 @@ use embedded_hal::{delay::DelayNs, digital::OutputPin};
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
 use heapless::Vec;
+use num_traits::ToBytes;
 
 use super::ClocklessLed;
 #[cfg(feature = "async")]
 use crate::driver::DriverAsync;
 use crate::{
-    color::{ColorCorrection, FromColor, LinearSrgb},
-    driver::Driver,
-    util::bits::{u8_to_bits, BitOrder},
+    driver::ClocklessWriter,
+    util::bits::{bits_of, BitOrder},
 };
 
 /// Driver for clockless LEDs using GPIO bit-banging with a delay timer.
@@ -58,7 +58,7 @@ pub struct ClocklessDelay<Led: ClocklessLed, Pin: OutputPin, Delay> {
     delay: Delay,
 }
 
-impl<Led, Pin, Delay> ClocklessDelayDriver<Led, Pin, Delay>
+impl<Led, Pin, Delay> ClocklessDelay<Led, Pin, Delay>
 where
     Led: ClocklessLed,
     Pin: OutputPin,
@@ -77,6 +77,7 @@ where
     /// A new ClocklessDelayDriver instance or an error if pin initialization fails
     pub fn new(mut pin: Pin, delay: Delay) -> Result<Self, Pin::Error> {
         pin.set_low()?;
+
         Ok(Self {
             led: PhantomData,
             delay,
@@ -85,12 +86,16 @@ where
     }
 }
 
-impl<Led, Pin, Delay> ClocklessDelayDriver<Led, Pin, Delay>
+impl<Led, Pin, Delay> ClocklessWriter<Led> for ClocklessDelay<Led, Pin, Delay>
 where
     Led: ClocklessLed,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
     Pin: OutputPin,
     Delay: DelayNs,
 {
+    type Error = Pin::Error;
+
     /// Transmits a buffer of bytes.
     ///
     /// # Arguments
@@ -100,9 +105,12 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    fn write_bytes(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
-        for byte in buffer {
-            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        for byte in frame {
+            for bit in bits_of(&byte, BitOrder::MostSignificantBit) {
                 if !bit {
                     // Transmit a '0' bit
                     self.pin.set_high()?;
@@ -118,26 +126,29 @@ where
                 }
             }
         }
-        Ok(())
-    }
 
-    /// Sends the reset signal at the end of a transmission.
-    ///
-    /// This keeps the data line low for the required reset period, allowing the LEDs
-    /// to latch the received data and update their outputs.
-    fn delay_for_reset(&mut self) {
-        self.delay.delay_ns(Led::T_RESET.to_nanos())
+        // Sends the reset signal at the end of a transmission.
+        //
+        // This keeps the data line low for the required reset period, allowing the LEDs
+        // to latch the received data and update their outputs.
+        self.delay.delay_ns(Led::T_RESET.to_nanos());
+
+        Ok(())
     }
 }
 
 #[cfg(feature = "async")]
-impl<Led, Pin, Delay> ClocklessDelayDriver<Led, Pin, Delay>
+impl<Led, Pin, Delay> ClocklessWriterAsync<Led> for ClocklessDelay<Led, Pin, Delay>
 where
     Led: ClocklessLed,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
     Pin: OutputPin,
-    Delay: DelayNsAsync,
+    Delay: DelayNs,
 {
-    /// Transmits a buffer of bytes, asynchronously.
+    type Error = Pin::Error;
+
+    /// Transmits a buffer of bytes.
     ///
     /// # Arguments
     ///
@@ -146,9 +157,12 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    async fn write_bytes_async(&mut self, buffer: &[u8]) -> Result<(), Pin::Error> {
-        for byte in buffer {
-            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        for byte in frame {
+            for bit in bits_of(&byte, BitOrder::MostSignificantBit) {
                 if !bit {
                     // Transmit a '0' bit
                     self.pin.set_high()?;
@@ -164,94 +178,13 @@ where
                 }
             }
         }
-        Ok(())
-    }
 
-    /// Sends the reset signal at the end of a transmission, asynchronously.
-    ///
-    /// This keeps the data line low for the required reset period, allowing the LEDs
-    /// to latch the received data and update their outputs.
-    async fn delay_for_reset_async(&mut self) {
-        self.delay.delay_ns(Led::T_RESET.to_nanos()).await
-    }
-}
+        // Sends the reset signal at the end of a transmission.
+        //
+        // This keeps the data line low for the required reset period, allowing the LEDs
+        // to latch the received data and update their outputs.
+        self.delay.delay_ns(Led::T_RESET.to_nanos()).await;
 
-impl<Led, Pin, Delay> Driver for ClocklessDelayDriver<Led, Pin, Delay>
-where
-    Led: ClocklessLed<Word = u8>,
-    Pin: OutputPin,
-    Delay: DelayNs,
-{
-    type Error = Pin::Error;
-    type Color = LinearSrgb;
-    type Word = Led::Word;
-
-    fn encode<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
-        &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Vec<Self::Word, BUFFER_SIZE>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
-        Led::encode::<PIXEL_COUNT, BUFFER_SIZE, _, _>(pixels, brightness, correction)
-    }
-
-    fn write<const BUFFER_SIZE: usize>(
-        &mut self,
-        frame: Vec<Self::Word, BUFFER_SIZE>,
-    ) -> Result<(), Self::Error> {
-        self.write_bytes(frame.as_slice())?;
-        self.delay_for_reset();
-        Ok(())
-    }
-}
-
-#[cfg(feature = "async")]
-impl<Led, Pin, Delay> DriverAsync for ClocklessDelayDriver<Led, Pin, Delay>
-where
-    Led: ClocklessLed<Word = u8>,
-    Pin: OutputPin,
-    Delay: DelayNsAsync,
-{
-    type Error = Pin::Error;
-    type Color = LinearSrgb;
-    type Word = Led::Word;
-
-    fn encode<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
-        &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Vec<Self::Word, BUFFER_SIZE>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
-        Led::encode::<PIXEL_COUNT, BUFFER_SIZE, _, _>(pixels, brightness, correction)
-    }
-
-    /// Renders a precomputed frame to the LED chain, asynchronously.
-    ///
-    /// This method:
-    /// 1. Transmits all frame data
-    /// 2. Sends the reset signal
-    ///
-    /// # Arguments
-    ///
-    /// * `frame` - The precomputed frame buffer to transmit
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if transmission fails
-    async fn write<const BUFFER_SIZE: usize>(
-        &mut self,
-        frame: Vec<Self::Word, BUFFER_SIZE>,
-    ) -> Result<(), Self::Error> {
-        self.write_bytes_async(frame.as_slice()).await?;
-        self.delay_for_reset_async().await;
         Ok(())
     }
 }

@@ -3,6 +3,7 @@ use embedded_hal::spi::SpiBus;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiBus as SpiBusAsync;
 use heapless::Vec;
+use num_traits::ToBytes;
 
 #[cfg(feature = "async")]
 use crate::driver::DriverAsync;
@@ -47,12 +48,12 @@ use super::{ClockedLed, ClockedWriter};
 ///
 /// This allows any type implementing the SpiBus trait to be used
 /// as a writer for clocked LED protocols.
-impl<Spi> ClockedWriter for Spi
+impl<Word, Spi> ClockedWriter for Spi
 where
-    Spi: SpiBus<u8>,
+    Word: Copy + 'static,
+    Spi: SpiBus<Word>,
 {
     type Error = Spi::Error;
-    type Word = u8;
 
     /// Writes an iterator of bytes using the SPI interface.
     ///
@@ -63,9 +64,11 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if SPI transmission fails
-    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    fn write<Word, Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: AsRef<[Self::Word]>,
+        Word: ToBytes,
+        Word::Bytes: IntoIterator<Item = u8>,
+        Words: AsRef<[Word]>,
     {
         self.write(words.as_ref())
     }

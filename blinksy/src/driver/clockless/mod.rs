@@ -26,7 +26,7 @@
 //!
 //! ## Writers
 //!
-//! - [`ClocklessDelay`]: Writer using GPIO bit-banging with a delay timer
+//! - ~~[`ClocklessDelay`]: Writer using GPIO bit-banging with a delay timer~~
 //! - [`blinksy-esp::ClocklessRmt`]: Writer using RMT on the ESP32
 //!
 //! [`blinksy-esp::ClocklessRmt`]: https://docs.rs/blinksy-esp/0.10/blinksy_esp/type.ClocklessRmt.html
@@ -174,30 +174,30 @@ pub trait ClocklessLed {
 }
 
 /// Trait for types that can write data words to a clockless protocol.
-pub trait ClocklessWriter {
+pub trait ClocklessWriter<Led: ClocklessLed> {
     type Error;
 
-    fn write<const FRAME_BUFFER_SIZE: usize, Led>(
+    fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), Self::Error>
-    where
-        Led: ClocklessLed;
+    ) -> Result<(), Self::Error>;
 }
 
 #[cfg(feature = "async")]
 /// Async trait for types that can write data words to a clockless protocol.
-pub trait ClocklessWriterAsync {
+pub trait ClocklessWriterAsync<Led: ClocklessLed> {
     type Error;
 
-    fn write<const FRAME_BUFFER_SIZE: usize, Led>(
+    fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> Result<(), Self::Error>
-    where
-        Led: ClocklessLed;
+    ) -> Result<(), Self::Error>;
 }
 
+/// A generic driver for clockless LEDs and writers.
+///
+/// For available writers, see [clockless module](crate::driver::clockless).
+///
 /// # Type Parameters
 ///
 /// * `Led` - The LED protocol implementation (must implement ClocklessLed)
@@ -242,7 +242,7 @@ where
     Led: ClocklessLed,
     Led::Word: ToBytes,
     <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
-    Writer: ClocklessWriter,
+    Writer: ClocklessWriter<Led>,
 {
     type Error = Writer::Error;
     type Color = LinearSrgb;
@@ -265,7 +265,7 @@ where
         &mut self,
         frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        self.writer.write::<FRAME_BUFFER_SIZE, Led>(frame)
+        self.writer.write(frame)
     }
 }
 
@@ -275,7 +275,7 @@ where
     Led: ClocklessLed,
     Led::Word: ToBytes,
     <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
-    Writer: ClocklessWriterAsync,
+    Writer: ClocklessWriterAsync<Led>,
 {
     type Error = Writer::Error;
     type Color = LinearSrgb;
@@ -298,6 +298,6 @@ where
         &mut self,
         frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        self.writer.write::<FRAME_BUFFER_SIZE, Led>(frame).await
+        self.writer.write(frame).await
     }
 }

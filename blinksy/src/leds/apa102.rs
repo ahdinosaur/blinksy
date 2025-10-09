@@ -3,9 +3,9 @@
 //! This module describes the APA102 (DotStar) LEDs, which offer high refresh rates
 //! and precise brightness control.
 //!
-//! To drive an APA102 LED, you will need to construct a [`ClockedDriver`]
+//! ## Driver
 //!
-//! [`ClockedDriver`]: crate::driver::ClockedDriver
+//! - [`ClockedDriver`]: crate::driver::ClockedDriver
 //!
 //! ## Key Features
 //!

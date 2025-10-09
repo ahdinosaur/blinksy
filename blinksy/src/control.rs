@@ -197,14 +197,11 @@ where
     /// Result indicating success or an error from the driver
     pub fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
-        let frame = self
-            .driver
-            .framebuffer::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(
-                pixels,
-                self.brightness,
-                self.correction,
-            );
-        self.driver.render(frame)
+        self.driver.show::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(
+            pixels,
+            self.brightness,
+            self.correction,
+        )
     }
 }
 
@@ -231,15 +228,9 @@ where
     ///
     /// Result indicating success or an error from the driver
     pub async fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
-        // Write colors from Pattern to pixel buffer.
-        self.pixels.extend(self.pattern.tick(time_in_ms));
-        // Write colors in pixel buffer to Driver.
+        let pixels = self.pattern.tick(time_in_ms);
         self.driver
-            .write::<PIXEL_COUNT, _, _>(
-                self.pixels.drain(0..PIXEL_COUNT),
-                self.brightness,
-                self.correction,
-            )
+            .show::<PIXEL_COUNT, _, _>(pixels, self.brightness, self.correction)
             .await
     }
 }

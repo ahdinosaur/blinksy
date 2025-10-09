@@ -21,7 +21,7 @@
 //! - [`ClocklessDelay`]: Driver using GPIO bit-banging with a delay timer
 //! - [`blinksy-esp::ClocklessRmt`]: Driver using RMT on the ESP32
 //!
-//! [`blinksy-esp::ClocklessRmt`]: https://docs.rs/blinksy-esp/0.10/blinksy_esp/type.Ws2812Rmt.html
+//! [`blinksy-esp::ClocklessRmt`]: https://docs.rs/blinksy-esp/0.10/blinksy_esp/type.ClocklessRmt.html
 //!
 //! ## Example
 //!
@@ -118,9 +118,10 @@ pub trait ClocklessLed {
         (Self::T_0H + Self::T_0L).max(Self::T_1H + Self::T_1L)
     }
 
-    /// Creates a buffer to represent the next update frame.
+    /// Encodes a buffer to represent the next frame update.
     ///
     /// This method:
+    ///
     /// 1. Converts each input color to linear sRGB.
     /// 2. Applies the global brightness scaling
     /// 3. Reorders color channels according to the LED protocol
@@ -139,7 +140,7 @@ pub trait ClocklessLed {
     /// # Returns
     ///
     /// Ok(()) on success or an error if transmission fails
-    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
+    fn encode<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,

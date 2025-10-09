@@ -137,7 +137,7 @@ where
     Pin: OutputPin,
     Delay: DelayNsAsync,
 {
-    /// Transmits a buffer of bytes, asychronously.
+    /// Transmits a buffer of bytes, asynchronously.
     ///
     /// # Arguments
     ///
@@ -167,7 +167,7 @@ where
         Ok(())
     }
 
-    /// Sends the reset signal at the end of a transmission, asychronously.
+    /// Sends the reset signal at the end of a transmission, asynchronously.
     ///
     /// This keeps the data line low for the required reset period, allowing the LEDs
     /// to latch the received data and update their outputs.
@@ -186,7 +186,7 @@ where
     type Color = LinearSrgb;
     type Word = Led::Word;
 
-    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
+    fn encode<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
@@ -196,10 +196,10 @@ where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        Led::framebuffer::<PIXEL_COUNT, BUFFER_SIZE, _, _>(pixels, brightness, correction)
+        Led::encode::<PIXEL_COUNT, BUFFER_SIZE, _, _>(pixels, brightness, correction)
     }
 
-    fn render<const BUFFER_SIZE: usize>(
+    fn write<const BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Self::Word, BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
@@ -212,46 +212,45 @@ where
 #[cfg(feature = "async")]
 impl<Led, Pin, Delay> DriverAsync for ClocklessDelayDriver<Led, Pin, Delay>
 where
-    Led: ClocklessLed,
+    Led: ClocklessLed<Word = u8>,
     Pin: OutputPin,
     Delay: DelayNsAsync,
 {
     type Error = Pin::Error;
     type Color = LinearSrgb;
+    type Word = Led::Word;
 
-    /// Writes a sequence of colors to the LED chain, asychronously.
-    ///
-    /// This method:
-    /// 1. Converts each input color to the appropriate format
-    /// 2. Applies the global brightness scaling
-    /// 3. Reorders color channels according to the LED protocol
-    /// 4. Transmits all data
-    /// 5. Sends the reset signal
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over colors
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if transmission fails
-    async fn write<const PIXEL_COUNT: usize, I, C>(
+    fn encode<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
+    ) -> Vec<Self::Word, BUFFER_SIZE>
     where
         I: IntoIterator<Item = C>,
         Self::Color: FromColor<C>,
     {
-        for color in pixels {
-            let linear_srgb = LinearSrgb::from_color(color);
-            let data = linear_srgb.to_led(Led::LED_CHANNELS, brightness, correction);
-            self.write_bytes_async(data.as_ref()).await?;
-        }
+        Led::encode::<PIXEL_COUNT, BUFFER_SIZE, _, _>(pixels, brightness, correction)
+    }
+
+    /// Renders a precomputed frame to the LED chain, asynchronously.
+    ///
+    /// This method:
+    /// 1. Transmits all frame data
+    /// 2. Sends the reset signal
+    ///
+    /// # Arguments
+    ///
+    /// * `frame` - The precomputed frame buffer to transmit
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) on success or an error if transmission fails
+    async fn write<const BUFFER_SIZE: usize>(
+        &mut self,
+        frame: Vec<Self::Word, BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        self.write_bytes_async(frame.as_slice()).await?;
         self.delay_for_reset_async().await;
         Ok(())
     }

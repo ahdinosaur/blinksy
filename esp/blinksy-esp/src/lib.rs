@@ -95,34 +95,4 @@ pub mod rmt;
 pub mod time;
 pub(crate) mod util;
 
-use crate::rmt::ClocklessRmtDriver;
-use blinksy::drivers::sk6812::Sk6812Led;
-use blinksy::drivers::ws2812::Ws2812Led;
-
-pub use crate::rmt::ClocklessRmt;
-
-/// WS2812 LED driver using the ESP32 RMT peripheral.
-///
-/// This driver provides efficient, hardware-accelerated control of WS2812 LEDs.
-///
-/// # Type Parameters
-///
-/// * `Tx` - RMT transmit channel
-/// * `BUFFER_SIZE` - Size of the RMT buffer
-///
-/// [`DriverMode`]: esp_hal::DriverMode
-pub type Ws2812Rmt<const RMT_BUFFER_SIZE: usize, Tx> =
-    ClocklessRmtDriver<RMT_BUFFER_SIZE, Ws2812Led, Tx>;
-
-/// SK6812 LED driver using the ESP32 RMT peripheral.
-///
-/// This driver provides efficient, hardware-accelerated control of SK6812 LEDs.
-///
-/// # Type Parameters
-///
-/// * `Tx` - RMT transmit channel
-/// * `BUFFER_SIZE` - Size of the RMT buffer
-///
-/// [`DriverMode`]: esp_hal::DriverMode
-pub type Sk6812Rmt<const RMT_BUFFER_SIZE: usize, Tx> =
-    ClocklessRmtDriver<RMT_BUFFER_SIZE, Sk6812Led, Tx>;
+pub use crate::rmt::{ClocklessRmt, ClocklessRmtDriver, ClocklessRmtDriverError};

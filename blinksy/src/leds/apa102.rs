@@ -41,15 +41,15 @@ use crate::{
 /// This type implements the ClockedLed trait with the specifics of the APA102 protocol.
 /// It handles start/end frames and the color frame format with 5-bit brightness control.
 #[derive(Debug)]
-pub struct Apa102Led;
+pub struct Apa102;
 
-impl Apa102Led {
+impl Apa102 {
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
         4 + pixel_count * 4 + (pixel_count - 1).div_ceil(16)
     }
 }
 
-impl ClockedLed for Apa102Led {
+impl ClockedLed for Apa102 {
     type Word = u8;
     type Color = LinearSrgb;
 

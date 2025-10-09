@@ -34,23 +34,23 @@ use fugit::NanosDurationU32 as Nanoseconds;
 
 use crate::{
     color::{LedChannels, RgbChannels},
-    driver::{ClocklessDelayDriver, ClocklessLed},
+    driver::ClocklessLed,
 };
 
 /// LED implementation for WS2812 protocol.
 ///
 /// This type implements the ClocklessLed trait with the specifics of the WS2812 protocol,
 /// including timing requirements and color channel ordering.
-pub struct Ws2812Led;
+pub struct Ws2812;
 
-impl Ws2812Led {
+impl Ws2812 {
     // TODO make generic across all clockless leds
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
         pixel_count * 3
     }
 }
 
-impl ClocklessLed for Ws2812Led {
+impl ClocklessLed for Ws2812 {
     type Word = u8;
 
     /// Duration of high signal for '0' bit (~400ns)
@@ -71,14 +71,3 @@ impl ClocklessLed for Ws2812Led {
     /// LED channel specification - WS2812 uses GRB ordering
     const LED_CHANNELS: LedChannels = LedChannels::Rgb(RgbChannels::GRB);
 }
-
-/// WS2812 driver using GPIO bit-banging with delay timing.
-///
-/// # Type Parameters
-///
-/// * `Pin` - The data pin type
-/// * `Delay` - The delay implementation type
-///
-/// Note: This will not work unless your delay timer is able to handle microsecond
-/// precision, which most microcontrollers cannot do.
-pub type Ws2812Delay<Pin, Delay> = ClocklessDelayDriver<Ws2812Led, Pin, Delay>;

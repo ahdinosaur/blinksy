@@ -232,7 +232,9 @@ macro_rules! spi {
 macro_rules! apa102 {
     ($peripherals:ident) => {{
         let spi = $crate::spi!($peripherals);
-        $crate::blinksy::drivers::apa102::Apa102Spi::new(spi)
+        $crate::blinksy::driver::ClockedDriver::default()
+            .with_led($crate::blinksy::leds::Apa102)
+            .with_writer(spi)
     }};
 }
 
@@ -262,15 +264,6 @@ macro_rules! rmt {
     }};
 }
 
-#[macro_export]
-macro_rules! ws2812_channel_count {
-    () => {{
-            <
-                $crate::blinksy::drivers::ws2812::Ws2812Led as $crate::blinksy::driver::ClocklessLed
-            >::LED_CHANNELS.channel_count()
-    }};
-}
-
 /// Creates a WS2812 LED driver using the RMT peripheral.
 ///
 /// # Arguments
@@ -289,7 +282,7 @@ macro_rules! ws2812 {
 
         $crate::blinksy_esp::ClocklessRmt::new()
             .with_rmt_buffer_size::<$buffer_size>()
-            .with_led::<$crate::blinksy::drivers::ws2812::Ws2812Led>()
+            .with_led::<$crate::blinksy::leds::Ws2812>()
             .build(rmt.channel0, led_pin)
     }};
 }

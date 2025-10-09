@@ -39,16 +39,16 @@ use crate::{
 ///
 /// This type implements the ClocklessLed trait with the specifics of the SK6812 protocol,
 /// including timing requirements and color channel ordering.
-pub struct Sk6812Led;
+pub struct Sk6812;
 
-impl Sk6812Led {
+impl Sk6812 {
     // TODO make generic across all clockless leds
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
         pixel_count * 3
     }
 }
 
-impl ClocklessLed for Sk6812Led {
+impl ClocklessLed for Sk6812 {
     type Word = u8;
 
     /// Duration of high signal for '0' bit (~300ns)
@@ -69,14 +69,3 @@ impl ClocklessLed for Sk6812Led {
     /// LED channel specification - SK6812 uses RGBW ordering
     const LED_CHANNELS: LedChannels = LedChannels::Rgbw(crate::color::RgbwChannels::RBGW);
 }
-
-/// SK6812 driver using GPIO bit-banging with delay timing.
-///
-/// # Type Parameters
-///
-/// * `Pin` - The data pin type
-/// * `Delay` - The delay implementation type
-///
-/// Note: This will not work unless your delay timer is able to handle microsecond
-/// precision, which most microcontrollers cannot do.
-pub type Sk6812Delay<Pin, Delay> = ClocklessDelayDriver<Sk6812Led, Pin, Delay>;

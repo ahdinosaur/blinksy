@@ -240,7 +240,7 @@ impl Default for ClockedDriver<(), ()> {
 }
 
 impl<Writer> ClockedDriver<(), Writer> {
-    fn with_led<Led>(self) -> ClockedDriver<Led, Writer> {
+    pub fn with_led<Led>(self) -> ClockedDriver<Led, Writer> {
         ClockedDriver {
             led: PhantomData,
             writer: self.writer,
@@ -249,7 +249,7 @@ impl<Writer> ClockedDriver<(), Writer> {
 }
 
 impl<Led> ClockedDriver<Led, ()> {
-    fn with_writer<Writer>(self, writer: Writer) -> ClockedDriver<Led, Writer> {
+    pub fn with_writer<Writer>(self, writer: Writer) -> ClockedDriver<Led, Writer> {
         ClockedDriver {
             led: self.led,
             writer,

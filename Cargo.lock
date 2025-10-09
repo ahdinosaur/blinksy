@@ -71,6 +71,7 @@ dependencies = [
  "egui",
  "egui-miniquad",
  "glam",
+ "heapless",
  "miniquad",
 ]
 

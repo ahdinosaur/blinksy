@@ -264,6 +264,8 @@ where
     fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
+        _brightness: f32,
+        _correction: ColorCorrection,
     ) -> Result<(), Self::Error> {
         self.writer.write(frame)
     }

@@ -1,7 +1,7 @@
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
-use num_traits::{PrimInt, ToBytes};
+use num_traits::ToBytes;
 
 #[cfg(feature = "async")]
 use crate::driver::DriverAsync;
@@ -114,8 +114,10 @@ where
     Clock(Clock::Error),
 }
 
-impl<Data, Clock, Delay> ClockedWriter for ClockedDelay<Data, Clock, Delay>
+impl<Word, Data, Clock, Delay> ClockedWriter<Word> for ClockedDelay<Data, Clock, Delay>
 where
+    Word: ToBytes,
+    Word::Bytes: IntoIterator<Item = u8>,
     Data: OutputPin,
     Clock: OutputPin,
     Delay: DelayNs,
@@ -138,10 +140,8 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    fn write<Word, Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Word: ToBytes,
-        Word::Bytes: IntoIterator<Item = u8>,
         Words: AsRef<[Word]>,
     {
         for word in words.as_ref() {
@@ -166,12 +166,13 @@ where
 #[cfg(feature = "async")]
 impl<Word, Data, Clock, Delay> ClockedWriterAsync<Word> for ClockedDelay<Data, Clock, Delay>
 where
+    Word: ToBytes,
+    Word::Bytes: IntoIterator<Item = u8>,
     Data: OutputPin,
     Clock: OutputPin,
     Delay: DelayNsAsync,
 {
     type Error = ClockedDelayError<Data, Clock>;
-    type Word = u8;
 
     /// Writes an iterator of bytes using the bit-banging technique, asynchronously.
     ///

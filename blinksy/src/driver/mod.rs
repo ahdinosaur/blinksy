@@ -131,6 +131,8 @@ pub trait Driver {
     fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
+        brightness: f32,
+        correction: ColorCorrection,
     ) -> Result<(), Self::Error>;
 
     /// Shows a frame on the LED hardware.
@@ -163,7 +165,7 @@ pub trait Driver {
     {
         let frame_buffer =
             self.encode::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(pixels, brightness, correction);
-        self.write(frame_buffer)
+        self.write(frame_buffer, brightness, correction)
     }
 }
 

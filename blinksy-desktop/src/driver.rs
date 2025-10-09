@@ -415,17 +415,30 @@ where
 {
     type Error = DesktopError;
     type Color = LinearSrgb;
+    type Word = LinearSrgb;
 
-    fn write<const PIXEL_COUNT: usize, I, C>(
+    fn encode<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Pixels, Color>(
         &mut self,
-        pixels: I,
+        pixels: Pixels,
+        _brightness: f32,
+        _correction: ColorCorrection,
+    ) -> heapless::Vec<Self::Word, FRAME_BUFFER_SIZE>
+    where
+        Pixels: IntoIterator<Item = Color>,
+        Self::Color: FromColor<Color>,
+    {
+        pixels
+            .into_iter()
+            .map(|color| LinearSrgb::from_color(color))
+            .collect()
+    }
+
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: heapless::Vec<Self::Word, FRAME_BUFFER_SIZE>,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
+    ) -> Result<(), Self::Error> {
         if self.brightness != brightness {
             self.brightness = brightness;
             self.send(LedMessage::UpdateBrightness(brightness))?;
@@ -436,10 +449,7 @@ where
             self.send(LedMessage::UpdateColorCorrection(correction))?;
         }
 
-        let colors: Vec<LinearSrgb> = pixels
-            .into_iter()
-            .map(|color| LinearSrgb::from_color(color))
-            .collect();
+        let colors: Vec<LinearSrgb> = frame.into_iter().collect();
 
         self.send(LedMessage::UpdateColors(colors))?;
         Ok(())

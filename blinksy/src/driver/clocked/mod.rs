@@ -176,7 +176,7 @@ pub trait ClockedLed {
 ///
 /// This trait abstracts over different implementation methods for writing data
 /// to a clocked protocol, such as bit-banging with GPIOs or using hardware SPI.
-pub trait ClockedWriter {
+pub trait ClockedWriter<Word> {
     /// The error type that may be returned by write operations.
     type Error;
 
@@ -189,10 +189,8 @@ pub trait ClockedWriter {
     /// # Returns
     ///
     /// Ok(()) on success or an error if the write fails
-    fn write<Word, Words>(&mut self, words: Words) -> Result<(), Self::Error>
+    fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Word: ToBytes,
-        Word::Bytes: IntoIterator<Item = u8>,
         Words: AsRef<[Word]>;
 }
 
@@ -201,7 +199,7 @@ pub trait ClockedWriter {
 ///
 /// This trait abstracts over different implementation methods for writing data
 /// to a clocked protocol, such as bit-banging with GPIOs or using hardware SPI.
-pub trait ClockedWriterAsync {
+pub trait ClockedWriterAsync<Word> {
     /// The error type that may be returned by write operations.
     type Error;
 
@@ -217,10 +215,8 @@ pub trait ClockedWriterAsync {
     /// # Returns
     ///
     /// Ok(()) on success or an error if the write fails
-    async fn write<Word, Word>(&mut self, words: Words) -> Result<(), Self::Error>
+    async fn write<Word>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Word: ToBytes,
-        Word::Bytes: IntoIterator<Item = u8>,
         Words: AsRef<[Word]>;
 }
 
@@ -270,9 +266,7 @@ impl<Led> ClockedDriver<Led, ()> {
 impl<Led, Writer> Driver for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
-    Writer: ClockedWriter,
+    Writer: ClockedWriter<Led::Word>,
 {
     type Error = Writer::Error;
     type Color = Led::Color;
@@ -297,6 +291,8 @@ where
     fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
+        _brightness: f32,
+        _correction: ColorCorrection,
     ) -> Result<(), Self::Error> {
         self.writer.write(frame)
     }

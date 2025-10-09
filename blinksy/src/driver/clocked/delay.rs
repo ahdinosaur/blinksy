@@ -189,10 +189,10 @@ where
     /// Ok(()) on success or an error if pin operation fails
     async fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: IntoIterator<Item = Self::Word>,
+        Words: AsRef<[Self::Word]>,
     {
-        for byte in words {
-            for bit in u8_to_bits(&byte, BitOrder::MostSignificantBit) {
+        for byte in words.as_ref() {
+            for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
                 match bit {
                     false => self.data.set_low(),
                     true => self.data.set_high(),

@@ -33,7 +33,7 @@ use esp_hal::{
         Channel, Error as RmtError, PulseCode, RawChannelAccess, TxChannel, TxChannelConfig,
         TxChannelCreator, TxChannelInternal,
     },
-    Async, Blocking, DriverMode,
+    Blocking, DriverMode,
 };
 #[cfg(feature = "async")]
 use esp_hal::{rmt::TxChannelAsync, Async};
@@ -311,7 +311,7 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<const RMT_BUFFER_SIZE: usize, Led, Tx> Driver
+impl<const RMT_BUFFER_SIZE: usize, Led, Tx> DriverAsync
     for ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, Channel<Async, Tx>>
 where
     Led: ClocklessLed<Word = u8>,
@@ -334,14 +334,14 @@ where
         Led::encode::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(pixels, brightness, correction)
     }
 
-    fn write<const FRAME_BUFFER_SIZE: usize>(
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
             // RMT buffer must end with 0.
             rmt_buffer.push(0).unwrap();
-            self.transmit_async(&rmt_buffer)?;
+            self.transmit_async(&rmt_buffer).await?;
         }
 
         Ok(())

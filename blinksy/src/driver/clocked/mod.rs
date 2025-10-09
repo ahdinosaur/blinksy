@@ -294,7 +294,7 @@ where
 impl<Led, Writer> DriverAsync for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
-    Writer: ClockedWriter<Word = Led::Word>,
+    Writer: ClockedWriterAsync<Word = Led::Word>,
 {
     type Error = Writer::Error;
     type Color = Led::Color;

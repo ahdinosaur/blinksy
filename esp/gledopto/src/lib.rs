@@ -233,7 +233,7 @@ macro_rules! apa102 {
     ($peripherals:ident) => {{
         let spi = $crate::spi!($peripherals);
         $crate::blinksy::driver::ClockedDriver::default()
-            .with_led($crate::blinksy::leds::Apa102)
+            .with_led::<$crate::blinksy::leds::Apa102>()
             .with_writer(spi)
     }};
 }
@@ -252,7 +252,9 @@ macro_rules! apa102 {
 macro_rules! apa102_async {
     ($peripherals:ident) => {{
         let spi = $crate::spi!($peripherals).into_async();
-        $crate::blinksy::drivers::apa102::Apa102Spi::new(spi)
+        $crate::blinksy::driver::ClockedDriver::default()
+            .with_led::<$crate::blinksy::leds::Apa102>()
+            .with_writer(spi)
     }};
 }
 
@@ -303,7 +305,10 @@ macro_rules! ws2812_async {
     ($peripherals:ident, $num_leds:expr) => {{
         let led_pin = $peripherals.GPIO16;
         let rmt = $crate::rmt!($peripherals).into_async();
-        let rmt_buffer = $crate::ws2812_rmt_buffer!($num_leds);
-        $crate::blinksy_esp::Ws2812Rmt::new(rmt.channel0, led_pin, rmt_buffer)
+
+        $crate::blinksy_esp::ClocklessRmt::new()
+            .with_rmt_buffer_size::<$buffer_size>()
+            .with_led::<$crate::blinksy::leds::Ws2812>()
+            .build(rmt.channel0, led_pin)
     }};
 }

@@ -1,11 +1,70 @@
 //! # Control System
 //!
-//! [`Control`] is the central control system for Blinksy: connecting a layout, pattern,
-//! and driver together to form a complete LED control pipeline.
+//! [`Control`] is the central control system for Blinksy: connecting a layout,
+//! pattern, and driver together to form a complete LED control pipeline.
 //!
-//! As [`Control`] has a complex generic type signature, [`ControlBuilder`] is a builder to help
-//! you create [`Control`] instances.
-
+//! As [`Control`] has a complex generic type signature, [`ControlBuilder`] is a
+//! builder to help you create [`Control`] instances.
+//!
+//! # Example (Blocking)
+//!
+//! ```rust,ignore
+//! use blinksy::{
+//!     ControlBuilder,
+//!     layout::Layout1d,
+//!     layout1d,
+//!     patterns::rainbow::{Rainbow, RainbowParams},
+//! };
+//!
+//! // Define a 1d layout of 60 LEDs
+//! layout1d!(Layout, 60);
+//!
+//! // Create a control system
+//! let mut control = ControlBuilder::new_1d()
+//!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
+//!     .with_pattern::<Rainbow>(RainbowParams::default())
+//!     // Choose a driver type and frame buffer size (e.g., 128)
+//!     .with_driver::<_, 128>(/* LED driver */)
+//!     .build();
+//!
+//! // Use the control system
+//! control.set_brightness(0.5);
+//!
+//! // Main control loop
+//! loop {
+//!     control.tick(/* current time in milliseconds */).unwrap();
+//! }
+//! ```
+//!
+//! # Example (Async)
+//!
+//! ```rust,ignore
+//! use blinksy::{
+//!     ControlBuilder,
+//!     layout::Layout1d,
+//!     layout1d,
+//!     patterns::rainbow::{Rainbow, RainbowParams},
+//! };
+//!
+//! // Define a 1d layout of 60 LEDs
+//! layout1d!(Layout, 60);
+//!
+//! // Create a control system
+//! let mut control = ControlBuilder::new_1d_async()
+//!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
+////!     .with_pattern::<Rainbow>(RainbowParams::default())
+//!     // Choose a driver type and frame buffer size (e.g., 128)
+//!     .with_driver::<_, 128>(/* LED driver */)
+//!     .build();
+//!
+//! // Use the control system
+//! control.set_brightness(0.5);
+//!
+//! // Main control loop
+//! loop {
+//!     control.tick(/* current time in milliseconds */).await.unwrap();
+//! }
+//! ```
 use core::marker::PhantomData;
 
 use crate::{
@@ -34,71 +93,15 @@ use crate::{driver::DriverAsync as DriverAsyncTrait, markers::Async};
 ///
 /// Tip: Use [`ControlBuilder`] to build your [`Control`] struct.
 ///
-/// # Type Parameters
-///
-/// * `PIXEL_COUNT` - The number of LEDs in the layout
-/// * `Dim` - The dimension marker ([`Dim1d`] or [`Dim2d`] or [`Dim3d`])
-/// * `Layout` - The [`layout`](crate::layout) type
-/// * `Pattern` - The [`pattern`](crate::pattern) type
-/// * `Driver` - The LED [`driver`](crate::driver) type
-///
-/// # Example (Blocking)
-///
-/// ```rust,ignore
-/// use blinksy::{
-///     ControlBuilder,
-///     layout::Layout1d,
-///     layout1d,
-///     patterns::rainbow::{Rainbow, RainbowParams}
-/// };
-///
-/// // Define a 1d layout of 60 LEDs
-/// layout1d!(Layout, 60);
-///
-/// // Create a control system
-/// let mut control = ControlBuilder::new_1d()
-///     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
-///     .with_pattern::<Rainbow>(RainbowParams::default())
-///     .with_driver(/* LED driver */)
-///     .build();
-///
-/// // Use the control system
-/// control.set_brightness(0.5);
-///
-/// // Main control loop
-/// loop {
-///     control.tick(/* current time in milliseconds */).unwrap();
-/// }
-/// ```
-///
-/// # Example (Async)
-///
-/// ```rust,ignore
-/// use blinksy::{
-///     ControlBuilder,
-///     layout::Layout1d,
-///     layout1d,
-///     patterns::rainbow::{Rainbow, RainbowParams}
-/// };
-///
-/// // Define a 1d layout of 60 LEDs
-/// layout1d!(Layout, 60);
-///
-/// // Create a control system
-/// let mut control = ControlBuilder::new_1d_async()
-///     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
-///     .with_pattern::<Rainbow>(RainbowParams::default())
-///     .with_driver(/* LED driver */)
-///     .build();
-///
-/// // Use the control system
-/// control.set_brightness(0.5);
-///
-/// // Main control loop
-/// loop {
-///     control.tick(/* current time in milliseconds */).await.unwrap();
-/// }
-/// ```
+// # Type Parameters
+//
+// * `PIXEL_COUNT` - The number of LEDs in the layout
+// * `FRAME_BUFFER_SIZE` - The per-call frame buffer size used by the driver
+// * `Dim` - The dimension marker ([`Dim1d`] or [`Dim2d`] or [`Dim3d`])
+// * `Exec` - The execution mode marker ([`Blocking`] or `Async`)
+// * `Layout` - The [`layout`](crate::layout) type
+// * `Pattern` - The [`pattern`](crate::pattern) type
+// * `Driver` - The LED [`driver`](crate::driver) type
 pub struct Control<
     const PIXEL_COUNT: usize,
     const FRAME_BUFFER_SIZE: usize,
@@ -206,8 +209,8 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
-    Control<PIXEL_COUNT, Dim, Async, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Pattern, Driver>
+    Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Async, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -230,14 +233,15 @@ where
     pub async fn tick(&mut self, time_in_ms: u64) -> Result<(), Driver::Error> {
         let pixels = self.pattern.tick(time_in_ms);
         self.driver
-            .show::<PIXEL_COUNT, _, _>(pixels, self.brightness, self.correction)
+            .show::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(pixels, self.brightness, self.correction)
             .await
     }
 }
 
 ///
 /// The builder allows your to build up your [`Control`] system one-by-one
-/// and handles the combination of generic types and contraints that [`Control`] expects.
+/// and handles the combination of generic types and constraints that
+/// [`Control`] expects.
 pub struct ControlBuilder<
     const PIXEL_COUNT: usize,
     const FRAME_BUFFER_SIZE: usize,
@@ -272,13 +276,13 @@ impl ControlBuilder<0, 0, (), (), (), (), ()> {
 }
 
 #[cfg(feature = "async")]
-impl ControlBuilder<0, (), (), (), (), ()> {
+impl ControlBuilder<0, 0, (), (), (), (), ()> {
     /// Starts building a one-dimensional asynchronous control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 1D, async
-    pub fn new_1d_async() -> ControlBuilder<0, Dim1d, Async, (), (), ()> {
+    pub fn new_1d_async() -> ControlBuilder<0, 0, Dim1d, Async, (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,
@@ -307,13 +311,13 @@ impl ControlBuilder<0, 0, (), (), (), (), ()> {
 }
 
 #[cfg(feature = "async")]
-impl ControlBuilder<0, (), (), (), (), ()> {
+impl ControlBuilder<0, 0, (), (), (), (), ()> {
     /// Starts building a two-dimensional asynchronous control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 2D, async
-    pub fn new_2d_async() -> ControlBuilder<0, Dim2d, Async, (), (), ()> {
+    pub fn new_2d_async() -> ControlBuilder<0, 0, Dim2d, Async, (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,
@@ -342,13 +346,13 @@ impl ControlBuilder<0, 0, (), (), (), (), ()> {
 }
 
 #[cfg(feature = "async")]
-impl ControlBuilder<0, (), (), (), (), ()> {
+impl ControlBuilder<0, 0, (), (), (), (), ()> {
     /// Starts building a three-dimensional asynchronous control system.
     ///
     /// # Returns
     ///
     /// A builder initialized for 3D, async
-    pub fn new_3d_async() -> ControlBuilder<0, Dim3d, Async, (), (), ()> {
+    pub fn new_3d_async() -> ControlBuilder<0, 0, Dim3d, Async, (), (), ()> {
         ControlBuilder {
             dim: PhantomData,
             exec: PhantomData,
@@ -427,15 +431,15 @@ where
 impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
     ControlBuilder<PIXEL_COUNT, 0, Dim, Blocking, Layout, Pattern, Driver>
 {
-    /// Specifies the LED driver for the control system (blocking).
+    /// Specifies the frame buffer size for the control system (blocking).
     ///
-    /// # Arguments
+    /// # Type Parameters
     ///
-    /// * `driver` - The LED driver instance (blocking)
+    /// * `FRAME_BUFFER_SIZE` - The per-call frame buffer size
     ///
     /// # Returns
     ///
-    /// Builder with driver specified
+    /// Builder with frame buffer size specified
     pub fn with_frame_buffer_size<const FRAME_BUFFER_SIZE: usize>(
         self,
     ) -> ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
@@ -452,10 +456,14 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
     }
 }
 
-impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
-    ControlBuilder<PIXEL_COUNT, 0, Dim, Blocking, Layout, Pattern, ()>
+impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Pattern>
+    ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Blocking, Layout, Pattern, ()>
 {
     /// Specifies the LED driver for the control system (blocking).
+    ///
+    /// # Type Parameters
+    ///
+    /// * `Driver` - The blocking driver type
     ///
     /// # Arguments
     ///
@@ -463,8 +471,8 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
     ///
     /// # Returns
     ///
-    /// Builder with driver specified
-    pub fn with_driver<Driver, const FRAME_BUFFER_SIZE: usize>(
+    /// Builder with driver and frame buffer size specified
+    pub fn with_driver<Driver>(
         self,
         driver: Driver,
     ) -> ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Blocking, Layout, Pattern, Driver>
@@ -482,22 +490,26 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
 }
 
 #[cfg(feature = "async")]
-impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
-    ControlBuilder<PIXEL_COUNT, Dim, Async, Layout, Pattern, ()>
+impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Pattern>
+    ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Async, Layout, Pattern, ()>
 {
-    /// Specifies the LED driver for the control system (async).
+    /// Specifies the LED driver for the control system (blocking).
+    ///
+    /// # Type Parameters
+    ///
+    /// * `Driver` - The blocking driver type
     ///
     /// # Arguments
     ///
-    /// * `driver` - The LED driver instance (async)
+    /// * `driver` - The LED driver instance (blocking)
     ///
     /// # Returns
     ///
-    /// Builder with driver specified
+    /// Builder with driver and frame buffer size specified
     pub fn with_driver<Driver>(
         self,
         driver: Driver,
-    ) -> ControlBuilder<PIXEL_COUNT, Dim, Async, Layout, Pattern, Driver>
+    ) -> ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Async, Layout, Pattern, Driver>
     where
         Driver: DriverAsyncTrait,
     {
@@ -507,6 +519,35 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern>
             layout: self.layout,
             pattern: self.pattern,
             driver,
+        }
+    }
+}
+
+#[cfg(feature = "async")]
+impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
+    ControlBuilder<PIXEL_COUNT, 0, Dim, Async, Layout, Pattern, Driver>
+{
+    /// Specifies the frame buffer size for the control system (async).
+    ///
+    /// # Type Parameters
+    ///
+    /// * `FRAME_BUFFER_SIZE` - The per-call frame buffer size
+    ///
+    /// # Returns
+    ///
+    /// Builder with frame buffer size specified
+    pub fn with_frame_buffer_size<const FRAME_BUFFER_SIZE: usize>(
+        self,
+    ) -> ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Async, Layout, Pattern, Driver>
+    where
+        Driver: DriverAsyncTrait,
+    {
+        ControlBuilder {
+            dim: self.dim,
+            exec: self.exec,
+            layout: self.layout,
+            pattern: self.pattern,
+            driver: self.driver,
         }
     }
 }
@@ -532,8 +573,8 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
-    ControlBuilder<PIXEL_COUNT, Dim, Async, Layout, Pattern, Driver>
+impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Pattern, Driver>
+    ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Async, Layout, Pattern, Driver>
 where
     Layout: LayoutForDim<Dim>,
     Pattern: PatternTrait<Dim, Layout>,
@@ -545,7 +586,9 @@ where
     /// # Returns
     ///
     /// A fully configured Control instance
-    pub fn build(self) -> Control<PIXEL_COUNT, Dim, Async, Layout, Pattern, Driver> {
+    pub fn build(
+        self,
+    ) -> Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Async, Layout, Pattern, Driver> {
         Control::new(self.pattern, self.driver)
     }
 }

@@ -1,13 +1,11 @@
 //! # APA102 LED Driver
 //!
-//! This module provides driver support for APA102 (DotStar) LEDs, which use a
-//! clocked SPI-like protocol. APA102 LEDs offer high refresh rates and precise
-//! brightness control.
+//! This module describes the APA102 (DotStar) LEDs, which offer high refresh rates
+//! and precise brightness control.
 //!
-//! # Drivers
+//! To drive an APA102 LED, you will need to construct a [`ClockedDriver`]
 //!
-//! - [`Apa102Delay`]: Uses bit-banged GPIO
-//! - [`Apa102Spi`]: (Recommended) Uses a hardware SPI interface
+//! [`ClockedDriver`]: crate::driver::ClockedDriver
 //!
 //! ## Key Features
 //!
@@ -34,25 +32,9 @@ use core::iter::repeat_n;
 
 use crate::{
     color::{ColorCorrection, LinearSrgb, RgbChannels},
-    driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver},
+    driver::clocked::ClockedLed,
     util::component::Component,
 };
-
-/// APA102 driver using GPIO bit-banging with delay timing.
-///
-/// # Type Parameters
-///
-/// * `Data` - The data pin type
-/// * `Clock` - The clock pin type
-/// * `Delay` - The delay implementation type
-pub type Apa102Delay<Data, Clock, Delay> = ClockedDelayDriver<Apa102Led, Data, Clock, Delay>;
-
-/// APA102 driver using hardware SPI.
-///
-/// # Type Parameters
-///
-/// * `Spi` - The SPI interface type
-pub type Apa102Spi<Spi> = ClockedSpiDriver<Apa102Led, Spi>;
 
 /// LED implementation for APA102 protocol.
 ///

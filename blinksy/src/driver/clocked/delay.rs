@@ -1,27 +1,22 @@
-use core::marker::PhantomData;
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
-use heapless::Vec;
 
 #[cfg(feature = "async")]
 use crate::driver::DriverAsync;
 use crate::{
-    color::{ColorCorrection, FromColor},
-    driver::{ClockedDriver, Driver},
     time::{Megahertz, Nanoseconds},
     util::bits::{u8_to_bits, BitOrder},
 };
 
+use super::ClockedWriter;
 #[cfg(feature = "async")]
 use super::ClockedWriterAsync;
-use super::{ClockedLed, ClockedWriter};
 
-/// Driver for clocked LEDs using GPIO bit-banging with a delay timer.
+/// Writer for clocked LEDs using GPIO bit-banging with a delay timer.
 ///
 /// - Separate GPIO pins for data and clock
 /// - A delay provider for timing control
-/// - Parameters defined by a ClockedLed implementation
 ///
 /// ## Usage
 ///
@@ -35,140 +30,28 @@ use super::{ClockedLed, ClockedWriter};
 ///     data_pin: D,
 ///     clock_pin: C,
 ///     delay: Delay
-/// ) -> ClockedDelayDriver<Apa102Led, D, C, Delay>
+/// ) -> ClockedDriver<Apa102Led, ClockedDelay<D, C, Delay>>
 /// where
 ///     D: OutputPin,
 ///     C: OutputPin,
 ///     Delay: DelayNs,
 /// {
 ///     // Create a new APA102 driver with 2 MHz data rate
-///     ClockedDelayDriver::<Apa102Led, _, _, _>::new(
-///         data_pin,
-///         clock_pin,
-///         delay,
-///         Megahertz::MHz(2)
-///     )
+///     ClockedDriver::default()
+///         .with_led::<Apa102Led>()
+///         .with_writer(ClockedDelay::new(
+///             data_pin,
+///             clock_pin,
+///             delay,
+///             Megahertz::MHz(2)
+///         ))
 /// }
 /// ```
-///
-/// # Type Parameters
-///
-/// * `Led` - The LED protocol implementation (must implement ClockedLed)
-/// * `Data` - The GPIO pin type for data output
-/// * `Clock` - The GPIO pin type for clock output
-/// * `Delay` - The delay provider
-#[derive(Debug)]
-pub struct ClockedDelayDriver<Led, Data, Clock, Delay>(
-    ClockedDriver<Led, ClockedDelayWriter<Data, Clock, Delay>>,
-)
-where
-    Data: OutputPin,
-    Clock: OutputPin;
-
-impl<Led, Data, Clock, Delay> ClockedDelayDriver<Led, Data, Clock, Delay>
-where
-    Data: OutputPin,
-    Clock: OutputPin,
-{
-    /// Creates a new clocked LED driver.
-    ///
-    /// # Arguments
-    ///
-    /// * `data` - The GPIO pin for data output
-    /// * `clock` - The GPIO pin for clock output
-    /// * `delay` - The delay provider for timing control
-    /// * `data_rate` - The clock frequency in MHz
-    ///
-    /// # Returns
-    ///
-    /// A new ClockedDelayDriver instance
-    pub fn new(data: Data, clock: Clock, delay: Delay, data_rate: Megahertz) -> Self {
-        Self(ClockedDriver {
-            led: PhantomData,
-            writer: ClockedDelayWriter::new(data, clock, delay, data_rate),
-        })
-    }
-}
-
-impl<Led, Data, Clock, Delay> Driver for ClockedDelayDriver<Led, Data, Clock, Delay>
-where
-    Led: ClockedLed<Word = u8>,
-    Data: OutputPin,
-    Clock: OutputPin,
-    Delay: DelayNs,
-{
-    type Error = ClockedDelayError<Data, Clock>;
-    type Color = Led::Color;
-    type Word = Led::Word;
-
-    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
-        &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Vec<Self::Word, BUFFER_SIZE>
-    where
-        I: IntoIterator<Item = C>,
-        Led::Color: FromColor<C>,
-    {
-        self.0
-            .framebuffer::<PIXEL_COUNT, BUFFER_SIZE, _, _>(pixels, brightness, correction)
-    }
-
-    fn render<const BUFFER_SIZE: usize>(
-        &mut self,
-        framebuffer: Vec<Self::Word, BUFFER_SIZE>,
-    ) -> Result<(), Self::Error> {
-        self.0.render(framebuffer)
-    }
-}
-
-#[cfg(feature = "async")]
-impl<Led, Data, Clock, Delay> DriverAsync for ClockedDelayDriver<Led, Data, Clock, Delay>
-where
-    Led: ClockedLed<Word = u8>,
-    Data: OutputPin,
-    Clock: OutputPin,
-    Delay: DelayNsAsync,
-{
-    type Error = ClockedDelayError<Data, Clock>;
-    type Color = Led::Color;
-
-    /// Writes a sequence of colors to the LED chain, asynchronously.
-    ///
-    /// Delegates to the ClockedDriverAsync::write method.
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over colors
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if transmission fails
-    async fn write<const PIXEL_COUNT: usize, I, C>(
-        &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
-        self.0
-            .write::<PIXEL_COUNT, _, _>(pixels, brightness, correction)
-            .await
-    }
-}
-
-/// Implementation of ClockedWriter using GPIO bit-banging with delays.
 ///
 /// This type handles the low-level bit-banging of data and clock pins
 /// to transmit data using a clocked protocol.
 #[derive(Debug)]
-pub struct ClockedDelayWriter<Data, Clock, Delay>
+pub struct ClockedDelay<Data, Clock, Delay>
 where
     Data: OutputPin,
     Clock: OutputPin,
@@ -183,12 +66,12 @@ where
     t_half_cycle_ns: u32,
 }
 
-impl<Data, Clock, Delay> ClockedDelayWriter<Data, Clock, Delay>
+impl<Data, Clock, Delay> ClockedDelay<Data, Clock, Delay>
 where
     Data: OutputPin,
     Clock: OutputPin,
 {
-    /// Creates a new ClockedDelayWriter.
+    /// Creates a new ClockedDelay.
     ///
     /// # Arguments
     ///
@@ -199,7 +82,7 @@ where
     ///
     /// # Returns
     ///
-    /// A new ClockedDelayWriter instance
+    /// A new ClockedDelay instance
     pub fn new(data: Data, clock: Clock, delay: Delay, data_rate: Megahertz) -> Self {
         let t_cycle: Nanoseconds = data_rate.into_duration();
         let t_half_cycle = t_cycle / 2;
@@ -214,7 +97,7 @@ where
     }
 }
 
-/// Error type for the ClockedDelayWriter.
+/// Error type for the ClockedDelay.
 ///
 /// This enum wraps errors from the data and clock pins to provide
 /// a unified error type for the writer.
@@ -230,7 +113,7 @@ where
     Clock(Clock::Error),
 }
 
-impl<Data, Clock, Delay> ClockedWriter for ClockedDelayWriter<Data, Clock, Delay>
+impl<Data, Clock, Delay> ClockedWriter for ClockedDelay<Data, Clock, Delay>
 where
     Data: OutputPin,
     Clock: OutputPin,
@@ -279,7 +162,7 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<Data, Clock, Delay> ClockedWriterAsync for ClockedDelayWriter<Data, Clock, Delay>
+impl<Data, Clock, Delay> ClockedWriterAsync for ClockedDelay<Data, Clock, Delay>
 where
     Data: OutputPin,
     Clock: OutputPin,

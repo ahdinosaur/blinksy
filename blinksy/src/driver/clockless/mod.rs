@@ -18,7 +18,10 @@
 //!
 //! ## Drivers
 //!
-//! - [`ClocklessDelayDriver`]: Driver using GPIO bit-banging with a delay timer
+//! - [`ClocklessDelay`]: Driver using GPIO bit-banging with a delay timer
+//! - [`blinksy-esp::ClocklessRmt`]: Driver using RMT on the ESP32
+//!
+//! [`blinksy-esp::ClocklessRmt`]: https://docs.rs/blinksy-esp/0.10/blinksy_esp/type.Ws2812Rmt.html
 //!
 //! ## Example
 //!

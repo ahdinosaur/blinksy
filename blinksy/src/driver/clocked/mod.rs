@@ -20,11 +20,9 @@
 //! - [`ClockedWriter`]: Trait for how to write data for a clocked protocol
 //! - [`ClockedWriterAsync`]: Trait for how to write data for a clocked protocol, asynchronously
 //!
-//! ## Drivers
+//! ## Driver
 //!
 //! - [`ClockedDriver`]: Generic driver for clocked LEDs and writers.
-//! - [`ClockedDelayDriver`]: Driver using GPIO bit-banging with a delay timer
-//! - [`ClockedSpiDriver`]: (Recommended) Driver using a hardware SPI peripheral
 //!
 //! ## Example
 //!
@@ -78,7 +76,6 @@ mod delay;
 mod spi;
 
 pub use self::delay::*;
-pub use self::spi::*;
 
 /// Trait for types that can write data words to a clocked protocol.
 ///
@@ -233,6 +230,33 @@ pub struct ClockedDriver<Led, Writer> {
     writer: Writer,
 }
 
+impl Default for ClockedDriver<(), ()> {
+    fn default() -> Self {
+        ClockedDriver {
+            led: PhantomData,
+            writer: (),
+        }
+    }
+}
+
+impl<Writer> ClockedDriver<(), Writer> {
+    fn with_led<Led>(self) -> ClockedDriver<Led, Writer> {
+        ClockedDriver {
+            led: PhantomData,
+            writer: self.writer,
+        }
+    }
+}
+
+impl<Led> ClockedDriver<Led, ()> {
+    fn with_writer<Writer>(self, writer: Writer) -> ClockedDriver<Led, Writer> {
+        ClockedDriver {
+            led: self.led,
+            writer,
+        }
+    }
+}
+
 impl<Led, Writer> Driver for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
@@ -242,27 +266,27 @@ where
     type Color = Led::Color;
     type Word = Led::Word;
 
-    fn framebuffer<const PIXEL_COUNT: usize, const BUFFER_SIZE: usize, I, C>(
+    fn encode<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Vec<Self::Word, BUFFER_SIZE>
+    ) -> Vec<Self::Word, FRAME_BUFFER_SIZE>
     where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,
     {
         let pixels = pixels.into_iter().map(Led::Color::from_color);
-        let update_frame = Led::update(pixels, brightness, correction, PIXEL_COUNT);
-        let framebuffer: Vec<_, BUFFER_SIZE> = Vec::from_iter(update_frame);
-        framebuffer
+        let frame: Vec<_, FRAME_BUFFER_SIZE> =
+            Vec::from_iter(Led::update(pixels, brightness, correction, PIXEL_COUNT));
+        frame
     }
 
-    fn render<const BUFFER_SIZE: usize>(
+    fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
-        framebuffer: Vec<Self::Word, BUFFER_SIZE>,
+        frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        self.writer.write(framebuffer)
+        self.writer.write(frame)
     }
 }
 
@@ -270,35 +294,32 @@ where
 impl<Led, Writer> DriverAsync for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
-    Writer: ClockedWriterAsync<Word = Led::Word>,
+    Writer: ClockedWriter<Word = Led::Word>,
 {
     type Error = Writer::Error;
     type Color = Led::Color;
+    type Word = Led::Word;
 
-    /// Writes a complete sequence of colors to the LED chain.
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over colors
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) on success or an error if any write operation fails
-    async fn write<const PIXEL_COUNT: usize, I, C>(
+    fn encode<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, I, C>(
         &mut self,
         pixels: I,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Writer::Error>
+    ) -> Vec<Self::Word, FRAME_BUFFER_SIZE>
     where
         I: IntoIterator<Item = C>,
         Led::Color: FromColor<C>,
     {
         let pixels = pixels.into_iter().map(Led::Color::from_color);
-        self.writer
-            .write(Led::update(pixels, brightness, correction, PIXEL_COUNT))
-            .await
+        let frame: Vec<_, FRAME_BUFFER_SIZE> =
+            Vec::from_iter(Led::update(pixels, brightness, correction, PIXEL_COUNT));
+        frame
+    }
+
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        self.writer.write(frame).await
     }
 }

@@ -10,7 +10,7 @@
 //! - Define your LED [`layout`] in 1D, 2D, or 3D space
 //! - Create your visual [`pattern`] (effect), or choose from our built-in [`patterns`] library
 //!   - The pattern will compute colors for each LED based on its position
-//! - Setup a [`driver`] to send each frame of colors to your LEDs, using our built-in [`drivers`] library.
+//! - Setup a [`driver`] to send each frame of colors to your [`leds`]
 //!
 //! ## Features
 //!
@@ -35,9 +35,9 @@
 //!
 //! If you want help to support a new LED chipset, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 //!
-//! [WS2812B]: drivers::ws2812
-//! [SK6812]: drivers::sk6812
-//! [APA102]: drivers::apa102
+//! [WS2812B]: leds::ws2812
+//! [SK6812]: leds::sk6812
+//! [APA102]: leds::apa102
 //!
 //! ### Pattern (Effect) Library:
 //!
@@ -59,8 +59,8 @@
 //!
 //! [embedded-hal]: https://docs.rs/embedded-hal/latest/embedded_hal/
 //! [blinksy]: https://docs.rs/blinksy/0.10/blinksy/
-//! [clocked-spi]: crate::driver::clocked::ClockedSpiDriver
-//! [clocked-delay]: crate::driver::clocked::ClockedDelayDriver
+//! [clocked-spi]: crate::driver::clocked::ClockedSpi
+//! [clocked-delay]: crate::driver::clocked::ClockedDelay
 //!
 //! **Clockless LED support (e.g. WS2812):**
 //!
@@ -280,8 +280,8 @@
 pub mod color;
 pub mod control;
 pub mod driver;
-pub mod drivers;
 pub mod layout;
+pub mod leds;
 pub mod markers;
 pub mod pattern;
 pub mod patterns;

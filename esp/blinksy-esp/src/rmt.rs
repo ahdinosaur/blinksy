@@ -48,65 +48,31 @@ pub enum ClocklessRmtDriverError {
     TransmissionError(RmtError),
 }
 
-/// Macro to allocate a buffer used for RMT transmission sized for one LED frame.
-///
-/// Attempting to use more than the buffer is configured for will result in
-/// an `ClocklessRmtDriverError::BufferSizeExceeded` error.
-///
-/// # Arguments
-///
-/// * `$channel_count` - Number of color channels per LED (3 for RGB, 4 for RGBW)
-///
-/// # Returns
-///
-/// An array of u32 values sized appropriately for the RMT buffer
-#[macro_export]
-macro_rules! create_rmt_buffer {
-    ($channel_count:expr) => {
-        [0u32; $channel_count * 8 + 1]
-    };
-}
-
-pub const fn rmt_buffer_size(chunk_size: usize, channel_count: usize) -> usize {
-    chunk_size * channel_count * 8 + 1
-}
-
-pub struct ClocklessRmt<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led> {
+pub struct ClocklessRmt<const RMT_BUFFER_SIZE: usize, Led> {
     led: PhantomData<Led>,
 }
 
-impl ClocklessRmt<0, 0, ()> {
-    pub fn new() -> ClocklessRmt<0, 0, ()> {
+impl ClocklessRmt<0, ()> {
+    pub fn new() -> ClocklessRmt<0, ()> {
         ClocklessRmt { led: PhantomData }
     }
 }
 
-impl<const RMT_BUFFER_SIZE: usize, Led> ClocklessRmt<0, RMT_BUFFER_SIZE, Led> {
-    pub fn with_chunk_size<const CHUNK_SIZE: usize>(
-        self,
-    ) -> ClocklessRmt<{ CHUNK_SIZE }, RMT_BUFFER_SIZE, Led> {
-        ClocklessRmt { led: PhantomData }
-    }
-}
-
-impl<const CHUNK_SIZE: usize, Led> ClocklessRmt<CHUNK_SIZE, 0, Led> {
+impl<Led> ClocklessRmt<0, Led> {
     pub fn with_rmt_buffer_size<const RMT_BUFFER_SIZE: usize>(
         self,
-    ) -> ClocklessRmt<CHUNK_SIZE, { RMT_BUFFER_SIZE }, Led> {
+    ) -> ClocklessRmt<RMT_BUFFER_SIZE, Led> {
         ClocklessRmt { led: PhantomData }
     }
 }
 
-impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize>
-    ClocklessRmt<CHUNK_SIZE, RMT_BUFFER_SIZE, ()>
-{
-    pub fn with_led<Led>(self) -> ClocklessRmt<CHUNK_SIZE, RMT_BUFFER_SIZE, Led> {
+impl<const RMT_BUFFER_SIZE: usize> ClocklessRmt<RMT_BUFFER_SIZE, ()> {
+    pub fn with_led<Led>(self) -> ClocklessRmt<RMT_BUFFER_SIZE, Led> {
         ClocklessRmt { led: PhantomData }
     }
 }
 
-impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led>
-    ClocklessRmt<CHUNK_SIZE, RMT_BUFFER_SIZE, Led>
+impl<const RMT_BUFFER_SIZE: usize, Led> ClocklessRmt<RMT_BUFFER_SIZE, Led>
 where
     Led: ClocklessLed,
 {
@@ -114,7 +80,7 @@ where
         self,
         channel: C,
         pin: O,
-    ) -> ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
+    ) -> ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
     where
         Dm: DriverMode,
         Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -135,7 +101,7 @@ where
 /// * `RMT_BUFFER_SIZE` - Size of the RMT buffer
 /// * `Led` - The LED protocol implementation (must implement ClocklessLed)
 /// * `TxChannel` - The RMT transmit channel
-pub struct ClocklessRmtDriver<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, TxChannel>
+pub struct ClocklessRmtDriver<const RMT_BUFFER_SIZE: usize, Led, TxChannel>
 where
     Led: ClocklessLed,
 {
@@ -144,8 +110,8 @@ where
     pulses: (u32, u32, u32),
 }
 
-impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, TxChannel>
-    ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, TxChannel>
+impl<const RMT_BUFFER_SIZE: usize, Led, TxChannel>
+    ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, TxChannel>
 where
     Led: ClocklessLed,
 {
@@ -206,8 +172,8 @@ where
     }
 }
 
-impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, Dm, Tx>
-    ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
+impl<const RMT_BUFFER_SIZE: usize, Led, Dm, Tx>
+    ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
 where
     Led: ClocklessLed,
     Dm: DriverMode,
@@ -241,8 +207,8 @@ where
     }
 }
 
-impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, Dm, Tx>
-    ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
+impl<const RMT_BUFFER_SIZE: usize, Led, Dm, Tx>
+    ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
 where
     Led: ClocklessLed,
     Dm: DriverMode,
@@ -250,8 +216,8 @@ where
 {
 }
 
-impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, Tx>
-    ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
+impl<const RMT_BUFFER_SIZE: usize, Led, Tx>
+    ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -282,7 +248,7 @@ where
 
 #[cfg(feature = "async")]
 impl<Led, Tx, const RMT_BUFFER_SIZE: usize>
-    ClocklessRmtDriver<Led, Channel<Async, Tx>, RMT_BUFFER_SIZE>
+    ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, Channel<Async, Tx>>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -340,8 +306,8 @@ where
     }
 }
 
-impl<const CHUNK_SIZE: usize, const RMT_BUFFER_SIZE: usize, Led, Tx> Driver
-    for ClocklessRmtDriver<CHUNK_SIZE, RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
+impl<const RMT_BUFFER_SIZE: usize, Led, Tx> Driver
+    for ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
 where
     Led: ClocklessLed<Word = u8>,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -367,7 +333,10 @@ where
         &mut self,
         framebuffer: Vec<Self::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        for rmt_buffer in chunked::<_, CHUNK_SIZE>(self.rmt(framebuffer)) {
+        for mut rmt_buffer in
+            chunked::<_, RMT_BUFFER_SIZE>(self.rmt(framebuffer), RMT_BUFFER_SIZE - 1)
+        {
+            rmt_buffer.push(0).unwrap(); // RMT buffer must end with 0.
             self.transmit_blocking(&rmt_buffer)?;
         }
 
@@ -377,7 +346,7 @@ where
 
 #[cfg(feature = "async")]
 impl<Led, Tx, const RMT_BUFFER_SIZE: usize> DriverAsync
-    for ClocklessRmtDriver<Led, Channel<Async, Tx>, RMT_BUFFER_SIZE>
+    for ClocklessRmtDriver<RMT_BUFFER_SIZE, Led, Channel<Async, Tx>>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,

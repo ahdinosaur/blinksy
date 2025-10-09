@@ -1,23 +1,26 @@
 use heapless::Vec;
 
 /// Returns an iterator that yields heapless::Vec chunks from `iter`.
-pub(crate) fn chunked<I, const CHUNK_SIZE: usize>(
+pub fn chunked<I, const BUFFER_SIZE: usize>(
     mut iter: I,
-) -> impl Iterator<Item = Vec<I::Item, CHUNK_SIZE>>
+    chunk_size: usize,
+) -> impl Iterator<Item = Vec<I::Item, BUFFER_SIZE>>
 where
     I: Iterator,
 {
+    let size = core::cmp::min(chunk_size, BUFFER_SIZE);
+
     core::iter::from_fn(move || {
-        if CHUNK_SIZE == 0 {
+        if size == 0 {
             return None;
         }
 
-        let mut buf: Vec<I::Item, CHUNK_SIZE> = Vec::new();
+        let mut buf: Vec<I::Item, BUFFER_SIZE> = Vec::new();
 
-        for _ in 0..CHUNK_SIZE {
+        for _ in 0..size {
             match iter.next() {
                 Some(item) => {
-                    // Guaranteed to fit because we push at most CHUNK_SIZE items.
+                    // Safe because size <= BUFFER_SIZE, so we never exceed capacity.
                     let _ = buf.push(item);
                 }
                 None => break,

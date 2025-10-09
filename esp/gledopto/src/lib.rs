@@ -283,16 +283,15 @@ macro_rules! ws2812_channel_count {
 /// A WS2812 driver configured for the Gledopto board
 #[macro_export]
 macro_rules! ws2812 {
-    ($peripherals:ident, $num_leds:expr, $chunk_size:expr) => {{
+    ($peripherals:ident, $num_leds:expr, $buffer_size:expr) => {{
         let led_pin = $peripherals.GPIO16;
         let rmt = $crate::rmt!($peripherals);
 
         $crate::blinksy_esp::ClocklessRmt::new()
-            .with_chunk_size::<$chunk_size>()
-            .with_rmt_buffer_size::<{ $crate::blinksy_esp::rmt_buffer_size($chunk_size, $crate::ws2812_channel_count!()) }>()
+            .with_rmt_buffer_size::<$buffer_size>()
             .with_led::<$crate::blinksy::drivers::ws2812::Ws2812Led>()
             .build(rmt.channel0, led_pin)
-    }}
+    }};
 }
 
 /// Creates an async WS2812 LED driver using the RMT peripheral.

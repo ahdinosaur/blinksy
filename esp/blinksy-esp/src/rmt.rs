@@ -128,6 +128,8 @@ where
             .with_idle_output_level(Level::Low)
             .with_idle_output(true)
             .with_carrier_modulation(false)
+            // 64 items per memory block, max of 8
+            .with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8)
     }
 
     fn setup_pulses() -> (u32, u32, u32) {

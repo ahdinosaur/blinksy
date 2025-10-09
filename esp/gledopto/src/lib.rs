@@ -302,7 +302,7 @@ macro_rules! ws2812 {
 #[cfg(feature = "async")]
 #[macro_export]
 macro_rules! ws2812_async {
-    ($peripherals:ident, $num_leds:expr) => {{
+    ($peripherals:ident, $num_leds:expr, $buffer_size:expr) => {{
         let led_pin = $peripherals.GPIO16;
         let rmt = $crate::rmt!($peripherals).into_async();
 

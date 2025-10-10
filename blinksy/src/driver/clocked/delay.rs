@@ -3,8 +3,6 @@ use embedded_hal::{delay::DelayNs, digital::OutputPin};
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
 use num_traits::ToBytes;
 
-#[cfg(feature = "async")]
-use crate::driver::DriverAsync;
 use crate::{
     time::{Megahertz, Nanoseconds},
     util::bits::{bits_of, BitOrder},
@@ -192,7 +190,7 @@ where
     /// Ok(()) on success or an error if pin operation fails
     async fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: AsRef<[Self::Word]>,
+        Words: AsRef<[Word]>,
     {
         for word in words.as_ref() {
             for bit in bits_of(word, BitOrder::MostSignificantBit) {

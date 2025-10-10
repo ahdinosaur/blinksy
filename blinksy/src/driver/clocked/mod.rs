@@ -215,7 +215,7 @@ pub trait ClockedWriterAsync<Word> {
     /// # Returns
     ///
     /// Ok(()) on success or an error if the write fails
-    async fn write<Word>(&mut self, words: Words) -> Result<(), Self::Error>
+    async fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
         Words: AsRef<[Word]>;
 }
@@ -302,7 +302,7 @@ where
 impl<Led, Writer> DriverAsync for ClockedDriver<Led, Writer>
 where
     Led: ClockedLed,
-    Writer: ClockedWriterAsync,
+    Writer: ClockedWriterAsync<Led::Word>,
 {
     type Error = Writer::Error;
     type Color = Led::Color;

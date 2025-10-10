@@ -7,7 +7,7 @@ use num_traits::ToBytes;
 
 use super::ClocklessLed;
 #[cfg(feature = "async")]
-use crate::driver::DriverAsync;
+use crate::driver::ClocklessWriterAsync;
 use crate::{
     driver::ClocklessWriter,
     util::bits::{bits_of, BitOrder},
@@ -144,7 +144,7 @@ where
     Led::Word: ToBytes,
     <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
     Pin: OutputPin,
-    Delay: DelayNs,
+    Delay: DelayNsAsync,
 {
     type Error = Pin::Error;
 
@@ -157,7 +157,7 @@ where
     /// # Returns
     ///
     /// Ok(()) on success or an error if pin operation fails
-    fn write<const FRAME_BUFFER_SIZE: usize>(
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {

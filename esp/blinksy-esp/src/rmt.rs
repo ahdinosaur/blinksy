@@ -329,14 +329,14 @@ where
 
 #[cfg(feature = "async")]
 impl<const RMT_BUFFER_SIZE: usize, Led, Tx> ClocklessWriterAsync<Led>
-    for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
+    for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Async, Tx>>
 where
     Led: ClocklessLed<Word = u8>,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     type Error = ClocklessRmtError;
 
-    fn write<const FRAME_BUFFER_SIZE: usize>(
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {

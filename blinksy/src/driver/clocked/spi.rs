@@ -67,13 +67,12 @@ where
 /// This allows any type implementing the SpiBus trait to be used
 /// as a writer for clocked LED protocols.
 #[cfg(feature = "async")]
-impl<Word, Spi> ClockedWriterAsync for Spi
+impl<Word, Spi> ClockedWriterAsync<Word> for Spi
 where
     Word: Copy + 'static,
     Spi: SpiBusAsync<Word>,
 {
     type Error = Spi::Error;
-    type Word = u8;
 
     /// Writes an iterator of bytes using the SPI interface.
     ///
@@ -86,7 +85,7 @@ where
     /// Ok(()) on success or an error if SPI transmission fails
     async fn write<Words>(&mut self, words: Words) -> Result<(), Self::Error>
     where
-        Words: AsRef<[Self::Word]>,
+        Words: AsRef<[Word]>,
     {
         self.write(words.as_ref()).await
     }

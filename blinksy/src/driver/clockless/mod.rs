@@ -188,7 +188,10 @@ pub trait ClocklessWriter<Led: ClocklessLed> {
 pub trait ClocklessWriterAsync<Led: ClocklessLed> {
     type Error;
 
-    fn write<const FRAME_BUFFER_SIZE: usize>(
+    // See note about allow(async_fn_in_trait) in smart-leds-trait:
+    //   https://github.com/smart-leds-rs/smart-leds-trait/blob/faad5eba0f9c9aa80b1dd17e078e4644f11e7ee0/src/lib.rs#L59-L68
+    #[allow(async_fn_in_trait)]
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error>;
@@ -296,7 +299,7 @@ where
         Led::encode::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(pixels, brightness, correction)
     }
 
-    fn write<const FRAME_BUFFER_SIZE: usize>(
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
         frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {

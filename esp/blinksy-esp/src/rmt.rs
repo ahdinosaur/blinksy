@@ -1,28 +1,30 @@
 //! # RMT-based LED Driver
 //!
-//! This module provides a driver for clockless LED protocols (like WS2812) using the
-//! ESP32's RMT (Remote Control Module) peripheral. The RMT peripheral provides hardware
-//! acceleration for generating precisely timed signals, which is ideal for LED protocols.
+//! This module provides a driver for clockless LED protocols (like WS2812)
+//! using the ESP32's RMT (Remote Control Module) peripheral. The RMT
+//! peripheral provides hardware acceleration for generating precisely timed
+//! signals, which is ideal for LED protocols.
 //!
 //! ## Features
 //!
 //! - Hardware-accelerated LED control
 //! - Precise timing for WS2812 and similar protocols
+//! - Blocking and async (feature "async") APIs with equivalent behavior
 //!
 //! ## Technical Details
 //!
-//! The RMT peripheral translates LED color data into a sequence of timed pulses that
-//! match the protocol requirements. This implementation converts each bit of color data
-//! into the corresponding high/low pulse durations required by the specific LED protocol.
+//! The RMT peripheral translates LED color data into a sequence of timed
+//! pulses that match the protocol requirements. This implementation converts
+//! each bit of color data into the corresponding high/low pulse durations
+//! required by the specific LED protocol.
 
 #[cfg(feature = "async")]
-use blinksy::driver::DriverAsync;
+use blinksy::driver::ClocklessWriterAsync;
 use blinksy::{
-    color::{ColorCorrection, FromColor, LedColor, LinearSrgb},
-    driver::{clockless::ClocklessLed, Driver},
-    util::bits::{u8_to_bits, BitOrder},
+    driver::{clockless::ClocklessLed, ClocklessWriter},
+    util::bits::{bits_of, BitOrder},
 };
-use core::{fmt::Debug, marker::PhantomData, slice::IterMut};
+use core::{fmt::Debug, marker::PhantomData};
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
@@ -34,60 +36,124 @@ use esp_hal::{
 };
 #[cfg(feature = "async")]
 use esp_hal::{rmt::TxChannelAsync, Async};
+use heapless::Vec;
+use num_traits::ToBytes;
+
+use crate::util::chunked;
 
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands
 #[derive(Debug, defmt::Format)]
-pub enum ClocklessRmtDriverError {
+pub enum ClocklessRmtError {
     /// Raised in the event that the provided data container is not large enough
     BufferSizeExceeded,
     /// Raised if something goes wrong in the transmission
     TransmissionError(RmtError),
 }
 
-/// Macro to allocate a buffer used for RMT transmission sized for one LED frame.
-///
-/// Attempting to use more than the buffer is configured for will result in
-/// an `ClocklessRmtDriverError::BufferSizeExceeded` error.
-///
-/// # Arguments
-///
-/// * `$channel_count` - Number of color channels per LED (3 for RGB, 4 for RGBW)
-///
-/// # Returns
-///
-/// An array of u32 values sized appropriately for the RMT buffer
-#[macro_export]
-macro_rules! create_rmt_buffer {
-    ($channel_count:expr) => {
-        [0u32; $channel_count * 8 + 1]
-    };
+pub struct ClocklessRmtBuilder<const RMT_BUFFER_SIZE: usize, Led, Chan, Pin> {
+    led: PhantomData<Led>,
+    channel: Chan,
+    pin: Pin,
+}
+
+impl Default for ClocklessRmtBuilder<0, (), (), ()> {
+    fn default() -> ClocklessRmtBuilder<0, (), (), ()> {
+        ClocklessRmtBuilder {
+            led: PhantomData,
+            channel: (),
+            pin: (),
+        }
+    }
+}
+
+impl<Led, Chan, Pin> ClocklessRmtBuilder<0, Led, Chan, Pin> {
+    pub fn with_rmt_buffer_size<const RMT_BUFFER_SIZE: usize>(
+        self,
+    ) -> ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin> {
+        ClocklessRmtBuilder {
+            led: self.led,
+            channel: self.channel,
+            pin: self.pin,
+        }
+    }
+}
+
+impl<const RMT_BUFFER_SIZE: usize, Chan, Pin> ClocklessRmtBuilder<RMT_BUFFER_SIZE, (), Chan, Pin> {
+    pub fn with_led<Led>(self) -> ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin> {
+        ClocklessRmtBuilder {
+            led: PhantomData,
+            channel: self.channel,
+            pin: self.pin,
+        }
+    }
+}
+
+impl<const RMT_BUFFER_SIZE: usize, Led, Pin> ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, (), Pin> {
+    pub fn with_channel<Chan>(
+        self,
+        channel: Chan,
+    ) -> ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin> {
+        ClocklessRmtBuilder {
+            led: self.led,
+            channel,
+            pin: self.pin,
+        }
+    }
+}
+
+impl<const RMT_BUFFER_SIZE: usize, Led, Chan> ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, ()> {
+    pub fn with_pin<Pin>(self, pin: Pin) -> ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin> {
+        ClocklessRmtBuilder {
+            led: self.led,
+            channel: self.channel,
+            pin,
+        }
+    }
+}
+
+impl<const RMT_BUFFER_SIZE: usize, Led, Chan, Pin>
+    ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin>
+where
+    Led: ClocklessLed,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+{
+    pub fn build<'d, Dm, Tx>(self) -> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
+    where
+        Chan: TxChannelCreator<'d, Dm, Raw = Tx>,
+        Pin: PeripheralOutput<'d>,
+        Dm: DriverMode,
+        Tx: RawChannelAccess + TxChannelInternal + 'static,
+    {
+        ClocklessRmt::new(self.channel, self.pin)
+    }
 }
 
 /// RMT-based driver for clockless LED protocols.
 ///
-/// This driver uses the ESP32's RMT peripheral to generate precisely timed signals
-/// required by protocols like WS2812.
+/// This driver uses the ESP32's RMT peripheral to generate precisely timed
+/// signals required by protocols like WS2812.
 ///
 /// # Type Parameters
 ///
-/// * `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// * `TxChannel` - The RMT transmit channel
-/// * `BUFFER_SIZE` - Size of the RMT buffer
-pub struct ClocklessRmtDriver<Led, TxChannel, const BUFFER_SIZE: usize>
+/// - `RMT_BUFFER_SIZE` - Size of the RMT buffer
+/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// - `TxChannel` - The RMT transmit channel
+pub struct ClocklessRmt<const RMT_BUFFER_SIZE: usize, Led, TxChannel>
 where
     Led: ClocklessLed,
 {
     led: PhantomData<Led>,
     channel: Option<TxChannel>,
-    rmt_led_buffer: [u32; BUFFER_SIZE],
-    rmt_end_buffer: [u32; 2],
     pulses: (u32, u32, u32),
 }
 
-impl<Led, TxChannel, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, TxChannel, BUFFER_SIZE>
+impl<const RMT_BUFFER_SIZE: usize, Led, TxChannel> ClocklessRmt<RMT_BUFFER_SIZE, Led, TxChannel>
 where
     Led: ClocklessLed,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
 {
     fn clock_divider() -> u8 {
         1
@@ -99,6 +165,8 @@ where
             .with_idle_output_level(Level::Low)
             .with_idle_output(true)
             .with_carrier_modulation(false)
+            // 64 items per memory block, max of 8
+            .with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8)
     }
 
     fn setup_pulses() -> (u32, u32, u32) {
@@ -119,14 +187,36 @@ where
         )
     }
 
-    fn setup_rmt_end_buffer(pulses: (u32, u32, u32)) -> [u32; 2] {
-        [pulses.2, 0]
+    fn rmt_led<const FRAME_BUFFER_SIZE: usize>(
+        &self,
+        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> impl Iterator<Item = u32> {
+        let pulses = self.pulses;
+        frame.into_iter().flat_map(move |byte| {
+            bits_of(&byte, BitOrder::MostSignificantBit).map(move |bit| match bit {
+                false => pulses.0,
+                true => pulses.1,
+            })
+        })
+    }
+
+    fn rmt_end(&self) -> impl IntoIterator<Item = u32> {
+        [self.pulses.2, 0]
+    }
+
+    fn rmt<const FRAME_BUFFER_SIZE: usize>(
+        &self,
+        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> impl Iterator<Item = u32> {
+        self.rmt_led(frame).chain(self.rmt_end())
     }
 }
 
-impl<Led, Dm, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Channel<Dm, Tx>, BUFFER_SIZE>
+impl<const RMT_BUFFER_SIZE: usize, Led, Dm, Tx> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
 where
     Led: ClocklessLed,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
     Dm: DriverMode,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
@@ -134,14 +224,13 @@ where
     ///
     /// # Arguments
     ///
-    /// * `channel` - RMT transmit channel creator
-    /// * `pin` - GPIO pin connected to the LED data line
-    /// * `rmt_buffer` - Buffer for RMT data
+    /// - `channel` - RMT transmit channel creator
+    /// - `pin` - GPIO pin connected to the LED data line
     ///
     /// # Returns
     ///
-    /// A configured ClocklessRmtDriver instance
-    pub fn new<'d, C, O>(channel: C, pin: O, rmt_buffer: [u32; BUFFER_SIZE]) -> Self
+    /// A configured ClocklessRmt instance
+    pub fn new<'d, C, O>(channel: C, pin: O) -> Self
     where
         C: TxChannelCreator<'d, Dm, Raw = Tx>,
         O: PeripheralOutput<'d>,
@@ -153,84 +242,13 @@ where
         Self {
             led: PhantomData,
             channel: Some(channel),
-            rmt_led_buffer: rmt_buffer,
-            rmt_end_buffer: Self::setup_rmt_end_buffer(pulses),
             pulses,
         }
     }
 }
 
-impl<Led, Dm, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Channel<Dm, Tx>, BUFFER_SIZE>
-where
-    Led: ClocklessLed,
-    Dm: DriverMode,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
-{
-    /// Writes a single byte of color data to the RMT buffer.
-    ///
-    /// # Arguments
-    ///
-    /// * `byte` - The color byte to write
-    /// * `rmt_iter` - Iterator over the RMT buffer
-    /// * `pulses` - Tuple of pulse codes for 0-bit, 1-bit, and reset
-    ///
-    /// # Returns
-    ///
-    /// Result indicating success or a buffer size exceeded error
-    fn write_color_byte_to_rmt(
-        byte: &u8,
-        rmt_iter: &mut IterMut<u32>,
-        pulses: &(u32, u32, u32),
-    ) -> Result<(), ClocklessRmtDriverError> {
-        for bit in u8_to_bits(byte, BitOrder::MostSignificantBit) {
-            *rmt_iter
-                .next()
-                .ok_or(ClocklessRmtDriverError::BufferSizeExceeded)? = match bit {
-                false => pulses.0,
-                true => pulses.1,
-            }
-        }
-        Ok(())
-    }
-
-    /// Writes a complete color to the RMT buffer.
-    ///
-    /// # Arguments
-    ///
-    /// * `color` - The color to write
-    /// * `rmt_iter` - Iterator over the RMT buffer
-    /// * `pulses` - Tuple of pulse codes for 0-bit, 1-bit, and reset
-    ///
-    /// # Returns
-    ///
-    /// Result indicating success or an error
-    fn write_color_to_rmt(
-        color: LinearSrgb,
-        rmt_iter: &mut IterMut<u32>,
-        pulses: &(u32, u32, u32),
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), ClocklessRmtDriverError> {
-        let led_color = color.to_led(Led::LED_CHANNELS, brightness, correction);
-
-        match led_color {
-            LedColor::Rgb(rgb) => {
-                Self::write_color_byte_to_rmt(&rgb[0], rmt_iter, pulses)?;
-                Self::write_color_byte_to_rmt(&rgb[1], rmt_iter, pulses)?;
-                Self::write_color_byte_to_rmt(&rgb[2], rmt_iter, pulses)?;
-            }
-            LedColor::Rgbw(rgbw) => {
-                Self::write_color_byte_to_rmt(&rgbw[0], rmt_iter, pulses)?;
-                Self::write_color_byte_to_rmt(&rgbw[1], rmt_iter, pulses)?;
-                Self::write_color_byte_to_rmt(&rgbw[2], rmt_iter, pulses)?;
-                Self::write_color_byte_to_rmt(&rgbw[3], rmt_iter, pulses)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Channel<Blocking, Tx>, BUFFER_SIZE>
+impl<const RMT_BUFFER_SIZE: usize, Led, Tx>
+    ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -239,12 +257,12 @@ where
     ///
     /// # Arguments
     ///
-    /// * `buffer` - Buffer to be transmitted
+    /// - `buffer` - Buffer to be transmitted
     ///
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn transmit_blocking(&mut self, buffer: &[u32]) -> Result<(), ClocklessRmtDriverError> {
+    fn transmit_blocking(&mut self, buffer: &[u32]) -> Result<(), ClocklessRmtError> {
         let channel = self.channel.take().unwrap();
         match channel.transmit(buffer).unwrap().wait() {
             Ok(chan) => {
@@ -253,49 +271,14 @@ where
             }
             Err((e, chan)) => {
                 self.channel = Some(chan);
-                Err(ClocklessRmtDriverError::TransmissionError(e))
+                Err(ClocklessRmtError::TransmissionError(e))
             }
         }
-    }
-
-    /// Write pixels to internal RMT buffer, then transmit.
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over the pixel colors
-    /// * `brightness` - Global brightness factor
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Result indicating success or an error
-    fn write_pixels<I, C>(
-        &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), ClocklessRmtDriverError>
-    where
-        I: IntoIterator<Item = C>,
-        LinearSrgb: FromColor<C>,
-    {
-        for color in pixels {
-            let mut rmt_iter = self.rmt_led_buffer.iter_mut();
-            let color = LinearSrgb::from_color(color);
-            Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses, brightness, correction)?;
-            let rmt_led_buffer = self.rmt_led_buffer;
-            self.transmit_blocking(&rmt_led_buffer)?;
-        }
-
-        let rmt_end_buffer = self.rmt_end_buffer;
-        self.transmit_blocking(&rmt_end_buffer)?;
-
-        Ok(())
     }
 }
 
 #[cfg(feature = "async")]
-impl<Led, Tx, const BUFFER_SIZE: usize> ClocklessRmtDriver<Led, Channel<Async, Tx>, BUFFER_SIZE>
+impl<Led, Tx, const RMT_BUFFER_SIZE: usize> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Async, Tx>>
 where
     Led: ClocklessLed,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
@@ -304,101 +287,63 @@ where
     ///
     /// # Arguments
     ///
-    /// * `buffer` - Buffer to be transmitted
+    /// - `buffer` - Buffer to be transmitted
     ///
     /// # Returns
     ///
     /// Result indicating success or an error
-    async fn transmit_async(&mut self, buffer: &[u32]) -> Result<(), ClocklessRmtDriverError> {
+    async fn transmit_async(&mut self, buffer: &[u32]) -> Result<(), ClocklessRmtError> {
         let channel = self.channel.as_mut().unwrap();
         channel
             .transmit(buffer)
             .await
-            .map_err(ClocklessRmtDriverError::TransmissionError)
+            .map_err(ClocklessRmtError::TransmissionError)
     }
+}
 
-    /// Write pixels to internal RMT buffer, then transmit, asynchronously.
-    ///
-    /// # Arguments
-    ///
-    /// * `pixels` - Iterator over the pixel colors
-    /// * `brightness` - Global brightness factor
-    /// * `correction` - Color correction factors
-    ///
-    /// # Returns
-    ///
-    /// Result indicating success or an error
-    async fn write_pixels_async<I, C>(
+impl<const RMT_BUFFER_SIZE: usize, Led, Tx> ClocklessWriter<Led>
+    for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
+where
+    Led: ClocklessLed,
+    Led::Word: ToBytes,
+    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Tx: RawChannelAccess + TxChannelInternal + 'static,
+{
+    type Error = ClocklessRmtError;
+
+    fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), ClocklessRmtDriverError>
-    where
-        I: IntoIterator<Item = C>,
-        LinearSrgb: FromColor<C>,
-    {
-        for color in pixels {
-            let mut rmt_iter = self.rmt_led_buffer.iter_mut();
-            let color = LinearSrgb::from_color(color);
-            Self::write_color_to_rmt(color, &mut rmt_iter, &self.pulses, brightness, correction)?;
-            let rmt_led_buffer = self.rmt_led_buffer;
-            self.transmit_async(&rmt_led_buffer).await?;
+        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
+            // RMT buffer must end with 0.
+            rmt_buffer.push(0).unwrap();
+            self.transmit_blocking(&rmt_buffer)?;
         }
-
-        let rmt_end_buffer = self.rmt_end_buffer;
-        self.transmit_async(&rmt_end_buffer).await?;
 
         Ok(())
     }
 }
 
-/// Implementation of Driver trait for ClocklessRmtDriver.
-impl<Led, Tx, const BUFFER_SIZE: usize> Driver
-    for ClocklessRmtDriver<Led, Channel<Blocking, Tx>, BUFFER_SIZE>
-where
-    Led: ClocklessLed,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
-{
-    type Error = ClocklessRmtDriverError;
-    type Color = LinearSrgb;
-
-    fn write<const PIXEL_COUNT: usize, I, C>(
-        &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
-        self.write_pixels(pixels, brightness, correction)
-    }
-}
-
 #[cfg(feature = "async")]
-/// Implementation of DriverAsync trait for ClocklessRmtDriver.
-impl<Led, Tx, const BUFFER_SIZE: usize> DriverAsync
-    for ClocklessRmtDriver<Led, Channel<Async, Tx>, BUFFER_SIZE>
+impl<const RMT_BUFFER_SIZE: usize, Led, Tx> ClocklessWriterAsync<Led>
+    for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Async, Tx>>
 where
-    Led: ClocklessLed,
+    Led: ClocklessLed<Word = u8>,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
-    type Error = ClocklessRmtDriverError;
-    type Color = LinearSrgb;
+    type Error = ClocklessRmtError;
 
-    async fn write<const PIXEL_COUNT: usize, I, C>(
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
         &mut self,
-        pixels: I,
-        brightness: f32,
-        correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
-        self.write_pixels_async(pixels, brightness, correction)
-            .await
+        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
+            // RMT buffer must end with 0.
+            rmt_buffer.push(0).unwrap();
+            self.transmit_async(&rmt_buffer).await?;
+        }
+
+        Ok(())
     }
 }

@@ -32,9 +32,9 @@ impl Srgb {
     ///
     /// # Arguments
     ///
-    /// * `red` - Red component (0.0 to 1.0)
-    /// * `green` - Green component (0.0 to 1.0)
-    /// * `blue` - Blue component (0.0 to 1.0)
+    /// - `red` - Red component (0.0 to 1.0)
+    /// - `green` - Green component (0.0 to 1.0)
+    /// - `blue` - Blue component (0.0 to 1.0)
     ///
     /// # Example
     ///

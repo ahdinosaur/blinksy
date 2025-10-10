@@ -1,67 +1,58 @@
-//! # APA102 LED Driver
-//!
-//! This module provides driver support for APA102 (DotStar) LEDs, which use a
-//! clocked SPI-like protocol. APA102 LEDs offer high refresh rates and precise
-//! brightness control.
-//!
-//! # Drivers
-//!
-//! - [`Apa102Delay`]: Uses bit-banged GPIO
-//! - [`Apa102Spi`]: (Recommended) Uses a hardware SPI interface
-//!
-//! ## Key Features
-//!
-//! - Two-wire protocol (data and clock)
-//! - 24-bit color (8 bits per channel)
-//! - 5-bit global brightness control (0-31)
-//! - Bring-your-own clock rate (unlike WS2812)
-//! - Supports high update rates
-//!
-//! ## Protocol Details
-//!
-//! The APA102 protocol consists of:
-//!
-//! 1. Start frame: 32 bits of zeros
-//! 2. LED frames: Each LED gets 32 bits (8-bit brightness, 8-bit blue, 8-bit green, 8-bit red)
-//! 3. End frame: (n/2) bits of zeros where n is the number of LEDs
-//!
-//! (References: [Hackaday](https://hackaday.com/2014/12/09/digging-into-the-apa102-serial-led-protocol/), [Pololu](https://www.pololu.com/product/2554))
-//!
-//! This implementation includes the "High Definition" color handling from FastLED, which
-//! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
-
 use core::iter::repeat_n;
 
 use crate::{
     color::{ColorCorrection, LinearSrgb, RgbChannels},
-    driver::clocked::{ClockedDelayDriver, ClockedLed, ClockedSpiDriver},
+    driver::clocked::ClockedLed,
     util::component::Component,
 };
 
-/// APA102 driver using GPIO bit-banging with delay timing.
+/// # APA102 (DotStar) LEDs
 ///
-/// # Type Parameters
+/// This type describes the APA102 (DotStar) LEDs, which offer high refresh rates
+/// and precise brightness control.
 ///
-/// * `Data` - The data pin type
-/// * `Clock` - The clock pin type
-/// * `Delay` - The delay implementation type
-pub type Apa102Delay<Data, Clock, Delay> = ClockedDelayDriver<Apa102Led, Data, Clock, Delay>;
-
-/// APA102 driver using hardware SPI.
+/// ## Driver
 ///
-/// # Type Parameters
+/// - [`ClockedDriver`](crate::driver::ClockedDriver)
 ///
-/// * `Spi` - The SPI interface type
-pub type Apa102Spi<Spi> = ClockedSpiDriver<Apa102Led, Spi>;
-
-/// LED implementation for APA102 protocol.
+/// ## Key Features
 ///
-/// This type implements the ClockedLed trait with the specifics of the APA102 protocol.
-/// It handles start/end frames and the color frame format with 5-bit brightness control.
+/// - Two-wire [clocked protocol](crate::driver::clocked) (data and clock)
+/// - 24-bit color (8 bits per channel)
+/// - 5-bit global brightness control (0-31)
+/// - Supports high update rates (Bring-your-own clock rate)
+///
+/// This implementation includes the "High Definition" color handling from FastLED, which
+/// optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 #[derive(Debug)]
-pub struct Apa102Led;
+pub struct Apa102;
 
-impl ClockedLed for Apa102Led {
+impl Apa102 {
+    /// A compile-time function to get a `FRAME_BUFFER_SIZE`, given a `PIXEL_COUNT`.
+    ///
+    /// ```rust,ignore
+    /// layout1d!(Layout, 60);
+    ///
+    /// let mut control = ControlBuilder::new_1d()
+    ///   // ...
+    ///   .with_frame_buffer_size::<{ Apa102::frame_buffer_size(Layout::PIXEL_COUNT) }>()
+    ///   .build();
+    /// ```
+    pub const fn frame_buffer_size(pixel_count: usize) -> usize {
+        4 + pixel_count * 4 + (pixel_count - 1).div_ceil(16)
+    }
+}
+
+/// ## Protocol Details
+///
+/// The APA102 protocol consists of:
+///
+/// 1. Start frame: 32 bits of zeros
+/// 2. LED frames: Each LED gets 32 bits (8-bit brightness, 8-bit blue, 8-bit green, 8-bit red)
+/// 3. End frame: (n/2) bits of zeros where n is the number of LEDs
+///
+/// (References: [Hackaday](https://hackaday.com/2014/12/09/digging-into-the-apa102-serial-led-protocol/), [Pololu](https://www.pololu.com/product/2554))
+impl ClockedLed for Apa102 {
     type Word = u8;
     type Color = LinearSrgb;
 
@@ -156,9 +147,9 @@ fn five_bit_bitshift(
 ///
 /// # Parameters
 ///
-/// * `brightness_src`: Source brightness (typically the global brightness value).
-/// * `brightness_dst`: Destination brightness (driver brightness value).
-/// * `max_shifts`: Maximum number of shifts to attempt.
+/// - `brightness_src`: Source brightness (typically the global brightness value).
+/// - `brightness_dst`: Destination brightness (driver brightness value).
+/// - `max_shifts`: Maximum number of shifts to attempt.
 ///
 /// Source: https://github.com/FastLED/FastLED/blob/57f2dc1/src/lib8tion/brightness_bitshifter.h#L14-L39
 fn brightness_bitshifter8(brightness_src: &mut u8, brightness_dst: &mut u8, max_shifts: u8) -> u8 {
@@ -193,10 +184,10 @@ fn brightness_bitshifter8(brightness_src: &mut u8, brightness_dst: &mut u8, max_
 ///
 /// # Parameters
 ///
-/// * `brightness_src`: Source brightness (global brightness value).
-/// * `brightness_dst`: Destination brightness (16-bit color channel value).
-/// * `max_shifts`: Maximum number of shifts to attempt.
-/// * `steps`: The number of bits to shift on the destination per iteration (default is 2).
+/// - `brightness_src`: Source brightness (global brightness value).
+/// - `brightness_dst`: Destination brightness (16-bit color channel value).
+/// - `max_shifts`: Maximum number of shifts to attempt.
+/// - `steps`: The number of bits to shift on the destination per iteration (default is 2).
 ///
 /// Source: https://github.com/FastLED/FastLED/blob/57f2dc1/src/lib8tion/brightness_bitshifter.h#L41-L75
 fn brightness_bitshifter16(

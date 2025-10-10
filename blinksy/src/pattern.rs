@@ -22,17 +22,18 @@ use crate::layout::LayoutForDim;
 /// Trait for creating visual effects on LED layouts.
 ///
 /// Patterns generate colors for each LED in a layout based on time and position.
-/// They are generic over both the dimension they operate in and the specific layout type.
+/// They are generic over both the dimension they operate in and the specific
+/// layout type.
 ///
 /// # Type Parameters
 ///
-/// * `Dim` - The dimension marker (Dim1d or Dim2d)
-/// * `Layout` - The specific layout type
+/// - `Dim` - The dimension marker (Dim1d, Dim2d, or Dim3d)
+/// - `Layout` - The specific layout type
 ///
 /// # Associated Types
 ///
-/// * `Params` - Configuration parameters for the pattern
-/// * `Color` - The color type produced by the pattern
+/// - `Params` - Configuration parameters for the pattern
+/// - `Color` - The color type produced by the pattern
 ///
 /// # Example
 ///
@@ -87,7 +88,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `time_in_ms` - The current time in milliseconds
+    /// - `time_in_ms` - The current time in milliseconds
     ///
     /// # Returns
     ///

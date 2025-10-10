@@ -49,7 +49,8 @@
 //!         time_scalar: 0.001,
 //!         position_scalar: 0.1,
 //!     })
-//!     .with_driver(/* your driver */)
+//!     .with_driver(/* Your driver */)
+//!     .with_frame_buffer_size::</* Length of frame buffer */>()
 //!     .build();
 //! ```
 //!

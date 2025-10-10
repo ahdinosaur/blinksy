@@ -5,6 +5,7 @@
 use blinksy::{
     layout::{Layout3d, Shape3d, Vec3},
     layout3d,
+    leds::Ws2812,
     patterns::noise::{noise_fns, Noise3d, NoiseParams},
     ControlBuilder,
 };
@@ -84,7 +85,8 @@ async fn main(_spawner: Spawner) {
         .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
-        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
+        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT, { 8 * 64 }))
+        .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.2);

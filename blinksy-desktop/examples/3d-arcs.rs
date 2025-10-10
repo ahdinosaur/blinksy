@@ -68,6 +68,7 @@ fn main() {
                 ..Default::default()
             })
             .with_driver(driver)
+            .with_frame_buffer_size::<{ TunnelLayout::PIXEL_COUNT }>()
             .build();
 
         loop {

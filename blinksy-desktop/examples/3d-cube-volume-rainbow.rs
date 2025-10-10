@@ -44,6 +44,7 @@ fn main() {
             .with_layout::<CubeVolumeLayout, { CubeVolumeLayout::PIXEL_COUNT }>()
             .with_pattern::<Rainbow>(RainbowParams::default())
             .with_driver(driver)
+            .with_frame_buffer_size::<{ CubeVolumeLayout::PIXEL_COUNT }>()
             .build();
 
         loop {

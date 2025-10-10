@@ -4,6 +4,7 @@
 use blinksy::{
     layout::Layout1d,
     layout1d,
+    leds::Ws2812,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
@@ -20,7 +21,10 @@ fn main() -> ! {
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
-        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT, {
+            Layout::PIXEL_COUNT * 3 * 8 + 1
+        }))
+        .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.2);

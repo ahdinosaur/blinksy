@@ -3,11 +3,11 @@ use num_traits::float::FloatCore;
 /// Maps a value from one range to another.
 ///
 /// # Arguments
-/// * `value` - The input value to map.
-/// * `in_min` - The lower bound of the input range.
-/// * `in_max` - The upper bound of the input range.
-/// * `out_min` - The lower bound of the output range.
-/// * `out_max` - The upper bound of the output range.
+/// - `value` - The input value to map.
+/// - `in_min` - The lower bound of the input range.
+/// - `in_max` - The upper bound of the input range.
+/// - `out_min` - The lower bound of the output range.
+/// - `out_max` - The upper bound of the output range.
 ///
 /// # Example
 /// ```

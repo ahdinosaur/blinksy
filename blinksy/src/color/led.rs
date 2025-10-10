@@ -1,4 +1,4 @@
-use core::ops::Index;
+use core::{array::IntoIter, iter::Iterator, ops::Index};
 
 use crate::util::component::Component;
 
@@ -18,10 +18,10 @@ impl<C: Component> LedColor<C> {
     ///
     /// # Arguments
     ///
-    /// * `linear_srgb` - Linear RGB color to convert
-    /// * `channels` - The LED channel format specification
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors for the LEDs
+    /// - `linear_srgb` - Linear RGB color to convert
+    /// - `channels` - The LED channel format specification
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors for the LEDs
     ///
     /// # Returns
     ///
@@ -55,6 +55,36 @@ impl<C> AsRef<[C]> for LedColor<C> {
     }
 }
 
+pub enum LedColorIntoIter<C> {
+    Rgb(IntoIter<C, 3>),
+    Rgbw(IntoIter<C, 4>),
+}
+
+impl<C> Iterator for LedColorIntoIter<C> {
+    type Item = C;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use LedColorIntoIter::*;
+        match self {
+            Rgb(rgb_iter) => rgb_iter.next(),
+            Rgbw(rgbw_iter) => rgbw_iter.next(),
+        }
+    }
+}
+
+impl<C> IntoIterator for LedColor<C> {
+    type Item = C;
+    type IntoIter = LedColorIntoIter<C>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        use LedColor::*;
+        match self {
+            Rgb(rgb) => LedColorIntoIter::Rgb(rgb.into_iter()),
+            Rgbw(rgbw) => LedColorIntoIter::Rgbw(rgbw.into_iter()),
+        }
+    }
+}
+
 /// RGB color values ready for output to LED hardware
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LedRgb<C>([C; 3]);
@@ -64,9 +94,9 @@ impl<C: Component> LedRgb<C> {
     ///
     /// # Arguments
     ///
-    /// * `linear_srgb` - Linear RGB color to convert
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors for the LEDs
+    /// - `linear_srgb` - Linear RGB color to convert
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors for the LEDs
     ///
     /// # Returns
     ///
@@ -112,6 +142,15 @@ impl<C> AsRef<[C]> for LedRgb<C> {
     }
 }
 
+impl<C> IntoIterator for LedRgb<C> {
+    type Item = C;
+    type IntoIter = IntoIter<C, 3>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl<C> Index<usize> for LedRgb<C> {
     type Output = C;
 
@@ -133,9 +172,9 @@ impl<C: Component> LedRgbw<C> {
     ///
     /// # Arguments
     ///
-    /// * `linear_srgb` - Linear RGB color to convert
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors for the LEDs
+    /// - `linear_srgb` - Linear RGB color to convert
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors for the LEDs
     ///
     /// # Returns
     ///
@@ -189,6 +228,15 @@ impl<C: Component> LedRgbw<C> {
 impl<C> AsRef<[C]> for LedRgbw<C> {
     fn as_ref(&self) -> &[C] {
         &self.0
+    }
+}
+
+impl<C> IntoIterator for LedRgbw<C> {
+    type Item = C;
+    type IntoIter = IntoIter<C, 4>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -288,7 +336,7 @@ impl RgbChannels {
     ///
     /// # Arguments
     ///
-    /// * `rgb` - Array of [R, G, B] values in canonical order
+    /// - `rgb` - Array of [R, G, B] values in canonical order
     ///
     /// # Returns
     ///
@@ -311,7 +359,7 @@ impl RgbwChannels {
     ///
     /// # Arguments
     ///
-    /// * `rgbw` - Array of [R, G, B, W] values in canonical order
+    /// - `rgbw` - Array of [R, G, B, W] values in canonical order
     ///
     /// # Returns
     ///

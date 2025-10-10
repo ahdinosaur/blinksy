@@ -1,5 +1,5 @@
 pub mod bits;
-pub(crate) mod component;
+pub mod component;
 mod map_range;
 
 pub use self::map_range::*;

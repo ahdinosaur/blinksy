@@ -35,9 +35,9 @@ impl<M: HsvHueMap> Hsv<M> {
     ///
     /// # Arguments
     ///
-    /// * `hue` - Hue component (0.0 to 1.0)
-    /// * `saturation` - Saturation component (0.0 to 1.0)
-    /// * `value` - Value component (0.0 to 1.0)
+    /// - `hue` - Hue component (0.0 to 1.0)
+    /// - `saturation` - Saturation component (0.0 to 1.0)
+    /// - `value` - Value component (0.0 to 1.0)
     pub fn new(hue: f32, saturation: f32, value: f32) -> Self {
         Self {
             hue: HsvHue::new(hue),
@@ -50,9 +50,9 @@ impl<M: HsvHueMap> Hsv<M> {
     ///
     /// # Arguments
     ///
-    /// * `hue` - Existing HsvHue object
-    /// * `saturation` - Saturation component (0.0 to 1.0)
-    /// * `value` - Value component (0.0 to 1.0)
+    /// - `hue` - Existing HsvHue object
+    /// - `saturation` - Saturation component (0.0 to 1.0)
+    /// - `value` - Value component (0.0 to 1.0)
     pub fn from_hue(hue: HsvHue<M>, saturation: f32, value: f32) -> Self {
         Self {
             hue,
@@ -121,7 +121,7 @@ impl<M: HsvHueMap> HsvHue<M> {
     ///
     /// # Arguments
     ///
-    /// * `hue` - HsvHue value (0.0 to 1.0)
+    /// - `hue` - HsvHue value (0.0 to 1.0)
     pub fn new(hue: f32) -> Self {
         Self {
             map: PhantomData,
@@ -158,7 +158,7 @@ pub trait HsvHueMap: Sized {
     ///
     /// # Arguments
     ///
-    /// * `hue` - HsvHue value (0.0 to 1.0)
+    /// - `hue` - HsvHue value (0.0 to 1.0)
     ///
     /// # Returns
     ///

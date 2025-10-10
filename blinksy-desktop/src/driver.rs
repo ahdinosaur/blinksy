@@ -12,10 +12,10 @@
 //!
 //! ## Controls
 //!
-//! - **Mouse drag**: Rotate the camera around the LEDs
-//! - **Mouse wheel**: Zoom in/out
-//! - **R key**: Reset camera to default position
-//! - **O key**: Toggle between orthographic and perspective projection
+//! - Mouse drag: Rotate the camera around the LEDs
+//! - Mouse wheel: Zoom in/out
+//! - R key: Reset camera to default position
+//! - O key: Toggle between orthographic and perspective projection
 //!
 //! ## Usage
 //!
@@ -47,6 +47,7 @@
 //!         .with_layout::<PanelLayout, { PanelLayout::PIXEL_COUNT }>()
 //!         .with_pattern::<Rainbow>(RainbowParams::default())
 //!         .with_driver(driver)
+//!         .with_frame_buffer_size::<{ PanelLayout::PIXEL_COUNT }>()
 //!         .build();
 //!
 //!     // Run your normal animation loop
@@ -119,8 +120,8 @@ impl Default for DesktopConfig {
 ///
 /// # Type Parameters
 ///
-/// * `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
-/// * `Layout` - The specific layout type
+/// - `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
+/// - `Layout` - The specific layout type
 pub struct Desktop<Dim, Layout> {
     driver: DesktopDriver<Dim, Layout>,
     stage: DesktopStageOptions,
@@ -133,7 +134,7 @@ impl Desktop<Dim1d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout1d
+    /// - `Layout` - The layout type implementing Layout1d
     ///
     /// # Returns
     ///
@@ -149,11 +150,11 @@ impl Desktop<Dim1d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout1d
+    /// - `Layout` - The layout type implementing Layout1d
     ///
     /// # Parameters
     ///
-    /// * `config` - Configuration options for the simulator window
+    /// - `config` - Configuration options for the simulator window
     ///
     /// # Returns
     ///
@@ -198,7 +199,7 @@ impl Desktop<Dim2d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout2d
+    /// - `Layout` - The layout type implementing Layout2d
     ///
     /// # Returns
     ///
@@ -214,11 +215,11 @@ impl Desktop<Dim2d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout2d
+    /// - `Layout` - The layout type implementing Layout2d
     ///
     /// # Parameters
     ///
-    /// * `config` - Configuration options for the simulator window
+    /// - `config` - Configuration options for the simulator window
     ///
     /// # Returns
     ///
@@ -263,7 +264,7 @@ impl Desktop<Dim3d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout3d
+    /// - `Layout` - The layout type implementing Layout3d
     ///
     /// # Returns
     ///
@@ -279,11 +280,11 @@ impl Desktop<Dim3d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout3d
+    /// - `Layout` - The layout type implementing Layout3d
     ///
     /// # Parameters
     ///
-    /// * `config` - Configuration options for the simulator window
+    /// - `config` - Configuration options for the simulator window
     ///
     /// # Returns
     ///
@@ -343,8 +344,8 @@ where
 ///
 /// # Type Parameters
 ///
-/// * `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
-/// * `Layout` - The specific layout type
+/// - `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
+/// - `Layout` - The specific layout type
 pub struct DesktopDriver<Dim, Layout> {
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,
@@ -415,17 +416,30 @@ where
 {
     type Error = DesktopError;
     type Color = LinearSrgb;
+    type Word = LinearSrgb;
 
-    fn write<const PIXEL_COUNT: usize, I, C>(
+    fn encode<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Pixels, Color>(
         &mut self,
-        pixels: I,
+        pixels: Pixels,
+        _brightness: f32,
+        _correction: ColorCorrection,
+    ) -> heapless::Vec<Self::Word, FRAME_BUFFER_SIZE>
+    where
+        Pixels: IntoIterator<Item = Color>,
+        Self::Color: FromColor<Color>,
+    {
+        pixels
+            .into_iter()
+            .map(|color| LinearSrgb::from_color(color))
+            .collect()
+    }
+
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: heapless::Vec<Self::Word, FRAME_BUFFER_SIZE>,
         brightness: f32,
         correction: ColorCorrection,
-    ) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = C>,
-        Self::Color: FromColor<C>,
-    {
+    ) -> Result<(), Self::Error> {
         if self.brightness != brightness {
             self.brightness = brightness;
             self.send(LedMessage::UpdateBrightness(brightness))?;
@@ -436,10 +450,7 @@ where
             self.send(LedMessage::UpdateColorCorrection(correction))?;
         }
 
-        let colors: Vec<LinearSrgb> = pixels
-            .into_iter()
-            .map(|color| LinearSrgb::from_color(color))
-            .collect();
+        let colors: Vec<LinearSrgb> = frame.into_iter().collect();
 
         self.send(LedMessage::UpdateColors(colors))?;
         Ok(())

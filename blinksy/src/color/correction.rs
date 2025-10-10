@@ -29,9 +29,9 @@ impl ColorCorrection {
     ///
     /// # Arguments
     ///
-    /// * `red` - Scaling factor for the red channel
-    /// * `green` - Scaling factor for the green channel
-    /// * `blue` - Scaling factor for the blue channel
+    /// - `red` - Scaling factor for the red channel
+    /// - `green` - Scaling factor for the green channel
+    /// - `blue` - Scaling factor for the blue channel
     ///
     /// # Returns
     ///
@@ -60,7 +60,7 @@ impl ColorCorrection {
     ///
     /// # Arguments
     ///
-    /// * `temperature` - Approximate color temperature in Kelvin (e.g., 2700K, 6500K)
+    /// - `temperature` - Approximate color temperature in Kelvin (e.g., 2700K, 6500K)
     ///
     /// # Returns
     ///

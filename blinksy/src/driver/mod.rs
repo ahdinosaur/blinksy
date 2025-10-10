@@ -9,8 +9,10 @@
 //!
 //! ## Re-usable implementations
 //!
-//! - [`clocked`]: For clocked (two-wire) protocols (like [`APA102`](crate::drivers::apa102))
-//! - [`clockless`]: For clockless (one-wire) protocols (like [`WS2812`](crate::drivers::ws2812))
+//! - [`clocked`]: For clocked (two-wire) protocols (like [`APA102`](crate::leds::apa102))
+//! - [`clockless`]: For clockless (one-wire) protocols (like [`WS2812`](crate::leds::ws2812))
+
+use heapless::Vec;
 
 use crate::color::{ColorCorrection, FromColor};
 
@@ -19,7 +21,6 @@ pub mod clockless;
 
 pub use clocked::*;
 pub use clockless::*;
-use heapless::Vec;
 
 /// Core trait for all blocking LED drivers.
 ///
@@ -28,9 +29,9 @@ use heapless::Vec;
 ///
 /// # Type Parameters
 ///
-/// * `Error` - The error type that may be returned by the driver
-/// * `Color` - The color type accepted by the driver
-/// * `Word` - The word type used for the encoded frame buffer
+/// - `Error` - The error type that may be returned by the driver
+/// - `Color` - The color type accepted by the driver
+/// - `Word` - The word type used for the encoded frame buffer
 ///
 /// # Example
 ///
@@ -71,6 +72,8 @@ use heapless::Vec;
 ///     fn write<const FRAME_BUFFER_SIZE: usize>(
 ///         &mut self,
 ///         frame: heapless::Vec<Self::Word, FRAME_BUFFER_SIZE>,
+///         _brightness: f32,
+///         _correction: ColorCorrection,
 ///     ) -> Result<(), Self::Error> {
 ///         // Send encoded frame buffer to hardware
 ///         Ok(())
@@ -91,16 +94,16 @@ pub trait Driver {
     ///
     /// # Type Parameters
     ///
-    /// * `PIXEL_COUNT` - Number of pixels in frame
-    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
-    /// * `Pixels` - Iterator of colors for each pixel
-    /// * `Color` - Type of each pixel
+    /// - `PIXEL_COUNT` - Number of pixels in frame
+    /// - `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    /// - `Pixels` - Iterator of colors for each pixel
+    /// - `Color` - Type of each pixel
     ///
     /// # Arguments
     ///
-    /// * `pixels` - Iterator of colors for each pixel
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
+    /// - `pixels` - Iterator of colors for each pixel
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors
     ///
     /// # Returns
     ///
@@ -119,11 +122,11 @@ pub trait Driver {
     ///
     /// # Type Parameters
     ///
-    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    /// - `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
     ///
     /// # Arguments
     ///
-    /// * `frame` - Frame buffer
+    /// - `frame` - Frame buffer
     ///
     /// # Returns
     ///
@@ -139,16 +142,16 @@ pub trait Driver {
     ///
     /// # Type Parameters
     ///
-    /// * `PIXEL_COUNT` - Number of pixels in frame
-    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
-    /// * `Pixels` - Iterator of colors for each pixel
-    /// * `Color` - Type of each pixel
+    /// - `PIXEL_COUNT` - Number of pixels in frame
+    /// - `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    /// - `Pixels` - Iterator of colors for each pixel
+    /// - `Color` - Type of each pixel
     ///
     /// # Arguments
     ///
-    /// * `pixels` - Iterator of colors for each pixel
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
+    /// - `pixels` - Iterator of colors for each pixel
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors
     ///
     /// # Returns
     ///
@@ -176,9 +179,9 @@ pub trait Driver {
 ///
 /// # Type Parameters
 ///
-/// * `Error` - The error type that may be returned by the driver
-/// * `Color` - The color type accepted by the driver
-/// * `Word` - The word type used for the encoded frame buffer
+/// - `Error` - The error type that may be returned by the driver
+/// - `Color` - The color type accepted by the driver
+/// - `Word` - The word type used for the encoded frame buffer
 ///
 /// # Example
 ///
@@ -238,16 +241,16 @@ pub trait DriverAsync {
     ///
     /// # Type Parameters
     ///
-    /// * `PIXEL_COUNT` - Number of pixels in frame
-    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
-    /// * `Pixels` - Iterator of colors for each pixel
-    /// * `Color` - Type of each pixel
+    /// - `PIXEL_COUNT` - Number of pixels in frame
+    /// - `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    /// - `Pixels` - Iterator of colors for each pixel
+    /// - `Color` - Type of each pixel
     ///
     /// # Arguments
     ///
-    /// * `pixels` - Iterator of colors for each pixel
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
+    /// - `pixels` - Iterator of colors for each pixel
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors
     ///
     /// # Returns
     ///
@@ -267,11 +270,11 @@ pub trait DriverAsync {
     ///
     /// # Type Parameters
     ///
-    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    /// - `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
     ///
     /// # Arguments
     ///
-    /// * `frame` - Frame buffer
+    /// - `frame` - Frame buffer
     ///
     /// # Returns
     ///
@@ -286,16 +289,16 @@ pub trait DriverAsync {
     ///
     /// # Type Parameters
     ///
-    /// * `PIXEL_COUNT` - Number of pixels in frame
-    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
-    /// * `Pixels` - Iterator of colors for each pixel
-    /// * `Color` - Type of each pixel
+    /// - `PIXEL_COUNT` - Number of pixels in frame
+    /// - `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    /// - `Pixels` - Iterator of colors for each pixel
+    /// - `Color` - Type of each pixel
     ///
     /// # Arguments
     ///
-    /// * `pixels` - Iterator of colors for each pixel
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
+    /// - `pixels` - Iterator of colors for each pixel
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors
     ///
     /// # Returns
     ///

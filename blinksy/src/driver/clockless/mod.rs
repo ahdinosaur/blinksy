@@ -17,8 +17,8 @@
 //! ## Traits
 //!
 //! - [`ClocklessLed`]: Trait defining the timing parameters for a clockless LED chipset
-//! - [`ClockedWriter`]: Trait for how to write data for the clockless protocol
-//! - [`ClockedWriterAsync`]: Trait for how to write data for the clockless protocol, asynchronously
+//! - [`ClocklessWriter`]: Trait for how to write data for the clockless protocol
+//! - [`ClocklessWriterAsync`]: Trait for how to write data for the clockless protocol, asynchronously
 //!
 //! ## Driver
 //!
@@ -44,6 +44,7 @@
 //! struct MyLed;
 //!
 //! impl ClocklessLed for MyLed {
+//!     type Word = u8;
 //!     // High pulse duration for '0' bit
 //!     const T_0H: Nanoseconds = Nanoseconds::nanos(350);
 //!     // Low pulse duration for '0' bit
@@ -90,6 +91,7 @@ pub use self::delay::*;
 /// struct WS2811Led;
 ///
 /// impl ClocklessLed for WS2811Led {
+///     type Word = u8;
 ///     const T_0H: Nanoseconds = Nanoseconds::nanos(250);
 ///     const T_0L: Nanoseconds = Nanoseconds::nanos(1000);
 ///     const T_1H: Nanoseconds = Nanoseconds::nanos(600);
@@ -143,14 +145,14 @@ pub trait ClocklessLed {
     ///
     /// # Type Arguments
     ///
-    /// * `PIXEL_COUNT`: Number of pixels
-    /// * `BUFFER_SIZE`: Size of the frame buffer
+    /// - `PIXEL_COUNT`: Number of pixels
+    /// - `BUFFER_SIZE`: Size of the frame buffer
     ///
     /// # Arguments
     ///
-    /// * `pixels` - Iterator over colors
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
+    /// - `pixels` - Iterator over colors
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors
     ///
     /// # Returns
     ///
@@ -203,8 +205,8 @@ pub trait ClocklessWriterAsync<Led: ClocklessLed> {
 ///
 /// # Type Parameters
 ///
-/// * `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// * `Writer` - The clocked writer
+/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// - `Writer` - The clocked writer
 #[derive(Debug)]
 pub struct ClocklessDriver<Led, Writer> {
     /// Marker for the LED protocol type

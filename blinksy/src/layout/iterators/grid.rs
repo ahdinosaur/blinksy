@@ -23,12 +23,12 @@ impl<Item, Scalar> GridStepIterator<Item, Scalar> {
     ///
     /// # Arguments
     ///
-    /// * `start` - The starting point (origin) of the grid
-    /// * `vertical_step` - The vertical step between horizontal rows
-    /// * `horizontal_step` - The horizontal step between vertical columns
-    /// * `horizontal_pixel_count` - Number of pixels in a horizontal row
-    /// * `vertical_pixel_count` - Number of pixels in a vertical column
-    /// * `serpentine` - Whether to use zigzag pattern
+    /// - `start` - The starting point (origin) of the grid
+    /// - `vertical_step` - The vertical step between horizontal rows
+    /// - `horizontal_step` - The horizontal step between vertical columns
+    /// - `horizontal_pixel_count` - Number of pixels in a horizontal row
+    /// - `vertical_pixel_count` - Number of pixels in a vertical column
+    /// - `serpentine` - Whether to use zigzag pattern
     pub fn new(
         start: Item,
         vertical_step: Item,

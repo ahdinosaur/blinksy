@@ -19,24 +19,24 @@ use super::ClockedWriterAsync;
 ///
 /// ```rust
 /// use embedded_hal::spi::SpiBus;
-/// use blinksy::{driver::ClockedSpiDriver, drivers::apa102::Apa102Led};
+/// use blinksy::{driver::clocked::ClockedDriver, leds::Apa102};
 ///
-/// fn setup_leds<S>(spi: S) -> ClockedSpiDriver<Apa102Led, S>
+/// fn setup_leds<S>(spi: S) -> ClockedDriver<Apa102, S>
 /// where
 ///     S: SpiBus<u8>,
 /// {
 ///     // Create a new APA102 driver using SPI
 ///     ClockedDriver::default()
-///         .with_led::<Apa102Led>()
+///         .with_led::<Apa102>()
 ///         .with_writer(spi)
 /// }
 /// ```
 ///
 /// # Type Parameters
 ///
-/// * `Spi` - The SPI interface type
+/// - `Spi` - The SPI interface type
 ///
-/// This allows any type implementing the SpiBus trait to be used
+/// This allows any type implementing the `SpiBus` trait to be used
 /// as a writer for clocked LED protocols.
 impl<Word, Spi> ClockedWriter<Word> for Spi
 where
@@ -49,7 +49,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `words` - Iterator of bytes to write
+    /// - `words` - Iterator of bytes to write
     ///
     /// # Returns
     ///
@@ -78,7 +78,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `words` - Iterator of bytes to write
+    /// - `words` - Iterator of bytes to write
     ///
     /// # Returns
     ///

@@ -18,10 +18,10 @@ impl<C: Component> LedColor<C> {
     ///
     /// # Arguments
     ///
-    /// * `linear_srgb` - Linear RGB color to convert
-    /// * `channels` - The LED channel format specification
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors for the LEDs
+    /// - `linear_srgb` - Linear RGB color to convert
+    /// - `channels` - The LED channel format specification
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors for the LEDs
     ///
     /// # Returns
     ///
@@ -94,9 +94,9 @@ impl<C: Component> LedRgb<C> {
     ///
     /// # Arguments
     ///
-    /// * `linear_srgb` - Linear RGB color to convert
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors for the LEDs
+    /// - `linear_srgb` - Linear RGB color to convert
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors for the LEDs
     ///
     /// # Returns
     ///
@@ -172,9 +172,9 @@ impl<C: Component> LedRgbw<C> {
     ///
     /// # Arguments
     ///
-    /// * `linear_srgb` - Linear RGB color to convert
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors for the LEDs
+    /// - `linear_srgb` - Linear RGB color to convert
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors for the LEDs
     ///
     /// # Returns
     ///
@@ -336,7 +336,7 @@ impl RgbChannels {
     ///
     /// # Arguments
     ///
-    /// * `rgb` - Array of [R, G, B] values in canonical order
+    /// - `rgb` - Array of [R, G, B] values in canonical order
     ///
     /// # Returns
     ///
@@ -359,7 +359,7 @@ impl RgbwChannels {
     ///
     /// # Arguments
     ///
-    /// * `rgbw` - Array of [R, G, B, W] values in canonical order
+    /// - `rgbw` - Array of [R, G, B, W] values in canonical order
     ///
     /// # Returns
     ///

@@ -132,8 +132,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `pattern` - The pattern to use
-    /// * `driver` - The LED driver to use
+    /// - `pattern` - The pattern to use
+    /// - `driver` - The LED driver to use
     ///
     /// # Returns
     ///
@@ -154,7 +154,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `brightness` - Brightness level from 0.0 (off) to 1.0 (full)
+    /// - `brightness` - Brightness level from 0.0 (off) to 1.0 (full)
     pub fn set_brightness(&mut self, brightness: f32) {
         self.brightness = brightness;
     }
@@ -163,7 +163,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `correction` - Color correction factors
+    /// - `correction` - Color correction factors
     pub fn set_color_correction(&mut self, correction: ColorCorrection) {
         self.correction = correction;
     }
@@ -185,7 +185,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `time_in_ms` - Current time in milliseconds
+    /// - `time_in_ms` - Current time in milliseconds
     ///
     /// # Returns
     ///
@@ -217,7 +217,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `time_in_ms` - Current time in milliseconds
+    /// - `time_in_ms` - Current time in milliseconds
     ///
     /// # Returns
     ///
@@ -362,8 +362,8 @@ impl<const FRAME_BUFFER_SIZE: usize, Dim, Exec, Pattern, Driver>
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout that corresponds to Dim
-    /// * `PIXEL_COUNT` - A constant for the number of pixels (`Layout::PIXEL_COUNT`)
+    /// - `Layout` - The layout type implementing Layout that corresponds to Dim
+    /// - `PIXEL_COUNT` - A constant for the number of pixels (`Layout::PIXEL_COUNT`)
     ///
     /// # Returns
     ///
@@ -393,11 +393,11 @@ where
     ///
     /// # Type Parameters
     ///
-    /// * `Pattern` - The pattern type implementing Pattern<Dim, Layout>
+    /// - `Pattern` - The pattern type implementing Pattern<Dim, Layout>
     ///
     /// # Arguments
     ///
-    /// * `params` - The pattern parameters
+    /// - `params` - The pattern parameters
     ///
     /// # Returns
     ///
@@ -427,7 +427,7 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
     ///
     /// # Type Parameters
     ///
-    /// * `FRAME_BUFFER_SIZE` - The per-call frame buffer size
+    /// - `FRAME_BUFFER_SIZE` - The per-call frame buffer size
     ///
     /// # Returns
     ///
@@ -455,11 +455,11 @@ impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Patt
     ///
     /// # Type Parameters
     ///
-    /// * `Driver` - The blocking driver type
+    /// - `Driver` - The blocking driver type
     ///
     /// # Arguments
     ///
-    /// * `driver` - The LED driver instance (blocking)
+    /// - `driver` - The LED driver instance (blocking)
     ///
     /// # Returns
     ///
@@ -489,11 +489,11 @@ impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Patt
     ///
     /// # Type Parameters
     ///
-    /// * `Driver` - The blocking driver type
+    /// - `Driver` - The blocking driver type
     ///
     /// # Arguments
     ///
-    /// * `driver` - The LED driver instance (blocking)
+    /// - `driver` - The LED driver instance (blocking)
     ///
     /// # Returns
     ///
@@ -523,7 +523,7 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
     ///
     /// # Type Parameters
     ///
-    /// * `FRAME_BUFFER_SIZE` - The per-call frame buffer size
+    /// - `FRAME_BUFFER_SIZE` - The per-call frame buffer size
     ///
     /// # Returns
     ///

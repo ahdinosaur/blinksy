@@ -243,10 +243,10 @@ pub trait Layout2d {
 ///
 /// # Arguments
 ///
-/// * `#[$attr]` - Optional attributes to apply to the struct (e.g., `#[derive(Debug)]`)
-/// * `$vis` - Optional visibility modifier (e.g., `pub`)
-/// * `$name` - The name of the layout type to create
-/// * `[$($shape:expr),*]` - A list of Shape2d instances defining the layout
+/// - `#[$attr]` - Optional attributes to apply to the struct (e.g., `#[derive(Debug)]`)
+/// - `$vis` - Optional visibility modifier (e.g., `pub`)
+/// - `$name` - The name of the layout type to create
+/// - `[$($shape:expr),*]` - A list of Shape2d instances defining the layout
 ///
 /// # Output
 ///

@@ -24,10 +24,10 @@ pub trait Layout1d {
 ///
 /// # Arguments
 ///
-/// * `#[$attr]` - Optional attributes to apply to the struct (e.g., `#[derive(Debug)]`)
-/// * `$vis` - Optional visibility modifier (e.g., `pub`)
-/// * `$name` - The name of the layout type to create
-/// * `$pixel_count` - The number of LEDs in the layout
+/// - `#[$attr]` - Optional attributes to apply to the struct (e.g., `#[derive(Debug)]`)
+/// - `$vis` - Optional visibility modifier (e.g., `pub`)
+/// - `$name` - The name of the layout type to create
+/// - `$pixel_count` - The number of LEDs in the layout
 ///
 /// # Output
 ///

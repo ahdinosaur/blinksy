@@ -35,8 +35,9 @@
 //!
 //! ```rust
 //! use blinksy::{
-//!     color::{ColorCorrection, FromColor, LedRgb, LinearSrgb},
-//!     driver::{ClockedLed, ClockedWriter},
+//!     color::{ColorCorrection, FromColor, LinearSrgb, RgbChannels},
+//!     driver::ClockedLed,
+//!     util::component::Component,
 //! };
 //!
 //! // Define a new LED chipset with specific protocol requirements
@@ -57,9 +58,18 @@
 //!         correction: ColorCorrection,
 //!     ) -> impl IntoIterator<Item = Self::Word> {
 //!         // Color data for one LED
-//!         let linear_srgb = LinearSrgb::from_color(color);
-//!         let rgb = LedRgb::from_linear_srgb(linear_srgb, brightness, correction);
-//!         [0x80, rgb[0], rgb[1], rgb[2]]
+//!         let linear = LinearSrgb::from_color(color);
+//!         let (mut r, mut g, mut b) = (linear.red, linear.green, linear.blue);
+//!         r = r * brightness * correction.red;
+//!         g = g * brightness * correction.green;
+//!         b = b * brightness * correction.blue;
+//!         let (r_u8, g_u8, b_u8) = (
+//!             Component::from_normalized_f32(r),
+//!             Component::from_normalized_f32(g),
+//!             Component::from_normalized_f32(b),
+//!         );
+//!         let bytes = RgbChannels::RGB.reorder([r_u8, g_u8, b_u8]);
+//!         [0x80, bytes[0], bytes[1], bytes[2]]
 //!     }
 //!
 //!     fn end(_: usize) -> impl IntoIterator<Item = Self::Word> {
@@ -92,8 +102,8 @@ pub use self::delay::*;
 ///
 /// # Type Parameters
 ///
-/// * `Word` - The basic data unit type (typically u8)
-/// * `Color` - The color representation type
+/// - `Word` - The basic data unit type (typically u8)
+/// - `Color` - The color representation type
 pub trait ClockedLed {
     /// The word type (typically u8).
     type Word: ToBytes;
@@ -112,9 +122,9 @@ pub trait ClockedLed {
     ///
     /// # Arguments
     ///
-    /// * `color` - The color to write
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
+    /// - `color` - The color to write
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors
     ///
     /// # Returns
     ///
@@ -129,7 +139,7 @@ pub trait ClockedLed {
     ///
     /// # Arguments
     ///
-    /// * `pixel_count` - The number of LEDs that were written
+    /// - `pixel_count` - The number of LEDs that were written
     ///
     /// # Returns
     ///
@@ -144,10 +154,10 @@ pub trait ClockedLed {
     ///
     /// # Arguments
     ///
-    /// * `pixel` - The pixel color to write
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors
-    /// * `pixel_count` - The number of LEDs that were written
+    /// - `pixel` - The pixel color to write
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors
+    /// - `pixel_count` - The number of LEDs that were written
     ///
     /// # Returns
     ///
@@ -184,7 +194,7 @@ pub trait ClockedWriter<Word> {
     ///
     /// # Arguments
     ///
-    /// * `words` - Iterator of words to write
+    /// - `words` - Iterator of words to write
     ///
     /// # Returns
     ///
@@ -210,7 +220,7 @@ pub trait ClockedWriterAsync<Word> {
     ///
     /// # Arguments
     ///
-    /// * `words` - Iterator of words to write
+    /// - `words` - Iterator of words to write
     ///
     /// # Returns
     ///
@@ -226,8 +236,8 @@ pub trait ClockedWriterAsync<Word> {
 ///
 /// # Type Parameters
 ///
-/// * `Led` - The LED protocol implementation (must implement ClockedLed)
-/// * `Writer` - The clocked writer
+/// - `Led` - The LED protocol implementation (must implement ClockedLed)
+/// - `Writer` - The clocked writer
 #[derive(Debug)]
 pub struct ClockedDriver<Led, Writer> {
     /// Marker for the LED protocol type

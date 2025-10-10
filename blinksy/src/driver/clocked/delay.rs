@@ -22,14 +22,14 @@ use super::ClockedWriterAsync;
 /// ```rust
 /// use embedded_hal::digital::OutputPin;
 /// use embedded_hal::delay::DelayNs;
-/// use blinksy::{driver::ClockedDelayDriver, drivers::apa102::Apa102Led};
+/// use blinksy::{driver::clocked::{ClockedDelay, ClockedDriver}, leds::Apa102};
 /// use blinksy::time::Megahertz;
 ///
 /// fn setup_leds<D, C, Delay>(
 ///     data_pin: D,
 ///     clock_pin: C,
 ///     delay: Delay
-/// ) -> ClockedDriver<Apa102Led, ClockedDelay<D, C, Delay>>
+/// ) -> ClockedDriver<Apa102, ClockedDelay<D, C, Delay>>
 /// where
 ///     D: OutputPin,
 ///     C: OutputPin,
@@ -37,7 +37,7 @@ use super::ClockedWriterAsync;
 /// {
 ///     // Create a new APA102 driver with 2 MHz data rate
 ///     ClockedDriver::default()
-///         .with_led::<Apa102Led>()
+///         .with_led::<Apa102>()
 ///         .with_writer(ClockedDelay::new(
 ///             data_pin,
 ///             clock_pin,
@@ -74,10 +74,10 @@ where
     ///
     /// # Arguments
     ///
-    /// * `data` - The GPIO pin for data output
-    /// * `clock` - The GPIO pin for clock output
-    /// * `delay` - The delay provider for timing control
-    /// * `data_rate` - The clock frequency in MHz
+    /// - `data` - The GPIO pin for data output
+    /// - `clock` - The GPIO pin for clock output
+    /// - `delay` - The delay provider for timing control
+    /// - `data_rate` - The clock frequency in MHz
     ///
     /// # Returns
     ///
@@ -133,7 +133,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `words` - Iterator of bytes to write
+    /// - `words` - Iterator of bytes to write
     ///
     /// # Returns
     ///
@@ -183,7 +183,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `words` - Iterator of bytes to write
+    /// - `words` - Iterator of bytes to write
     ///
     /// # Returns
     ///

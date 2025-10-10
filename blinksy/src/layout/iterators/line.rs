@@ -21,9 +21,9 @@ impl<Item, Scalar> LineStepIterator<Item, Scalar> {
     ///
     /// # Arguments
     ///
-    /// * `start` - The starting item
-    /// * `step` - The step between items
-    /// * `length` - The number of items to generate
+    /// - `start` - The starting item
+    /// - `step` - The step between items
+    /// - `length` - The number of items to generate
     pub fn new(start: Item, step: Item, length: usize) -> Self {
         Self {
             start,

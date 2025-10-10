@@ -137,9 +137,9 @@ where
 ///
 /// # Type Parameters
 ///
-/// * `RMT_BUFFER_SIZE` - Size of the RMT buffer
-/// * `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// * `TxChannel` - The RMT transmit channel
+/// - `RMT_BUFFER_SIZE` - Size of the RMT buffer
+/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// - `TxChannel` - The RMT transmit channel
 pub struct ClocklessRmt<const RMT_BUFFER_SIZE: usize, Led, TxChannel>
 where
     Led: ClocklessLed,
@@ -226,8 +226,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `channel` - RMT transmit channel creator
-    /// * `pin` - GPIO pin connected to the LED data line
+    /// - `channel` - RMT transmit channel creator
+    /// - `pin` - GPIO pin connected to the LED data line
     ///
     /// # Returns
     ///
@@ -259,7 +259,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `buffer` - Buffer to be transmitted
+    /// - `buffer` - Buffer to be transmitted
     ///
     /// # Returns
     ///
@@ -289,7 +289,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `buffer` - Buffer to be transmitted
+    /// - `buffer` - Buffer to be transmitted
     ///
     /// # Returns
     ///

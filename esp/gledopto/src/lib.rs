@@ -223,7 +223,7 @@ macro_rules! spi {
 ///
 /// # Arguments
 ///
-/// * `$peripherals` - The ESP32 peripherals instance
+/// - `$peripherals` - The ESP32 peripherals instance
 ///
 /// # Returns
 ///
@@ -242,7 +242,7 @@ macro_rules! apa102 {
 ///
 /// # Arguments
 ///
-/// * `$peripherals` - The ESP32 peripherals instance
+/// - `$peripherals` - The ESP32 peripherals instance
 ///
 /// # Returns
 ///
@@ -270,8 +270,8 @@ macro_rules! rmt {
 ///
 /// # Arguments
 ///
-/// * `$peripherals` - The ESP32 peripherals instance
-/// * `$num_leds` - The number of LEDs in the strip
+/// - `$peripherals` - The ESP32 peripherals instance
+/// - `$num_leds` - The number of LEDs in the strip
 ///
 /// # Returns
 ///
@@ -299,8 +299,8 @@ macro_rules! ws2812 {
 ///
 /// # Arguments
 ///
-/// * `$peripherals` - The ESP32 peripherals instance
-/// * `$num_leds` - The number of LEDs in the strip
+/// - `$peripherals` - The ESP32 peripherals instance
+/// - `$num_leds` - The number of LEDs in the strip
 ///
 /// # Returns
 ///

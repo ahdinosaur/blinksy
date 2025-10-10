@@ -73,7 +73,7 @@ impl<'a> FunctionButton<'a> {
     ///
     /// # Arguments
     ///
-    /// * `pin` - The GPIO pin connected to the button (GPIO0)
+    /// - `pin` - The GPIO pin connected to the button (GPIO0)
     ///
     /// # Returns
     ///

@@ -22,6 +22,16 @@ use crate::{
 pub struct Ws2812;
 
 impl Ws2812 {
+    /// A compile-time function to get a `FRAME_BUFFER_SIZE`, given a `PIXEL_COUNT`.
+    ///
+    /// ```rust,ignore
+    /// layout1d!(Layout, 60);
+    ///
+    /// let mut control = ControlBuilder::new_1d()
+    ///   // ...
+    ///   .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
+    ///   .build();
+    /// ```
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
         super::clockless_frame_buffer_size(pixel_count)
     }

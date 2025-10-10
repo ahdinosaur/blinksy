@@ -33,9 +33,9 @@ impl LinearSrgb {
     ///
     /// # Arguments
     ///
-    /// * `red` - Red component (0.0 to 1.0)
-    /// * `green` - Green component (0.0 to 1.0)
-    /// * `blue` - Blue component (0.0 to 1.0)
+    /// - `red` - Red component (0.0 to 1.0)
+    /// - `green` - Green component (0.0 to 1.0)
+    /// - `blue` - Blue component (0.0 to 1.0)
     ///
     /// # Example
     ///
@@ -68,9 +68,9 @@ impl LinearSrgb {
     ///
     /// # Arguments
     ///
-    /// * `channels` - The LED channel format specification
-    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
-    /// * `correction` - Color correction factors for the LEDs
+    /// - `channels` - The LED channel format specification
+    /// - `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// - `correction` - Color correction factors for the LEDs
     ///
     /// # Returns
     ///

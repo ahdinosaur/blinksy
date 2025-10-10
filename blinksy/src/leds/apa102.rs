@@ -30,15 +30,13 @@ pub struct Apa102;
 impl Apa102 {
     /// A compile-time function to get a `FRAME_BUFFER_SIZE`, given a `PIXEL_COUNT`.
     ///
-    /// ```rust
-    /// # blinksy::layout1d!(Layout, 60);
-    /// #
-    /// # let mut control = ControlBuilder::new_1d()
-    /// #    .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
-    /// #    .with_pattern::<Rainbow>(RainbowParams::default())
-    /// #    .with_driver(ws2812!(p, Layout::PIXEL_COUNT, { 60 * 3 * 8 + 1 }))
-    /// .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
-    /// #    .build();
+    /// ```rust,ignore
+    /// layout1d!(Layout, 60);
+    ///
+    /// let mut control = ControlBuilder::new_1d()
+    ///   // ...
+    ///   .with_frame_buffer_size::<{ Apa102::frame_buffer_size(Layout::PIXEL_COUNT) }>()
+    ///   .build();
     /// ```
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
         4 + pixel_count * 4 + (pixel_count - 1).div_ceil(16)
@@ -149,9 +147,9 @@ fn five_bit_bitshift(
 ///
 /// # Parameters
 ///
-/// * `brightness_src`: Source brightness (typically the global brightness value).
-/// * `brightness_dst`: Destination brightness (driver brightness value).
-/// * `max_shifts`: Maximum number of shifts to attempt.
+/// - `brightness_src`: Source brightness (typically the global brightness value).
+/// - `brightness_dst`: Destination brightness (driver brightness value).
+/// - `max_shifts`: Maximum number of shifts to attempt.
 ///
 /// Source: https://github.com/FastLED/FastLED/blob/57f2dc1/src/lib8tion/brightness_bitshifter.h#L14-L39
 fn brightness_bitshifter8(brightness_src: &mut u8, brightness_dst: &mut u8, max_shifts: u8) -> u8 {
@@ -186,10 +184,10 @@ fn brightness_bitshifter8(brightness_src: &mut u8, brightness_dst: &mut u8, max_
 ///
 /// # Parameters
 ///
-/// * `brightness_src`: Source brightness (global brightness value).
-/// * `brightness_dst`: Destination brightness (16-bit color channel value).
-/// * `max_shifts`: Maximum number of shifts to attempt.
-/// * `steps`: The number of bits to shift on the destination per iteration (default is 2).
+/// - `brightness_src`: Source brightness (global brightness value).
+/// - `brightness_dst`: Destination brightness (16-bit color channel value).
+/// - `max_shifts`: Maximum number of shifts to attempt.
+/// - `steps`: The number of bits to shift on the destination per iteration (default is 2).
 ///
 /// Source: https://github.com/FastLED/FastLED/blob/57f2dc1/src/lib8tion/brightness_bitshifter.h#L41-L75
 fn brightness_bitshifter16(

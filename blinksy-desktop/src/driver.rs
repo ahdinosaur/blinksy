@@ -119,8 +119,8 @@ impl Default for DesktopConfig {
 ///
 /// # Type Parameters
 ///
-/// * `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
-/// * `Layout` - The specific layout type
+/// - `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
+/// - `Layout` - The specific layout type
 pub struct Desktop<Dim, Layout> {
     driver: DesktopDriver<Dim, Layout>,
     stage: DesktopStageOptions,
@@ -133,7 +133,7 @@ impl Desktop<Dim1d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout1d
+    /// - `Layout` - The layout type implementing Layout1d
     ///
     /// # Returns
     ///
@@ -149,11 +149,11 @@ impl Desktop<Dim1d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout1d
+    /// - `Layout` - The layout type implementing Layout1d
     ///
     /// # Parameters
     ///
-    /// * `config` - Configuration options for the simulator window
+    /// - `config` - Configuration options for the simulator window
     ///
     /// # Returns
     ///
@@ -198,7 +198,7 @@ impl Desktop<Dim2d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout2d
+    /// - `Layout` - The layout type implementing Layout2d
     ///
     /// # Returns
     ///
@@ -214,11 +214,11 @@ impl Desktop<Dim2d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout2d
+    /// - `Layout` - The layout type implementing Layout2d
     ///
     /// # Parameters
     ///
-    /// * `config` - Configuration options for the simulator window
+    /// - `config` - Configuration options for the simulator window
     ///
     /// # Returns
     ///
@@ -263,7 +263,7 @@ impl Desktop<Dim3d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout3d
+    /// - `Layout` - The layout type implementing Layout3d
     ///
     /// # Returns
     ///
@@ -279,11 +279,11 @@ impl Desktop<Dim3d, ()> {
     ///
     /// # Type Parameters
     ///
-    /// * `Layout` - The layout type implementing Layout3d
+    /// - `Layout` - The layout type implementing Layout3d
     ///
     /// # Parameters
     ///
-    /// * `config` - Configuration options for the simulator window
+    /// - `config` - Configuration options for the simulator window
     ///
     /// # Returns
     ///
@@ -343,8 +343,8 @@ where
 ///
 /// # Type Parameters
 ///
-/// * `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
-/// * `Layout` - The specific layout type
+/// - `Dim` - The dimension marker (Dim1d or Dim2d or Dim3d)
+/// - `Layout` - The specific layout type
 pub struct DesktopDriver<Dim, Layout> {
     dim: PhantomData<Dim>,
     layout: PhantomData<Layout>,

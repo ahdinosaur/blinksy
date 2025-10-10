@@ -33,10 +33,10 @@ impl GammaSrgb {
     ///
     /// # Arguments
     ///
-    /// * `red` - Red component (0.0 to 1.0)
-    /// * `green` - Green component (0.0 to 1.0)
-    /// * `blue` - Blue component (0.0 to 1.0)
-    /// * `gamma` - Gamma correction factor
+    /// - `red` - Red component (0.0 to 1.0)
+    /// - `green` - Green component (0.0 to 1.0)
+    /// - `blue` - Blue component (0.0 to 1.0)
+    /// - `gamma` - Gamma correction factor
     ///
     /// # Example
     ///
@@ -60,8 +60,8 @@ impl GammaSrgb {
     ///
     /// # Arguments
     ///
-    /// * `linear_srgb` - Linear RGB color
-    /// * `gamma` - Gamma correction factor
+    /// - `linear_srgb` - Linear RGB color
+    /// - `gamma` - Gamma correction factor
     pub fn from_linear_srgb(linear_srgb: LinearSrgb, gamma: f32) -> Self {
         Self {
             red: gamma_encode(linear_srgb.red, gamma),

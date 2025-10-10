@@ -29,24 +29,25 @@ use crate::{
 /// ```rust
 /// use embedded_hal::digital::OutputPin;
 /// use embedded_hal::delay::DelayNs;
-/// use blinksy::{driver::ClocklessDelayDriver, drivers::ws2812::Ws2812Led};
+/// use blinksy::{driver::clockless::{ClocklessDriver, ClocklessDelay}, leds::Ws2812};
 ///
-/// fn setup_leds<P, D>(data_pin: P, delay: D) -> ClocklessDelayDriver<Ws2812Led, P, D>
+/// fn setup_leds<P, D>(data_pin: P, delay: D)
+///     -> Result<ClocklessDriver<Ws2812, ClocklessDelay<Ws2812, P, D>>, P::Error>
 /// where
 ///     P: OutputPin,
 ///     D: DelayNs,
 /// {
 ///     // Create a new WS2812 driver
-///     ClocklessDelayDriver::<Ws2812Led, _, _>::new(data_pin, delay)
-///         .expect("Failed to initialize LED driver")
+///     let writer = ClocklessDelay::<Ws2812, _, _>::new(data_pin, delay)?;
+///     Ok(ClocklessDriver::default().with_led::<Ws2812>().with_writer(writer))
 /// }
 /// ```
 ///
 /// # Type Parameters
 ///
-/// * `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// * `Pin` - The GPIO pin type for data output (must implement OutputPin)
-/// * `Delay` - The delay provider
+/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// - `Pin` - The GPIO pin type for data output (must implement OutputPin)
+/// - `Delay` - The delay provider
 pub struct ClocklessDelay<Led: ClocklessLed, Pin: OutputPin, Delay> {
     /// Marker for the LED protocol type
     led: PhantomData<Led>,
@@ -69,8 +70,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * `pin` - The GPIO pin for data output
-    /// * `delay` - The delay provider for timing control
+    /// - `pin` - The GPIO pin for data output
+    /// - `delay` - The delay provider for timing control
     ///
     /// # Returns
     ///
@@ -100,7 +101,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `buffer` - The byte array to transmit
+    /// - `buffer` - The byte array to transmit
     ///
     /// # Returns
     ///
@@ -152,7 +153,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `buffer` - The byte array to transmit
+    /// - `buffer` - The byte array to transmit
     ///
     /// # Returns
     ///

@@ -95,4 +95,4 @@ pub mod rmt;
 pub mod time;
 pub(crate) mod util;
 
-pub use crate::rmt::{ClocklessRmt, ClocklessRmtDriver, ClocklessRmtDriverError};
+pub use crate::rmt::{ClocklessRmt, ClocklessRmtBuilder, ClocklessRmtError};

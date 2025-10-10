@@ -4,6 +4,7 @@
 use blinksy::{
     layout::{Layout3d, Shape3d, Vec3},
     layout3d,
+    leds::Ws2812,
     patterns::noise::{noise_fns, Noise3d, NoiseParams},
     ControlBuilder,
 };
@@ -81,6 +82,7 @@ fn main() -> ! {
             ..Default::default()
         })
         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.2);

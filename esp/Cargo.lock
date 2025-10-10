@@ -78,6 +78,7 @@ dependencies = [
  "defmt 0.3.100",
  "esp-hal",
  "heapless 0.9.1",
+ "num-traits",
 ]
 
 [[package]]

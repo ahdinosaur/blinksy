@@ -78,6 +78,7 @@ fn main() {
                 ..Default::default()
             })
             .with_driver(driver)
+            .with_frame_buffer_size::<{ CubeFaceLayout::PIXEL_COUNT }>()
             .build();
 
         loop {

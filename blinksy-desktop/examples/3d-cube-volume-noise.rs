@@ -47,6 +47,7 @@ fn main() {
                 position_scalar: 0.25,
             })
             .with_driver(driver)
+            .with_frame_buffer_size::<{ CubeVolumeLayout::PIXEL_COUNT }>()
             .build();
 
         loop {

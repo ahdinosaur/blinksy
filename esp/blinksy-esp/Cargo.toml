@@ -17,6 +17,7 @@ blinksy = { path = "../../blinksy", version = "0.10" }
 esp-hal = { version = "1.0.0-rc.0", default-features = false, features = ["defmt", "unstable"] }
 defmt = "0.3.10"
 heapless = "0.9.1"
+num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 
 [features]
 default = []

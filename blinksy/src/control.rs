@@ -9,22 +9,18 @@
 //! # Example (Blocking)
 //!
 //! ```rust,ignore
-//! use blinksy::{
-//!     ControlBuilder,
-//!     layout::Layout1d,
-//!     layout1d,
-//!     patterns::rainbow::{Rainbow, RainbowParams},
-//! };
-//!
 //! // Define a 1d layout of 60 LEDs
 //! layout1d!(Layout, 60);
 //!
 //! // Create a control system
 //! let mut control = ControlBuilder::new_1d()
 //!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
-//!     .with_pattern::<Rainbow>(RainbowParams::default())
-//!     // Choose a driver type and frame buffer size (e.g., 128)
-//!     .with_driver::<_, 128>(/* LED driver */)
+//!     // Choose an animation pattern
+//!     .with_pattern::</* Pattern type */>(/* Pattern params */)
+//!     // Choose an LED driver
+//!     .with_driver(/* LED driver */)
+//!     // Set frame buffer size for your driver and LEDs
+//!     .with_frame_buffer_size::</* Length of frame buffer */>()
 //!     .build();
 //!
 //! // Use the control system
@@ -39,22 +35,18 @@
 //! # Example (Async)
 //!
 //! ```rust,ignore
-//! use blinksy::{
-//!     ControlBuilder,
-//!     layout::Layout1d,
-//!     layout1d,
-//!     patterns::rainbow::{Rainbow, RainbowParams},
-//! };
-//!
 //! // Define a 1d layout of 60 LEDs
 //! layout1d!(Layout, 60);
 //!
 //! // Create a control system
 //! let mut control = ControlBuilder::new_1d_async()
 //!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
-////!     .with_pattern::<Rainbow>(RainbowParams::default())
-//!     // Choose a driver type and frame buffer size (e.g., 128)
-//!     .with_driver::<_, 128>(/* LED driver */)
+//!     // Choose an animation pattern
+//!     .with_pattern::</* Pattern type */>(/* Pattern params */)
+//!     // Choose a driver type
+//!     .with_driver(/* LED driver */)
+//!     // Set frame buffer size for your driver and LEDs
+//!     .with_frame_buffer_size::</* Length of frame buffer */>()
 //!     .build();
 //!
 //! // Use the control system

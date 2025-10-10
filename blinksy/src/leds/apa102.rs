@@ -1,32 +1,3 @@
-//! # APA102 LED Driver
-//!
-//! This module describes the APA102 (DotStar) LEDs, which offer high refresh rates
-//! and precise brightness control.
-//!
-//! ## Driver
-//!
-//! - [`ClockedDriver`](crate::driver::ClockedDriver)
-//!
-//! ## Key Features
-//!
-//! - Two-wire [clocked protocol](crate::driver::clocked) (data and clock)
-//! - 24-bit color (8 bits per channel)
-//! - 5-bit global brightness control (0-31)
-//! - Supports high update rates (Bring-your-own clock rate)
-//!
-//! ## Protocol Details
-//!
-//! The APA102 protocol consists of:
-//!
-//! 1. Start frame: 32 bits of zeros
-//! 2. LED frames: Each LED gets 32 bits (8-bit brightness, 8-bit blue, 8-bit green, 8-bit red)
-//! 3. End frame: (n/2) bits of zeros where n is the number of LEDs
-//!
-//! (References: [Hackaday](https://hackaday.com/2014/12/09/digging-into-the-apa102-serial-led-protocol/), [Pololu](https://www.pololu.com/product/2554))
-//!
-//! This implementation includes the "High Definition" color handling from FastLED, which
-//! optimizes the use of the 5-bit brightness and 8-bit per-channel values.
-
 use core::iter::repeat_n;
 
 use crate::{
@@ -35,19 +6,54 @@ use crate::{
     util::component::Component,
 };
 
-/// LED implementation for APA102 protocol.
+/// # APA102 (DotStar) LEDs
 ///
-/// This type implements the ClockedLed trait with the specifics of the APA102 protocol.
-/// It handles start/end frames and the color frame format with 5-bit brightness control.
+/// This type describes the APA102 (DotStar) LEDs, which offer high refresh rates
+/// and precise brightness control.
+///
+/// ## Driver
+///
+/// - [`ClockedDriver`](crate::driver::ClockedDriver)
+///
+/// ## Key Features
+///
+/// - Two-wire [clocked protocol](crate::driver::clocked) (data and clock)
+/// - 24-bit color (8 bits per channel)
+/// - 5-bit global brightness control (0-31)
+/// - Supports high update rates (Bring-your-own clock rate)
+///
+/// This implementation includes the "High Definition" color handling from FastLED, which
+/// optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 #[derive(Debug)]
 pub struct Apa102;
 
 impl Apa102 {
+    /// A compile-time function to get a `FRAME_BUFFER_SIZE`, given a `PIXEL_COUNT`.
+    ///
+    /// ```rust
+    /// # blinksy::layout1d!(Layout, 60);
+    /// #
+    /// # let mut control = ControlBuilder::new_1d()
+    /// #    .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
+    /// #    .with_pattern::<Rainbow>(RainbowParams::default())
+    /// #    .with_driver(ws2812!(p, Layout::PIXEL_COUNT, { 60 * 3 * 8 + 1 }))
+    /// .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
+    /// #    .build();
+    /// ```
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
         4 + pixel_count * 4 + (pixel_count - 1).div_ceil(16)
     }
 }
 
+/// ## Protocol Details
+///
+/// The APA102 protocol consists of:
+///
+/// 1. Start frame: 32 bits of zeros
+/// 2. LED frames: Each LED gets 32 bits (8-bit brightness, 8-bit blue, 8-bit green, 8-bit red)
+/// 3. End frame: (n/2) bits of zeros where n is the number of LEDs
+///
+/// (References: [Hackaday](https://hackaday.com/2014/12/09/digging-into-the-apa102-serial-led-protocol/), [Pololu](https://www.pololu.com/product/2554))
 impl ClockedLed for Apa102 {
     type Word = u8;
     type Color = LinearSrgb;

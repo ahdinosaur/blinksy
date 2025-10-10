@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn test_u8_msb() {
-        let bits: Vec<bool, 8> = bits_of(0b1010_0001u8, BitOrder::MostSignificantBit).collect();
+        let bits: Vec<bool, 8> = bits_of(&0b1010_0001_u8, BitOrder::MostSignificantBit).collect();
 
         assert_eq!(
             bits,
@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_u8_lsb() {
-        let bits: Vec<bool, 8> = bits_of(0b1010_0001u8, BitOrder::LeastSignificantBit).collect();
+        let bits: Vec<bool, 8> = bits_of(&0b1010_0001_u8, BitOrder::LeastSignificantBit).collect();
 
         assert_eq!(
             bits,
@@ -55,29 +55,29 @@ mod tests {
 
     #[test]
     fn test_u16_msb() {
-        let bits: Vec<bool, 16> = bits_of(0x0180u16, BitOrder::MostSignificantBit).collect();
+        let bits: Vec<bool, 16> = bits_of(&0x0408_u16, BitOrder::MostSignificantBit).collect();
 
         // 0x0180 (MSB-first across the 16-bit word): 0000_0001 1000_0000
         assert_eq!(
             bits,
             Vec::<bool, 16>::from_array([
-                false, false, false, false, false, false, false, true, // 0x01
-                true, false, false, false, false, false, false, false, // 0x80
+                false, false, false, false, false, true, false, false, // 0x04
+                false, false, false, false, true, false, false, false, // 0x08
             ])
         );
     }
 
     #[test]
     fn test_u16_lsb() {
-        let bits: Vec<bool, 16> = bits_of(0x0180u16, BitOrder::LeastSignificantBit).collect();
+        let bits: Vec<bool, 16> = bits_of(&0x0408_u16, BitOrder::LeastSignificantBit).collect();
 
         // 0x0180 (LSB-first across the 16-bit word): bytes reversed, and bits within byte LSB-first.
         // Little-endian byte order in memory is [0x80, 0x01]
         assert_eq!(
             bits,
             Vec::<bool, 16>::from_array([
-                false, false, false, false, false, false, true, false, // 0x80 bits reversed
-                true, false, false, false, false, false, false, false, // 0x01 bits reversed
+                false, false, false, true, false, false, false, false, // 0x08 bits reversed
+                false, false, true, false, false, false, false, false, // 0x04 bits reversed
             ])
         );
     }

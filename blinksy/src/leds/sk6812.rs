@@ -1,38 +1,19 @@
-//! # SK6812 LED Driver
-//!
-//! This module provides driver support for SK6812 LEDs, which use a
-//! single-wire, timing-sensitive protocol similar to [`super::ws2812`].
-//!
-//! # Driver
-//!
-//! - [`ClocklessDriver`](crate::driver::ClocklessDriver)
-//!
-//! ## Key Features
-//!
-//! - Single-wire [clockless protocol](crate::driver::clockless) (data only, no clock)
-//! - 32-bit color (8 bits per channel)
-//! - Timing-sensitive protocol
-//!
-//! ## Protocol Details
-//!
-//! The SK6812 protocol uses precise timing of pulses on a single data line:
-//!
-//! - A '0' bit is represented by a short high pulse (~300ns) followed by a long low pulse (~900ns)
-//! - A '1' bit is represented by a long high pulse (~600ns) followed by a long low pulse (~600ns)
-//! - After sending all bits, a reset pulse of at least 80µs is required
-//!
-//! (References: [Datasheet](https://cdn-shop.adafruit.com/product-files/2757/p2757_SK6812RGBW_REV01.pdf))
-//!
-//! Each LED receives 32 bits (RGBW) and then passes subsequent data to the next LED in the chain.
-
 use fugit::NanosDurationU32 as Nanoseconds;
 
 use crate::{color::LedChannels, driver::ClocklessLed};
 
-/// LED implementation for SK6812 protocol.
+/// # SK6812 LEDs
 ///
-/// This type implements the ClocklessLed trait with the specifics of the SK6812 protocol,
-/// including timing requirements and color channel ordering.
+/// This type describes the SK6812 LEDs, which are similar to [`super::ws2812`] but with white: RGB + W.
+///
+/// # Driver
+///
+/// - [`ClocklessDriver`](crate::driver::ClocklessDriver)
+///
+/// ## Key Features
+///
+/// - Single-wire [clockless protocol](crate::driver::clockless) (data only, no clock)
+/// - 32-bit color (8 bits per channel, 4 channels)
 pub struct Sk6812;
 
 impl Sk6812 {
@@ -41,6 +22,17 @@ impl Sk6812 {
     }
 }
 
+/// ## Protocol Details
+///
+/// The SK6812 protocol uses precise timing of pulses on a single data line:
+///
+/// - A '0' bit is represented by a short high pulse (~300ns) followed by a long low pulse (~900ns)
+/// - A '1' bit is represented by a long high pulse (~600ns) followed by a long low pulse (~600ns)
+/// - After sending all bits, a reset pulse of at least 80µs is required
+///
+/// (References: [Datasheet](https://cdn-shop.adafruit.com/product-files/2757/p2757_SK6812RGBW_REV01.pdf))
+///
+/// Each LED receives 32 bits (RGBW) and then passes subsequent data to the next LED in the chain.
 impl ClocklessLed for Sk6812 {
     type Word = u8;
 

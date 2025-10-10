@@ -191,14 +191,12 @@ where
         &self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> impl Iterator<Item = u32> {
-        let pulses = self.pulses.clone();
+        let pulses = self.pulses;
         frame.into_iter().flat_map(move |byte| {
-            bits_of(&byte, BitOrder::MostSignificantBit)
-                .into_iter()
-                .map(move |bit| match bit {
-                    false => pulses.0,
-                    true => pulses.1,
-                })
+            bits_of(&byte, BitOrder::MostSignificantBit).map(move |bit| match bit {
+                false => pulses.0,
+                true => pulses.1,
+            })
         })
     }
 
@@ -210,7 +208,7 @@ where
         &self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> impl Iterator<Item = u32> {
-        self.rmt_led(frame).into_iter().chain(self.rmt_end())
+        self.rmt_led(frame).chain(self.rmt_end())
     }
 }
 

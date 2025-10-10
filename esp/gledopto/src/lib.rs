@@ -53,7 +53,8 @@
 //!         .with_pattern::<Rainbow>(RainbowParams {
 //!             ..Default::default()
 //!         })
-//!         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+//!         .with_driver(ws2812!(p, Layout::PIXEL_COUNT, { Layout:: PIXEL_COUNT * 3 * 8 + 1 }))
+//!         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
 //!         .build();
 //!
 //!     control.set_brightness(0.2);
@@ -102,6 +103,7 @@
 //!             ..Default::default()
 //!         })
 //!         .with_driver(apa102!(p))
+//!         .with_frame_buffer_size::<{ Apa102::frame_buffer_size(Layout::PIXEL_COUNT) }>()
 //!         .build();
 //!
 //!     control.set_brightness(0.1);

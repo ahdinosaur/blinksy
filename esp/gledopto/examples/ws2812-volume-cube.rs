@@ -52,7 +52,9 @@ fn main() -> ! {
             time_scalar: 0.25 / 1e3,
             position_scalar: 0.25,
         })
-        .with_driver(ws2812!(p, VolumeCubeLayout::PIXEL_COUNT))
+        .with_driver(ws2812!(p, VolumeCubeLayout::PIXEL_COUNT, {
+            Layout::PIXEL_COUNT * 3 * 8 + 1
+        }))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 

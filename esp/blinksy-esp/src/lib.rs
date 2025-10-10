@@ -41,22 +41,22 @@
 //!     // Setup the WS2812 driver using RMT.
 //!     let ws2812_driver = {
 //!         // IMPORTANT: Change `p.GPIO16` to the GPIO pin connected to your WS2812 data line.
-//!         // For example, if using GPIO2, change to `p.GPIO2`.
-//!         // Ensure the chosen pin is not used for other critical functions (e.g., strapping, JTAG).
 //!         let data_pin = p.GPIO16;
 //!
-//!         // RMT peripheral frequency, typically 80MHz for WS2812 on ESP32.
+//!         // Initialize RMT peripheral (typical base clock 80 MHz).
 //!         let rmt_clk_freq = hal::time::Rate::from_mhz(80);
-//!
-//!         // Initialize RMT peripheral.
 //!         let rmt = hal::rmt::Rmt::new(p.RMT, rmt_clk_freq).unwrap();
 //!         let rmt_channel = rmt.channel0;
 //!
-//!         // Create RMT buffer
-//!         const CHANNELS_PER_LED: usize = <Ws2812Led as ClocklessLed>::LED_CHANNELS.channel_count(); // Usually 3 (RGB)
-//!         let rmt_buffer = create_rmt_buffer!(CHANNELS_PER_LED);
-//!
-//!         Ws2812Rmt::new(rmt_channel, data_pin, rmt_buffer)
+//!         // Create the driver using the ClocklessRmt builder."]
+//!         blinksy::driver::ClocklessDriver::default()
+//!             .with_led::<Ws2812>()
+//!             .with_writer(ClocklessRmtBuilder::default()
+//!                 .with_rmt_buffer_size::<{ Layout::PIXEL_COUNT * 3 * 8 + 1 }>()
+//!                 .with_led::<Ws2812>()
+//!                 .with_channel(rmt_channel)
+//!                 .with_pin(data_pin)
+//!                 .build())
 //!     };
 //!
 //!     // Build the Blinky controller
@@ -66,6 +66,7 @@
 //!             ..Default::default()
 //!         })
 //!         .with_driver(ws2812_driver)
+//!         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
 //!         .build();
 //!
 //!     control.set_brightness(0.2); // Set initial brightness (0.0 to 1.0)
@@ -73,9 +74,6 @@
 //!     loop {
 //!         let elapsed_in_ms = elapsed().as_millis();
 //!         control.tick(elapsed_in_ms).unwrap();
-//!
-//!         // Optional: Add a delay to control the update rate and reduce CPU usage.
-//!         // Without an explicit delay, the loop will run as fast as possible.
 //!     }
 //! }
 //! ```

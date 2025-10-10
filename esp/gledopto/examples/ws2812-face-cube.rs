@@ -81,7 +81,9 @@ fn main() -> ! {
         .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
-        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT, {
+            Layout::PIXEL_COUNT * 3 * 8 + 1
+        }))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 

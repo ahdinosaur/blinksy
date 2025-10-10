@@ -35,6 +35,7 @@
 //!         .with_layout::<PanelLayout, { PanelLayout::PIXEL_COUNT }>()
 //!         .with_pattern::<Rainbow>(RainbowParams::default())
 //!         .with_driver(driver)
+//!         .with_frame_buffer_size::<{ PanelLayout::PIXEL_COUNT }>()
 //!         .build();
 //!
 //!     // Run your normal animation loop

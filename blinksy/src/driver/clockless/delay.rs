@@ -3,14 +3,13 @@ use embedded_hal::{delay::DelayNs, digital::OutputPin};
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
 use heapless::Vec;
-use num_traits::ToBytes;
 
 use super::ClocklessLed;
 #[cfg(feature = "async")]
 use crate::driver::ClocklessWriterAsync;
 use crate::{
     driver::ClocklessWriter,
-    util::bits::{bits_of, BitOrder},
+    util::bits::{bits_of, BitOrder, Word},
 };
 
 /// Builder for [`ClocklessDelay`].
@@ -149,8 +148,7 @@ where
 impl<Led, Data, Delay> ClocklessWriter<Led> for ClocklessDelay<Led, Data, Delay>
 where
     Led: ClocklessLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Led::Word: Word,
     Data: OutputPin,
     Delay: DelayNs,
 {
@@ -201,8 +199,7 @@ where
 impl<Led, Data, Delay> ClocklessWriterAsync<Led> for ClocklessDelay<Led, Data, Delay>
 where
     Led: ClocklessLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Led::Word: Word,
     Data: OutputPin,
     Delay: DelayNsAsync,
 {

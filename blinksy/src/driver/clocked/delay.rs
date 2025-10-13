@@ -5,7 +5,7 @@ use num_traits::ToBytes;
 
 use crate::{
     time::{Megahertz, Nanoseconds},
-    util::bits::{bits_of, BitOrder},
+    util::bits::{bits_of, BitOrder, Word as WordTrait},
 };
 
 use super::ClockedWriter;
@@ -204,8 +204,7 @@ where
 
 impl<Word, Data, Clock, Delay> ClockedWriter<Word> for ClockedDelay<Data, Clock, Delay>
 where
-    Word: ToBytes,
-    Word::Bytes: IntoIterator<Item = u8>,
+    Word: WordTrait,
     Data: OutputPin,
     Clock: OutputPin,
     Delay: DelayNs,
@@ -254,8 +253,7 @@ where
 #[cfg(feature = "async")]
 impl<Word, Data, Clock, Delay> ClockedWriterAsync<Word> for ClockedDelay<Data, Clock, Delay>
 where
-    Word: ToBytes,
-    Word::Bytes: IntoIterator<Item = u8>,
+    Word: WordTrait,
     Data: OutputPin,
     Clock: OutputPin,
     Delay: DelayNsAsync,

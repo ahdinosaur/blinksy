@@ -22,7 +22,7 @@
 use blinksy::driver::ClocklessWriterAsync;
 use blinksy::{
     driver::{clockless::ClocklessLed, ClocklessWriter},
-    util::bits::{bits_of, BitOrder},
+    util::bits::{bits_of, BitOrder, Word},
 };
 use core::{fmt::Debug, marker::PhantomData};
 use esp_hal::{
@@ -116,8 +116,7 @@ impl<const RMT_BUFFER_SIZE: usize, Led, Chan, Pin>
     ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin>
 where
     Led: ClocklessLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Led::Word: Word,
 {
     pub fn build<'d, Dm, Tx>(self) -> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
     where
@@ -152,8 +151,7 @@ where
 impl<const RMT_BUFFER_SIZE: usize, Led, TxChannel> ClocklessRmt<RMT_BUFFER_SIZE, Led, TxChannel>
 where
     Led: ClocklessLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Led::Word: Word,
 {
     fn clock_divider() -> u8 {
         1
@@ -215,8 +213,7 @@ where
 impl<const RMT_BUFFER_SIZE: usize, Led, Dm, Tx> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
 where
     Led: ClocklessLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Led::Word: Word,
     Dm: DriverMode,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
@@ -305,8 +302,7 @@ impl<const RMT_BUFFER_SIZE: usize, Led, Tx> ClocklessWriter<Led>
     for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
 where
     Led: ClocklessLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
+    Led::Word: Word,
     Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     type Error = ClocklessRmtError;

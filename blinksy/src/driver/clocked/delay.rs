@@ -12,18 +12,107 @@ use super::ClockedWriter;
 #[cfg(feature = "async")]
 use super::ClockedWriterAsync;
 
+/// Builder for [`ClockedDelay`].
+pub struct ClockedDelayBuilder<Data, Clock, Delay, DataRate> {
+    data: Data,
+    clock: Clock,
+    delay: Delay,
+    data_rate: DataRate,
+}
+
+impl Default for ClockedDelayBuilder<(), (), (), ()> {
+    fn default() -> Self {
+        Self {
+            data: (),
+            clock: (),
+            delay: (),
+            data_rate: (),
+        }
+    }
+}
+
+impl<Clock, Delay, DataRate> ClockedDelayBuilder<(), Clock, Delay, DataRate> {
+    pub fn with_data<Data: OutputPin>(
+        self,
+        data: Data,
+    ) -> ClockedDelayBuilder<Data, Clock, Delay, DataRate> {
+        ClockedDelayBuilder {
+            data,
+            clock: self.clock,
+            delay: self.delay,
+            data_rate: self.data_rate,
+        }
+    }
+}
+impl<Data, Delay, DataRate> ClockedDelayBuilder<Data, (), Delay, DataRate> {
+    pub fn with_clock<Clock: OutputPin>(
+        self,
+        clock: Clock,
+    ) -> ClockedDelayBuilder<Data, Clock, Delay, DataRate> {
+        ClockedDelayBuilder {
+            data: self.data,
+            clock,
+            delay: self.delay,
+            data_rate: self.data_rate,
+        }
+    }
+}
+
+impl<Data, Clock, DataRate> ClockedDelayBuilder<Data, Clock, (), DataRate> {
+    pub fn with_delay<Delay>(
+        self,
+        delay: Delay,
+    ) -> ClockedDelayBuilder<Data, Clock, Delay, DataRate> {
+        ClockedDelayBuilder {
+            data: self.data,
+            clock: self.clock,
+            delay,
+            data_rate: self.data_rate,
+        }
+    }
+}
+
+impl<Data, Clock, Delay> ClockedDelayBuilder<Data, Clock, Delay, ()> {
+    pub fn with_data_rate(
+        self,
+        data_rate: Megahertz,
+    ) -> ClockedDelayBuilder<Data, Clock, Delay, Megahertz> {
+        ClockedDelayBuilder {
+            data: self.data,
+            clock: self.clock,
+            delay: self.delay,
+            data_rate,
+        }
+    }
+}
+
+impl<Data, Clock, Delay> ClockedDelayBuilder<Data, Clock, Delay, Megahertz>
+where
+    Data: OutputPin,
+    Clock: OutputPin,
+{
+    pub fn build(self) -> ClockedDelay<Data, Clock, Delay> {
+        ClockedDelay::new(self.data, self.clock, self.delay, self.data_rate)
+    }
+}
+
 /// Writer for clocked LEDs using GPIO bit-banging with a delay timer.
 ///
 /// - Separate GPIO pins for data and clock
 /// - A delay provider for timing control
+///
+/// Tip: Use [`ClockedDelayBuilder`] to build your [`ClockedDelay`] struct.
 ///
 /// ## Usage
 ///
 /// ```rust
 /// use embedded_hal::digital::OutputPin;
 /// use embedded_hal::delay::DelayNs;
-/// use blinksy::{driver::clocked::{ClockedDelay, ClockedDriver}, leds::Apa102};
-/// use blinksy::time::Megahertz;
+/// use blinksy::{
+///     driver::clocked::{ClockedDelay, ClockedDelayBuilder, ClockedDriver},
+///     leds::Apa102,
+///     time::Megahertz,
+/// };
 ///
 /// fn setup_leds<D, C, Delay>(
 ///     data_pin: D,
@@ -38,12 +127,13 @@ use super::ClockedWriterAsync;
 ///     // Create a new APA102 driver with 2 MHz data rate
 ///     ClockedDriver::default()
 ///         .with_led::<Apa102>()
-///         .with_writer(ClockedDelay::new(
-///             data_pin,
-///             clock_pin,
-///             delay,
-///             Megahertz::MHz(2)
-///         ))
+///         .with_writer(ClockedDelayBuilder::default()
+///             .with_data(data_pin)
+///             .with_clock(clock_pin)
+///             .with_delay(delay)
+///             .with_data_rate(Megahertz::MHz(2))
+///             .build()
+///         )
 /// }
 /// ```
 ///

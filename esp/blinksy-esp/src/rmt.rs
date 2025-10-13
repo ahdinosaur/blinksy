@@ -157,13 +157,20 @@ where
     }
 
     fn tx_channel_config() -> TxChannelConfig {
-        TxChannelConfig::default()
+        #[allow(unused_mut)]
+        let mut config = TxChannelConfig::default()
             .with_clk_divider(Self::clock_divider())
             .with_idle_output_level(Level::Low)
             .with_idle_output(true)
-            .with_carrier_modulation(false)
+            .with_carrier_modulation(false);
+
+        // #[cfg(feature = "async")]
+        {
             // 64 u32's per memory block, max of 8
-            .with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8)
+            config = config.with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8);
+        }
+
+        config
     }
 
     fn setup_pulses() -> (u32, u32, u32) {
@@ -198,7 +205,7 @@ where
     }
 
     fn rmt_end(&self) -> impl IntoIterator<Item = u32> {
-        [self.pulses.2, 0]
+        [self.pulses.2]
     }
 
     fn rmt<const FRAME_BUFFER_SIZE: usize>(

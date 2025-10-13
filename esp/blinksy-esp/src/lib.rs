@@ -93,4 +93,10 @@ pub mod rmt;
 pub mod time;
 pub(crate) mod util;
 
+use blinksy::driver::ClocklessLed;
+
 pub use crate::rmt::{ClocklessRmt, ClocklessRmtBuilder, ClocklessRmtError};
+
+pub const fn rmt_buffer_size<Led: ClocklessLed>(pixel_count: usize) -> usize {
+    pixel_count * Led::LED_CHANNELS.channel_count() * 8 + 1
+}

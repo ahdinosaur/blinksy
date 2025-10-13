@@ -40,6 +40,10 @@ use heapless::Vec;
 
 use crate::util::chunked;
 
+pub const fn rmt_buffer_size<Led: ClocklessLed>(pixel_count: usize) -> usize {
+    pixel_count * Led::LED_CHANNELS.channel_count() * 8 + 1
+}
+
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands
 #[derive(Debug, defmt::Format)]
@@ -56,8 +60,8 @@ pub struct ClocklessRmtBuilder<const RMT_BUFFER_SIZE: usize, Led, Chan, Pin> {
     pin: Pin,
 }
 
-impl Default for ClocklessRmtBuilder<0, (), (), ()> {
-    fn default() -> ClocklessRmtBuilder<0, (), (), ()> {
+impl Default for ClocklessRmtBuilder<64, (), (), ()> {
+    fn default() -> ClocklessRmtBuilder<64, (), (), ()> {
         ClocklessRmtBuilder {
             led: PhantomData,
             channel: (),
@@ -66,7 +70,7 @@ impl Default for ClocklessRmtBuilder<0, (), (), ()> {
     }
 }
 
-impl<Led, Chan, Pin> ClocklessRmtBuilder<0, Led, Chan, Pin> {
+impl<Led, Chan, Pin> ClocklessRmtBuilder<64, Led, Chan, Pin> {
     pub fn with_rmt_buffer_size<const RMT_BUFFER_SIZE: usize>(
         self,
     ) -> ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin> {
@@ -157,20 +161,13 @@ where
     }
 
     fn tx_channel_config() -> TxChannelConfig {
-        #[allow(unused_mut)]
-        let mut config = TxChannelConfig::default()
+        TxChannelConfig::default()
             .with_clk_divider(Self::clock_divider())
             .with_idle_output_level(Level::Low)
             .with_idle_output(true)
-            .with_carrier_modulation(false);
-
-        // #[cfg(feature = "async")]
-        {
+            .with_carrier_modulation(false)
             // 64 u32's per memory block, max of 8
-            config = config.with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8);
-        }
-
-        config
+            .with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8)
     }
 
     fn setup_pulses() -> (u32, u32, u32) {

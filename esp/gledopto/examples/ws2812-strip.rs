@@ -8,7 +8,6 @@ use blinksy::{
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
-use blinksy_esp::rmt_buffer_size;
 use gledopto::{board, bootloader, elapsed, main, ws2812};
 
 bootloader!();
@@ -22,9 +21,7 @@ fn main() -> ! {
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
-        .with_driver(ws2812!(p, Layout::PIXEL_COUNT, {
-            rmt_buffer_size::<Ws2812>(Layout::PIXEL_COUNT)
-        }))
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT, buffered))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 

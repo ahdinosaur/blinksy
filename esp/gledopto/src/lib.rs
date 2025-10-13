@@ -221,6 +221,26 @@ macro_rules! spi {
     }};
 }
 
+/// Creates a clocked LED driver using the SPI interface.
+///
+/// # Arguments
+///
+/// - `$peripherals` - The ESP32 peripherals instance
+/// - `$led` - The type of LED
+///
+/// # Returns
+///
+/// A clocked driver configured for the Gledopto board
+#[macro_export]
+macro_rules! clocked {
+    ($peripherals:ident, $led:ty) => {{
+        let spi = $crate::spi!($peripherals);
+        $crate::blinksy::driver::ClockedDriver::default()
+            .with_led::<$led>()
+            .with_writer(spi)
+    }};
+}
+
 /// Creates a APA102 LED driver using the SPI interface.
 ///
 /// # Arguments
@@ -233,9 +253,27 @@ macro_rules! spi {
 #[macro_export]
 macro_rules! apa102 {
     ($peripherals:ident) => {{
-        let spi = $crate::spi!($peripherals);
+        $crate::clocked!($peripherals, $crate::blinksy::leds::Apa102)
+    }};
+}
+
+/// Creates an async clocked LED driver using the SPI interface.
+///
+/// # Arguments
+///
+/// - `$peripherals` - The ESP32 peripherals instance
+/// - `$led` - The type of LED
+///
+/// # Returns
+///
+/// A clocked driver configured for the Gledopto board
+#[cfg(feature = "async")]
+#[macro_export]
+macro_rules! clocked_async {
+    ($peripherals:ident, $led:ty) => {{
+        let spi = $crate::spi!($peripherals).into_async();
         $crate::blinksy::driver::ClockedDriver::default()
-            .with_led::<$crate::blinksy::leds::Apa102>()
+            .with_led::<$led>()
             .with_writer(spi)
     }};
 }
@@ -248,15 +286,12 @@ macro_rules! apa102 {
 ///
 /// # Returns
 ///
-/// An async APA102 driver configured for the Gledopto board
+/// An APA102 driver configured for the Gledopto board
 #[cfg(feature = "async")]
 #[macro_export]
-macro_rules! apa102_async {
+macro_rules! apa102 {
     ($peripherals:ident) => {{
-        let spi = $crate::spi!($peripherals).into_async();
-        $crate::blinksy::driver::ClockedDriver::default()
-            .with_led::<$crate::blinksy::leds::Apa102>()
-            .with_writer(spi)
+        $crate::clocked_async!($peripherals, $crate::blinksy::leds::Apa102)
     }};
 }
 
@@ -268,32 +303,114 @@ macro_rules! rmt {
     }};
 }
 
+/// Creates a clockless LED driver using the RMT peripheral.
+///
+/// # Arguments
+///
+/// - `$peripherals` - The ESP32 peripherals instance
+/// - `$pixel_count` - The number of LEDs
+/// - `$led` - The type of LED
+/// - `$rmt_buffer_size` (Optional) - The length of the RMT buffer
+///   - (Can be `buffered` literal to mean RMT buffer size should be complete frame.)
+///
+/// # Returns
+///
+/// A clockless driver configured for the LED type on the Gledopto board
+#[macro_export]
+macro_rules! clockless {
+    ($peripherals:ident, $pixel_count:expr, $led:ty, buffered) => {{
+        $crate::clockless!($peripherals, $pixel_count, $led, {
+            $crate::blinksy_esp::rmt::rmt_buffer_size::<$led>($pixel_count)
+        })
+    }};
+    ($peripherals:ident, $pixel_count:expr, $led:ty, $rmt_buffer_size:expr) => {{
+        let led_pin = $peripherals.GPIO16;
+        let rmt = $crate::rmt!($peripherals);
+
+        $crate::blinksy::driver::ClocklessDriver::default()
+            .with_led::<$led>()
+            .with_writer(
+                $crate::blinksy_esp::ClocklessRmtBuilder::default()
+                    .with_rmt_buffer_size::<$rmt_buffer_size>()
+                    .with_led::<$led>()
+                    .with_channel(rmt.channel0)
+                    .with_pin(led_pin)
+                    .build(),
+            )
+    }};
+}
+
 /// Creates a WS2812 LED driver using the RMT peripheral.
 ///
 /// # Arguments
 ///
 /// - `$peripherals` - The ESP32 peripherals instance
-/// - `$num_leds` - The number of LEDs in the strip
+/// - `$pixel_count` - The number of LEDs in the strip
+/// - `$rmt_buffer_size` (Optional) - The length of the RMT buffer
+///   - (Can be `buffered` literal to mean RMT buffer size should be complete frame.)
 ///
 /// # Returns
 ///
 /// A WS2812 driver configured for the Gledopto board
 #[macro_export]
 macro_rules! ws2812 {
-    ($peripherals:ident, $num_leds:expr, $buffer_size:expr) => {{
+    ($peripherals:ident, $pixel_count:expr) => {{
+        $crate::clockless!($peripherals, $pixel_count, $crate::blinksy::leds::Ws2812)
+    }};
+    ($peripherals:ident, $pixel_count:expr, buffered) => {{
+        $crate::clockless!(
+            $peripherals,
+            $pixel_count,
+            $crate::blinksy::leds::Ws2812,
+            buffered
+        )
+    }};
+    ($peripherals:ident, $pixel_count:expr, $rmt_buffer_size:expr) => {{
+        $crate::clockless!(
+            $peripherals,
+            $pixel_count,
+            $crate::blinksy::leds::Ws2812,
+            $rmt_buffer_size
+        )
+    }};
+}
+
+/// Creates an async clockless LED driver using the RMT peripheral.
+///
+/// # Arguments
+///
+/// - `$peripherals` - The ESP32 peripherals instance
+/// - `$pixel_count` - The number of LEDs
+/// - `$led` - The type of LED
+///
+/// # Returns
+///
+/// A clockless driver configured for the LED type on the Gledopto board
+#[cfg(feature = "async")]
+#[macro_export]
+macro_rules! clockless_async {
+    ($peripherals:ident, $pixel_count:expr, $led:ty, $rmt_buffer_size:expr) => {{
         let led_pin = $peripherals.GPIO16;
-        let rmt = $crate::rmt!($peripherals);
+        let rmt = $crate::rmt!($peripherals).to_async();
 
         $crate::blinksy::driver::ClocklessDriver::default()
-            .with_led::<$crate::blinksy::leds::Ws2812>()
+            .with_led::<$led>()
             .with_writer(
                 $crate::blinksy_esp::ClocklessRmtBuilder::default()
                     .with_rmt_buffer_size::<$buffer_size>()
-                    .with_led::<$crate::blinksy::leds::Ws2812>()
+                    .with_led::<$led>()
                     .with_channel(rmt.channel0)
                     .with_pin(led_pin)
                     .build(),
             )
+    }};
+    ($peripherals:ident, $pixel_count:expr, buffered) => {{
+        $crate::clockless_async!($peripherals, $pixel_count, $led, {
+            $crate::blinksy_esp::rmt::rmt_buffer_size::<$led>($pixel_count)
+        })
+    }};
+    ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
+        $crate::clockless_async!($peripherals, $pixel_count, $led, 64)
     }};
 }
 
@@ -302,7 +419,8 @@ macro_rules! ws2812 {
 /// # Arguments
 ///
 /// - `$peripherals` - The ESP32 peripherals instance
-/// - `$num_leds` - The number of LEDs in the strip
+/// - `$pixel_count` - The number of LEDs in the strip
+/// - `$rmt_buffer_size` (Optional) - The length of the RMT buffer
 ///
 /// # Returns
 ///
@@ -310,19 +428,23 @@ macro_rules! ws2812 {
 #[cfg(feature = "async")]
 #[macro_export]
 macro_rules! ws2812_async {
-    ($peripherals:ident, $num_leds:expr, $buffer_size:expr) => {{
-        let led_pin = $peripherals.GPIO16;
-        let rmt = $crate::rmt!($peripherals).into_async();
-
-        $crate::blinksy::driver::ClocklessDriver::default()
-            .with_led::<$crate::blinksy::leds::Ws2812>()
-            .with_writer(
-                $crate::blinksy_esp::ClocklessRmtBuilder::default()
-                    .with_rmt_buffer_size::<$buffer_size>()
-                    .with_led::<$crate::blinksy::leds::Ws2812>()
-                    .with_channel(rmt.channel0)
-                    .with_pin(led_pin)
-                    .build(),
-            )
+    ($peripherals:ident, $pixel_count:expr, $rmt_buffer_size:expr) => {{
+        $crate::clockless_async!(
+            $peripherals,
+            $pixel_count,
+            $crate::blinksy::leds::Ws2812,
+            $rmt_buffer_size
+        )
+    }};
+    ($peripherals:ident, $pixel_count:expr, buffered) => {{
+        $crate::clockless_async!(
+            $peripherals,
+            $pixel_count,
+            $crate::blinksy::leds::Ws2812,
+            buffered
+        )
+    }};
+    ($peripherals:ident, $pixel_count:expr) => {{
+        $crate::clockless_async!($peripherals, $pixel_count, $crate::blinksy::leds::Ws2812)
     }};
 }

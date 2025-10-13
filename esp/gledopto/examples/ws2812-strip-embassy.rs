@@ -25,7 +25,7 @@ async fn main(_spawner: Spawner) {
     let mut control = ControlBuilder::new_1d_async()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
-        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT, { 1 * 64 }))
+        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT, buffered))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 

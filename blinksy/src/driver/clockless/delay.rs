@@ -13,6 +13,63 @@ use crate::{
     util::bits::{bits_of, BitOrder},
 };
 
+/// Builder for [`ClocklessDelay`].
+pub struct ClocklessDelayBuilder<Led, Data, Delay> {
+    led: PhantomData<Led>,
+    data: Data,
+    delay: Delay,
+}
+
+impl Default for ClocklessDelayBuilder<(), (), ()> {
+    fn default() -> Self {
+        Self {
+            led: PhantomData,
+            data: (),
+            delay: (),
+        }
+    }
+}
+
+impl<Data, Delay> ClocklessDelayBuilder<(), Data, Delay> {
+    pub fn with_led<Led: ClocklessLed>(self) -> ClocklessDelayBuilder<Led, Data, Delay> {
+        ClocklessDelayBuilder {
+            led: PhantomData,
+            data: self.data,
+            delay: self.delay,
+        }
+    }
+}
+
+impl<Led, Delay> ClocklessDelayBuilder<Led, (), Delay> {
+    pub fn with_data<Data: OutputPin>(self, data: Data) -> ClocklessDelayBuilder<Led, Data, Delay> {
+        ClocklessDelayBuilder {
+            led: self.led,
+            data,
+            delay: self.delay,
+        }
+    }
+}
+
+impl<Led, Data> ClocklessDelayBuilder<Led, Data, ()> {
+    pub fn with_delay<Delay>(self, delay: Delay) -> ClocklessDelayBuilder<Led, Data, Delay> {
+        ClocklessDelayBuilder {
+            led: self.led,
+            data: self.data,
+            delay,
+        }
+    }
+}
+
+impl<Led, Data, Delay> ClocklessDelayBuilder<Led, Data, Delay>
+where
+    Data: OutputPin,
+    Led: ClocklessLed,
+{
+    pub fn build(self) -> ClocklessDelay<Led, Data, Delay> {
+        ClocklessDelay::new(self.data, self.delay)
+    }
+}
+
 /// Driver for clockless LEDs using GPIO bit-banging with a delay timer.
 ///
 /// The implementation uses:
@@ -31,71 +88,73 @@ use crate::{
 /// use embedded_hal::delay::DelayNs;
 /// use blinksy::{driver::clockless::{ClocklessDriver, ClocklessDelay}, leds::Ws2812};
 ///
-/// fn setup_leds<P, D>(data_pin: P, delay: D)
-///     -> Result<ClocklessDriver<Ws2812, ClocklessDelay<Ws2812, P, D>>, P::Error>
+/// fn setup_leds<Data, Delay>(data: Data, delay: Delay)
+///     -> ClocklessDriver<Ws2812, ClocklessDelay<Ws2812, Data, Delay>>
 /// where
-///     P: OutputPin,
-///     D: DelayNs,
+///     Data: OutputPin,
+///     Delay: DelayNs,
 /// {
 ///     // Create a new WS2812 driver
-///     let writer = ClocklessDelay::<Ws2812, _, _>::new(data_pin, delay)?;
-///     Ok(ClocklessDriver::default().with_led::<Ws2812>().with_writer(writer))
+///     let writer = ClocklessDelayBuilder::default()
+///         .with_led::<Ws2812>()
+///         .with_data(data)
+///         .with_delay(delay)
+///         .build();
+///     ClocklessDriver::default()
+///         .with_led::<Ws2812>()
+///         .with_writer(writer)
 /// }
 /// ```
 ///
 /// # Type Parameters
 ///
 /// - `Led` - The LED protocol implementation (must implement ClocklessLed)
-/// - `Pin` - The GPIO pin type for data output (must implement OutputPin)
+/// - `Data` - The GPIO pin type for data output (must implement OutputPin)
 /// - `Delay` - The delay provider
-pub struct ClocklessDelay<Led: ClocklessLed, Pin: OutputPin, Delay> {
+pub struct ClocklessDelay<Led: ClocklessLed, Data: OutputPin, Delay> {
     /// Marker for the LED protocol type
     led: PhantomData<Led>,
-
     /// GPIO pin for data transmission
-    pin: Pin,
-
+    data: Data,
     /// Delay provider for timing control
     delay: Delay,
 }
 
-impl<Led, Pin, Delay> ClocklessDelay<Led, Pin, Delay>
+impl<Led, Data, Delay> ClocklessDelay<Led, Data, Delay>
 where
     Led: ClocklessLed,
-    Pin: OutputPin,
+    Data: OutputPin,
 {
     /// Creates a new clockless LED driver.
     ///
-    /// Initializes the data pin to the low state.
-    ///
     /// # Arguments
     ///
-    /// - `pin` - The GPIO pin for data output
+    /// - `data` - The GPIO pin for data output
     /// - `delay` - The delay provider for timing control
+    ///
+    /// Assumes data pin is already LOW.
     ///
     /// # Returns
     ///
     /// A new ClocklessDelayDriver instance or an error if pin initialization fails
-    pub fn new(mut pin: Pin, delay: Delay) -> Result<Self, Pin::Error> {
-        pin.set_low()?;
-
-        Ok(Self {
+    pub fn new(data: Data, delay: Delay) -> Self {
+        Self {
             led: PhantomData,
+            data,
             delay,
-            pin,
-        })
+        }
     }
 }
 
-impl<Led, Pin, Delay> ClocklessWriter<Led> for ClocklessDelay<Led, Pin, Delay>
+impl<Led, Data, Delay> ClocklessWriter<Led> for ClocklessDelay<Led, Data, Delay>
 where
     Led: ClocklessLed,
     Led::Word: ToBytes,
     <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
-    Pin: OutputPin,
+    Data: OutputPin,
     Delay: DelayNs,
 {
-    type Error = Pin::Error;
+    type Error = Data::Error;
 
     /// Transmits a buffer of bytes.
     ///
@@ -114,15 +173,15 @@ where
             for bit in bits_of(&byte, BitOrder::MostSignificantBit) {
                 if !bit {
                     // Transmit a '0' bit
-                    self.pin.set_high()?;
+                    self.data.set_high()?;
                     self.delay.delay_ns(Led::T_0H.to_nanos());
-                    self.pin.set_low()?;
+                    self.data.set_low()?;
                     self.delay.delay_ns(Led::T_0L.to_nanos());
                 } else {
                     // Transmit a '1' bit
-                    self.pin.set_high()?;
+                    self.data.set_high()?;
                     self.delay.delay_ns(Led::T_1H.to_nanos());
-                    self.pin.set_low()?;
+                    self.data.set_low()?;
                     self.delay.delay_ns(Led::T_1L.to_nanos());
                 }
             }
@@ -139,15 +198,15 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<Led, Pin, Delay> ClocklessWriterAsync<Led> for ClocklessDelay<Led, Pin, Delay>
+impl<Led, Data, Delay> ClocklessWriterAsync<Led> for ClocklessDelay<Led, Data, Delay>
 where
     Led: ClocklessLed,
     Led::Word: ToBytes,
     <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
-    Pin: OutputPin,
+    Data: OutputPin,
     Delay: DelayNsAsync,
 {
-    type Error = Pin::Error;
+    type Error = Data::Error;
 
     /// Transmits a buffer of bytes.
     ///
@@ -166,15 +225,15 @@ where
             for bit in bits_of(&byte, BitOrder::MostSignificantBit) {
                 if !bit {
                     // Transmit a '0' bit
-                    self.pin.set_high()?;
+                    self.data.set_high()?;
                     self.delay.delay_ns(Led::T_0H.to_nanos()).await;
-                    self.pin.set_low()?;
+                    self.data.set_low()?;
                     self.delay.delay_ns(Led::T_0L.to_nanos()).await;
                 } else {
                     // Transmit a '1' bit
-                    self.pin.set_high()?;
+                    self.data.set_high()?;
                     self.delay.delay_ns(Led::T_1H.to_nanos()).await;
-                    self.pin.set_low()?;
+                    self.data.set_low()?;
                     self.delay.delay_ns(Led::T_1L.to_nanos()).await;
                 }
             }

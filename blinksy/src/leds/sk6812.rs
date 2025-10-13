@@ -28,7 +28,7 @@ impl Sk6812 {
     ///   .build();
     /// ```
     pub const fn frame_buffer_size(pixel_count: usize) -> usize {
-        super::clockless_frame_buffer_size(pixel_count)
+        super::clockless_frame_buffer_size::<Self>(pixel_count)
     }
 }
 

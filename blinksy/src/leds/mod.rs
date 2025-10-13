@@ -14,6 +14,8 @@ pub use apa102::Apa102;
 pub use sk6812::Sk6812;
 pub use ws2812::Ws2812;
 
-pub(crate) const fn clockless_frame_buffer_size(pixel_count: usize) -> usize {
-    pixel_count * 3
+use crate::driver::ClocklessLed;
+
+pub(crate) const fn clockless_frame_buffer_size<Led: ClocklessLed>(pixel_count: usize) -> usize {
+    pixel_count * Led::LED_CHANNELS.channel_count()
 }

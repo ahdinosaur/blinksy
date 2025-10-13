@@ -38,9 +38,7 @@ use esp_hal::{
 use esp_hal::{rmt::TxChannelAsync, Async};
 use heapless::Vec;
 
-use crate::util::for_each_chunk;
-#[cfg(feature = "async")]
-use crate::util::for_each_chunk_async;
+use crate::util::chunked;
 
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands
@@ -312,15 +310,13 @@ where
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        for_each_chunk::<RMT_BUFFER_SIZE, _, _>(
-            self.rmt(frame),
-            RMT_BUFFER_SIZE - 1,
-            |rmt_buffer| {
-                // RMT buffer must end with 0.
-                let _ = rmt_buffer.push(0);
-                self.transmit_blocking(rmt_buffer)
-            },
-        )
+        for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
+            // RMT buffer must end with 0.
+            rmt_buffer.push(0).unwrap();
+            self.transmit_blocking(&rmt_buffer)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -337,15 +333,12 @@ where
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        for_each_chunk_async::<RMT_BUFFER_SIZE, _, _>(
-            self.rmt(frame),
-            RMT_BUFFER_SIZE - 1,
-            async |rmt_buffer| {
-                // RMT buffer must end with 0.
-                let _ = rmt_buffer.push(0);
-                self.transmit_async(rmt_buffer).await
-            },
-        )
-        .await
+        for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
+            // RMT buffer must end with 0.
+            rmt_buffer.push(0).unwrap();
+            self.transmit_async(&rmt_buffer).await?;
+        }
+
+        Ok(())
     }
 }

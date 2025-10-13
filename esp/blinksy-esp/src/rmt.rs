@@ -162,7 +162,7 @@ where
             .with_idle_output_level(Level::Low)
             .with_idle_output(true)
             .with_carrier_modulation(false)
-            // 64 items per memory block, max of 8
+            // 64 u32's per memory block, max of 8
             .with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8)
     }
 

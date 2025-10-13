@@ -1,11 +1,10 @@
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs as DelayNsAsync;
-use num_traits::ToBytes;
 
 use crate::{
     time::{Megahertz, Nanoseconds},
-    util::bits::{bits_of, BitOrder, Word as WordTrait},
+    util::bits::{word_to_bits_msb, Word as WordTrait},
 };
 
 use super::ClockedWriter;
@@ -232,7 +231,7 @@ where
         Words: AsRef<[Word]>,
     {
         for word in words.as_ref() {
-            for bit in bits_of(word, BitOrder::MostSignificantBit) {
+            for bit in word_to_bits_msb(*word) {
                 match bit {
                     false => self.data.set_low(),
                     true => self.data.set_high(),
@@ -281,7 +280,7 @@ where
         Words: AsRef<[Word]>,
     {
         for word in words.as_ref() {
-            for bit in bits_of(word, BitOrder::MostSignificantBit) {
+            for bit in word_to_bits_msb(*word) {
                 match bit {
                     false => self.data.set_low(),
                     true => self.data.set_high(),

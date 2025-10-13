@@ -9,7 +9,7 @@ use super::ClocklessLed;
 use crate::driver::ClocklessWriterAsync;
 use crate::{
     driver::ClocklessWriter,
-    util::bits::{bits_of, BitOrder, Word},
+    util::bits::{word_to_bits_msb, Word},
 };
 
 /// Builder for [`ClocklessDelay`].
@@ -168,7 +168,7 @@ where
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         for byte in frame {
-            for bit in bits_of(&byte, BitOrder::MostSignificantBit) {
+            for bit in word_to_bits_msb(byte) {
                 if !bit {
                     // Transmit a '0' bit
                     self.data.set_high()?;
@@ -219,7 +219,7 @@ where
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         for byte in frame {
-            for bit in bits_of(&byte, BitOrder::MostSignificantBit) {
+            for bit in word_to_bits_msb(byte) {
                 if !bit {
                     // Transmit a '0' bit
                     self.data.set_high()?;

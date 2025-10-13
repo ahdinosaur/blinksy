@@ -22,7 +22,7 @@
 use blinksy::driver::ClocklessWriterAsync;
 use blinksy::{
     driver::{clockless::ClocklessLed, ClocklessWriter},
-    util::bits::{bits_of, BitOrder, Word},
+    util::bits::{word_to_bits_msb, Word},
 };
 use core::{fmt::Debug, marker::PhantomData};
 use esp_hal::{
@@ -37,7 +37,6 @@ use esp_hal::{
 #[cfg(feature = "async")]
 use esp_hal::{rmt::TxChannelAsync, Async};
 use heapless::Vec;
-use num_traits::ToBytes;
 
 use crate::util::chunked;
 
@@ -190,8 +189,8 @@ where
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> impl Iterator<Item = u32> {
         let pulses = self.pulses;
-        frame.into_iter().flat_map(move |byte| {
-            bits_of(&byte, BitOrder::MostSignificantBit).map(move |bit| match bit {
+        frame.into_iter().flat_map(move |word| {
+            word_to_bits_msb(word).map(move |bit| match bit {
                 false => pulses.0,
                 true => pulses.1,
             })

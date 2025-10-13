@@ -46,6 +46,7 @@ impl<C: Component> LedColor<C> {
 }
 
 impl<C> AsRef<[C]> for LedColor<C> {
+    #[inline]
     fn as_ref(&self) -> &[C] {
         use LedColor::*;
         match self {
@@ -137,6 +138,7 @@ impl<C: Component> LedRgb<C> {
 }
 
 impl<C> AsRef<[C]> for LedRgb<C> {
+    #[inline]
     fn as_ref(&self) -> &[C] {
         &self.0
     }
@@ -146,6 +148,7 @@ impl<C> IntoIterator for LedRgb<C> {
     type Item = C;
     type IntoIter = IntoIter<C, 3>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
@@ -154,6 +157,7 @@ impl<C> IntoIterator for LedRgb<C> {
 impl<C> Index<usize> for LedRgb<C> {
     type Output = C;
 
+    #[inline]
     fn index(&self, index: usize) -> &Self::Output {
         &self.0[index]
     }
@@ -226,6 +230,7 @@ impl<C: Component> LedRgbw<C> {
 }
 
 impl<C> AsRef<[C]> for LedRgbw<C> {
+    #[inline]
     fn as_ref(&self) -> &[C] {
         &self.0
     }
@@ -235,6 +240,7 @@ impl<C> IntoIterator for LedRgbw<C> {
     type Item = C;
     type IntoIter = IntoIter<C, 4>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
@@ -243,6 +249,7 @@ impl<C> IntoIterator for LedRgbw<C> {
 impl<C> Index<usize> for LedRgbw<C> {
     type Output = C;
 
+    #[inline]
     fn index(&self, index: usize) -> &Self::Output {
         &self.0[index]
     }

@@ -56,7 +56,6 @@ impl<W: Word> BitsMsb<W> {
 impl<W: Word> Iterator for BitsMsb<W> {
     type Item = bool;
 
-    #[inline]
     fn next(&mut self) -> Option<bool> {
         if self.remaining == 0 {
             return None;

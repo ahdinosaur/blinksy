@@ -12,10 +12,51 @@ Migration guide (0.10 -> UNRELEASED)
 +  .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 ```
 
+- `ControlBuilder` now has a `with_frame_buffer_size` to provide a `FRAME_BUFFER_SIZE` constant.
+  - So for example, to build a frame buffer to drive Ws2812 LEDs:
+
+```diff
++  .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
+```
+
 - `Driver::write` now expects a `const PIXEL_COUNT: usize` generic constant as the first type argument.
+- Built-in LED drivers have been refactored:
+  - There is a generic driver for each type: `ClocklessDriver` and `ClockedDriver`.
+  - You construct the generic driver by combining an Led with a Writer, both of that type.
+  - All drivers and all writers are made through the builder pattern.
+  - So for example: the clockless RMT driver for a WS2812 LED:
+
+```rust
+let driver = ClocklessDriver::default()
+    .with_led::<Ws2812>()
+    .with_writer(ClocklessRmt::default()
+        .with_led::<Ws2812>()
+        .with_rmt_buffer_size::<{ rmt_buffer_size::<Ws2812>(Layout::PIXEL_COUNT) }>()
+        .with_channel(/* rmt channel */)
+        .with_pin(/* rmt pin */)
+        .build()
+    );
+```
+
+  - Another example: the clocked SPI driver for an APA102 LED:
+
+```rust
+let driver = ClockedDriver::default()
+    .with_led::<Apa102>()
+    .with_writer(/* spi bus */)
+```
+
+- Clockless and clocked writers are also constructed through the builder pattern.
+- Move LED definitions to `blinksy::leds` module, remove `Led` suffix from structs.
+- `blinksy-esp` RMT driver expects `RMT_BUFFER_SIZE`.
+  - Each memory block on the RMT driver has a size of 64, with a max of 8 memory blocks.
+  - If async, you should use `64`.
+  - If blocking and not too many LEDs, you should use `rmt_buffer_size::<Led>(Layout::PIXEL_COUNT)`.
+  - If blocking and too many LEDs, you should use `64`.
 
 Breaking changes:
 
+- [#90](https://github.com/ahdinosaur/blinksy/pull/90): Re-architect to pre-calculate a buffer for each frame
 - [#82](https://github.com/ahdinosaur/blinksy/pull/82): Use pixels buffer
   - Write all colors from `Pattern` iterator to pixel buffer, then write pixel buffer to LEDs with `Driver`.
 - [#87](https://github.com/ahdinosaur/blinksy/pull/87): Refactor clocked LED drivers

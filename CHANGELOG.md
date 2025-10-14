@@ -19,7 +19,103 @@ Migration guide (0.10 -> UNRELEASED)
 +  .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
 ```
 
-- `Driver::write` now expects a `const PIXEL_COUNT: usize` generic constant as the first type argument.
+- Change `Driver` (and `DriverAsync`) trait interface:
+
+```rust
+pub trait Driver {
+    /// The error type that may be returned by the driver.
+    type Error;
+
+    /// The color type accepted by the driver.
+    type Color;
+
+    /// The word of the frame buffer.
+    type Word;
+
+    /// Encodes an update frame buffer for the LED hardware.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `PIXEL_COUNT` - Number of pixels in frame
+    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    /// * `Pixels` - Iterator of colors for each pixel
+    /// * `Color` - Type of each pixel
+    ///
+    /// # Arguments
+    ///
+    /// * `pixels` - Iterator of colors for each pixel
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
+    ///
+    /// # Returns
+    ///
+    /// Result with frame buffer
+    fn encode<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Pixels, Color>(
+        &mut self,
+        pixels: Pixels,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Vec<Self::Word, FRAME_BUFFER_SIZE>
+    where
+        Pixels: IntoIterator<Item = Color>,
+        Self::Color: FromColor<Color>;
+
+    /// Writes frame buffer to the LED hardware.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    ///
+    /// # Arguments
+    ///
+    /// * `frame` - Frame buffer
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: Vec<Self::Word, FRAME_BUFFER_SIZE>,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>;
+
+    /// Shows a frame on the LED hardware.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `PIXEL_COUNT` - Number of pixels in frame
+    /// * `FRAME_BUFFER_SIZE` - Length of encoded frame buffer, in words.
+    /// * `Pixels` - Iterator of colors for each pixel
+    /// * `Color` - Type of each pixel
+    ///
+    /// # Arguments
+    ///
+    /// * `pixels` - Iterator of colors for each pixel
+    /// * `brightness` - Global brightness scaling factor (0.0 to 1.0)
+    /// * `correction` - Color correction factors
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error
+    fn show<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, I, C>(
+        &mut self,
+        pixels: I,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = C>,
+        Self::Color: FromColor<C>,
+    {
+        let frame_buffer =
+            self.encode::<PIXEL_COUNT, FRAME_BUFFER_SIZE, _, _>(pixels, brightness, correction);
+        self.write(frame_buffer, brightness, correction)
+    }
+}
+```
+
+- Until  [the `generic_const_exprs` feature](https://doc.rust-lang.org/beta/unstable-book/language-features/generic-const-exprs.html) is stable, we aren't able to use associated constants, const functions, or expressions in the Blinksy code to calculate constants at compile-time. Instead, we must receive pre-calculated constants from the user as a generic. The best we can do is make it easy as possible by providing good types, traits, and const functions for the user to use.
 - Built-in LED drivers have been refactored:
   - There is a generic driver for each type: `ClocklessDriver` and `ClockedDriver`.
   - You construct the generic driver by combining an Led with a Writer, both of that type.

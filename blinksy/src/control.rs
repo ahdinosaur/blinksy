@@ -365,6 +365,9 @@ impl<const FRAME_BUFFER_SIZE: usize, Dim, Exec, Pattern, Driver>
     /// - `Layout` - The layout type implementing Layout that corresponds to Dim
     /// - `PIXEL_COUNT` - A constant for the number of pixels (`Layout::PIXEL_COUNT`)
     ///
+    /// Until  [the `generic_const_exprs` feature](https://doc.rust-lang.org/beta/unstable-book/language-features/generic-const-exprs.html) is stable,
+    /// the user must explicitly provide `PIXEL_COUNT` as `Layout::PIXEL_COUNT`.
+    ///
     /// # Returns
     ///
     /// Builder with layout type specified
@@ -428,6 +431,10 @@ impl<const PIXEL_COUNT: usize, Dim, Layout, Pattern, Driver>
     /// # Type Parameters
     ///
     /// - `FRAME_BUFFER_SIZE` - The per-call frame buffer size
+    ///
+    /// Until  [the `generic_const_exprs` feature](https://doc.rust-lang.org/beta/unstable-book/language-features/generic-const-exprs.html) is stable,
+    /// the user must explicitly provide the correct `FRAME_BUFFER_SIZE`. Typically this should be
+    /// calculated using the [LED](crate::leds) `frame_buffer_size` constant function, e.g. (`{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }`).
     ///
     /// # Returns
     ///

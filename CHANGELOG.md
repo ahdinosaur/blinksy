@@ -4,6 +4,8 @@
 
 Migration guide (0.10 -> UNRELEASED)
 
+- `defmt` is now optional across all crates, defaults to enabled in `gledopto`.
+- `alloc` is now optional in `gledopto` crate.
 - `ControlBuilder::with_layout` generic type signature changes from `<Layout`> to `<Layout, const PIXEL_COUNT: usize>`
   - If your layout is `Layout`, then change `.with_layout<Layout>()` to `.with_layout::<Layout, { Layout::PIXEL_COUNT }>()`
 

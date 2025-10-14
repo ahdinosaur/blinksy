@@ -75,7 +75,8 @@ use std::sync::mpsc::{channel, Receiver, SendError, Sender};
 /// Configuration options for the desktop simulator.
 ///
 /// Allows customizing the appearance and behavior of the LED simulator window.
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DesktopConfig {
     /// Window title
     pub window_title: String,
@@ -370,6 +371,7 @@ impl<Dim, Layout> DesktopDriver<Dim, Layout> {
 
 /// Errors that can occur when using the Desktop driver.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DesktopError {
     /// Sending to the render thread failed because it has already hung up.
     ChannelSend,

@@ -73,6 +73,7 @@ pub mod noise_fns {
 
 /// Configuration parameters for noise patterns.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NoiseParams {
     /// Controls the speed of animation (higher = faster)
     pub time_scalar: f32,
@@ -95,6 +96,7 @@ impl Default for NoiseParams {
 /// Creates flowing animations based on a 2D noise function, using
 /// time and the 1D position for the input coordinates.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Noise1d<Noise> {
     /// The noise function used to get hue
     hue_noise: Seeded<Noise>,
@@ -154,6 +156,7 @@ where
 /// Creates flowing animations based on a 3D noise function, using
 /// time and the 2D position for the input coordinates.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Noise2d<Noise> {
     /// The noise function used to get hue
     hue_noise: Seeded<Noise>,
@@ -217,6 +220,7 @@ where
 /// Creates flowing animations based on a 4D noise function, using
 /// time and the 3D position for the input coordinates.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Noise3d<Noise>
 where
     Noise: NoiseTrait,

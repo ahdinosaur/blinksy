@@ -19,6 +19,7 @@ use super::{
 /// Mathematical operations on linear RGB values (like averaging or interpolation) will
 /// produce physically correct results, unlike operations on gamma-encoded sRGB values.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LinearSrgb {
     /// Red component (0.0 to 1.0)
     pub red: f32,

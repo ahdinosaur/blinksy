@@ -21,6 +21,7 @@ use super::{FromColor, LinearSrgb};
 ///
 /// [FastLED's HSV]: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Hsv<M: HsvHueMap = HsvHueRainbow> {
     /// HsvHue component
     pub hue: HsvHue<M>,
@@ -109,6 +110,7 @@ impl<M: HsvHueMap> FromColor<Hsv<M>> for LinearSrgb {
 ///
 /// [FastLED's HSV]: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct HsvHue<M: HsvHueMap = HsvHueRainbow> {
     /// Phantom data to track the hue mapping type
     map: PhantomData<M>,
@@ -174,6 +176,7 @@ pub trait HsvHueMap: Sized {
 ///
 /// ![Spectrum hue mapping](https://raw.githubusercontent.com/FastLED/FastLED/gh-pages/images/HSV-spectrum-with-desc.jpg)
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct HsvHueSpectrum;
 
 impl HsvHueMap for HsvHueSpectrum {
@@ -203,6 +206,7 @@ impl HsvHueMap for HsvHueSpectrum {
 ///
 /// ![Rainbow hue mapping](https://raw.githubusercontent.com/FastLED/FastLED/gh-pages/images/HSV-rainbow-with-desc.jpg)
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct HsvHueRainbow;
 
 impl HsvHueMap for HsvHueRainbow {

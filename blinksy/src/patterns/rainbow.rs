@@ -38,6 +38,7 @@ use crate::{
 
 /// Configuration parameters for the Rainbow pattern.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct RainbowParams {
     /// Controls the speed of the animation (higher = faster)
     pub time_scalar: f32,
@@ -59,6 +60,7 @@ impl Default for RainbowParams {
 ///
 /// Creates a smooth transition through the full HSV spectrum across the LED layout.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Rainbow {
     /// Configuration parameters
     params: RainbowParams,

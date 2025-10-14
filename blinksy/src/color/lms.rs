@@ -17,6 +17,7 @@ use super::LinearSrgb;
 /// LMS is primarily used as an intermediate space for color processing algorithms,
 /// particularly those that simulate or account for human color vision characteristics.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Lms {
     /// Long cone response component
     pub long: f32,

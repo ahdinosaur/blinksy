@@ -12,7 +12,7 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-defmt = "0.3.10"
+defmt = { version = "0.3.10", optional = true }
 embedded-hal = "1.0.0"
 embedded-hal-async = { version = "1.0.0", optional = true }
 fugit = "0.3.7"
@@ -25,6 +25,7 @@ smart-leds-trait = "0.3.1"
 [features]
 default = []
 async = ["dep:embedded-hal-async"]
+defmt = ["dep:defmt"]
 
 [package.metadata.docs.rs]
 features = ["async"]

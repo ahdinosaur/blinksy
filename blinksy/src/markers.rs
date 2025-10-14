@@ -35,3 +35,9 @@ pub struct Blocking;
 ///
 /// Used as a type parameter to indicate execution will be async.
 pub struct Async;
+
+/// Marker type for whether a constant is set.
+pub struct Set;
+
+/// Marker type for whether a constant is not set.
+pub struct Unset;

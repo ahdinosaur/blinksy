@@ -27,9 +27,7 @@
 //! ## Writers
 //!
 //! - [`ClockedDelay`]
-//! - Spi
-//!   - blocking: [`embedded_hal::spi::SpiBus`]
-//!   - async: [`embedded_hal_async::spi::SpiBus`]
+//! - [`embedded_hal::spi::SpiBus`] / [`embedded_hal_async::spi::SpiBus`]
 //!
 //! ## Example
 //!

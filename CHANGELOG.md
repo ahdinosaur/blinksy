@@ -161,6 +161,11 @@ Breaking changes:
   - Write all colors from `Pattern` iterator to pixel buffer, then write pixel buffer to LEDs with `Driver`.
 - [#87](https://github.com/ahdinosaur/blinksy/pull/87): Refactor clocked LED drivers
 
+Feature additions:
+
+- [#85](https://github.com/ahdinosaur/blinksy/pull/85): Pin RMT driver in RAM for examples
+
+
 ## 0.10
 
 Yee haw `blinksy` now supports async!

@@ -24,13 +24,16 @@ use blinksy::{
     driver::{clockless::ClocklessLed, ClocklessWriter},
     util::bits::{word_to_bits_msb, Word},
 };
-use core::{fmt::Debug, marker::PhantomData};
+use core::{fmt::Debug, iter::once, marker::PhantomData};
 #[cfg(feature = "async")]
 use esp_hal::Async;
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
-    rmt::{Channel, Error as RmtError, PulseCode, Tx, TxChannelConfig, TxChannelCreator},
+    rmt::{
+        Channel, Error as RmtError, PulseCode, Tx, TxChannelConfig, TxChannelCreator,
+        CHANNEL_RAM_SIZE,
+    },
     Blocking, DriverMode,
 };
 use heapless::Vec;
@@ -56,19 +59,21 @@ pub struct ClocklessRmtBuilder<const RMT_BUFFER_SIZE: usize, Led, Chan, Pin> {
     led: PhantomData<Led>,
     channel: Chan,
     pin: Pin,
+    memsize: u8,
 }
 
-impl Default for ClocklessRmtBuilder<64, (), (), ()> {
-    fn default() -> ClocklessRmtBuilder<64, (), (), ()> {
+impl Default for ClocklessRmtBuilder<CHANNEL_RAM_SIZE, (), (), ()> {
+    fn default() -> ClocklessRmtBuilder<CHANNEL_RAM_SIZE, (), (), ()> {
         ClocklessRmtBuilder {
             led: PhantomData,
             channel: (),
             pin: (),
+            memsize: 1,
         }
     }
 }
 
-impl<Led, Chan, Pin> ClocklessRmtBuilder<64, Led, Chan, Pin> {
+impl<Led, Chan, Pin> ClocklessRmtBuilder<CHANNEL_RAM_SIZE, Led, Chan, Pin> {
     pub fn with_rmt_buffer_size<const RMT_BUFFER_SIZE: usize>(
         self,
     ) -> ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin> {
@@ -76,6 +81,20 @@ impl<Led, Chan, Pin> ClocklessRmtBuilder<64, Led, Chan, Pin> {
             led: self.led,
             channel: self.channel,
             pin: self.pin,
+            memsize: 1,
+        }
+    }
+}
+
+impl<const RMT_BUFFER_SIZE: usize, Led, Chan, Pin>
+    ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin>
+{
+    pub fn with_memsize(self, memsize: u8) -> Self {
+        Self {
+            led: self.led,
+            channel: self.channel,
+            pin: self.pin,
+            memsize,
         }
     }
 }
@@ -86,6 +105,7 @@ impl<const RMT_BUFFER_SIZE: usize, Chan, Pin> ClocklessRmtBuilder<RMT_BUFFER_SIZ
             led: PhantomData,
             channel: self.channel,
             pin: self.pin,
+            memsize: 1,
         }
     }
 }
@@ -99,6 +119,7 @@ impl<const RMT_BUFFER_SIZE: usize, Led, Pin> ClocklessRmtBuilder<RMT_BUFFER_SIZE
             led: self.led,
             channel,
             pin: self.pin,
+            memsize: 1,
         }
     }
 }
@@ -109,6 +130,7 @@ impl<const RMT_BUFFER_SIZE: usize, Led, Chan> ClocklessRmtBuilder<RMT_BUFFER_SIZ
             led: self.led,
             channel: self.channel,
             pin,
+            memsize: 1,
         }
     }
 }
@@ -125,7 +147,7 @@ where
         Pin: PeripheralOutput<'ch>,
         Dm: DriverMode,
     {
-        ClocklessRmt::new(self.channel, self.pin)
+        ClocklessRmt::new(self.channel, self.pin, self.memsize)
     }
 }
 
@@ -155,16 +177,6 @@ where
 {
     fn clock_divider() -> u8 {
         1
-    }
-
-    fn tx_channel_config() -> TxChannelConfig {
-        TxChannelConfig::default()
-            .with_clk_divider(Self::clock_divider())
-            .with_idle_output_level(Level::Low)
-            .with_idle_output(true)
-            .with_carrier_modulation(false)
-            // 64 u32's per memory block, max of 8
-            .with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8)
     }
 
     fn setup_pulses() -> (PulseCode, PulseCode, PulseCode) {
@@ -199,7 +211,7 @@ where
     }
 
     fn rmt_end(&self) -> impl IntoIterator<Item = PulseCode> {
-        [self.pulses.2]
+        once(self.pulses.2)
     }
 
     fn rmt<const FRAME_BUFFER_SIZE: usize>(
@@ -227,12 +239,18 @@ where
     /// # Returns
     ///
     /// A configured ClocklessRmt instance
-    pub fn new<C, O>(channel: C, pin: O) -> Self
+    pub fn new<C, O>(channel: C, pin: O, memsize: u8) -> Self
     where
         C: TxChannelCreator<'ch, Dm>,
         O: PeripheralOutput<'ch>,
     {
-        let config = Self::tx_channel_config();
+        let config = TxChannelConfig::default()
+            .with_clk_divider(Self::clock_divider())
+            .with_idle_output_level(Level::Low)
+            .with_idle_output(true)
+            .with_carrier_modulation(false)
+            // 64 u32's per memory block, max of 8
+            .with_memsize(memsize);
         let channel = channel.configure_tx(pin, config).unwrap();
         let pulses = Self::setup_pulses();
 
@@ -309,7 +327,8 @@ where
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
+        let rmt_pulses = self.rmt(frame);
+        for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(rmt_pulses, RMT_BUFFER_SIZE - 1) {
             // RMT buffer must end with 0.
             rmt_buffer.push(PulseCode::end_marker()).unwrap();
             self.transmit_blocking(&rmt_buffer)?;

@@ -158,6 +158,7 @@ let driver = ClockedDriver::default()
 
 Breaking changes:
 
+- [#93](https://github.com/ahdinosaur/blinksy/pull/93): Make more features optional
 - [#90](https://github.com/ahdinosaur/blinksy/pull/90): Re-architect to pre-calculate a buffer for each frame
 - [#82](https://github.com/ahdinosaur/blinksy/pull/82): Use pixels buffer
   - Write all colors from `Pattern` iterator to pixel buffer, then write pixel buffer to LEDs with `Driver`.

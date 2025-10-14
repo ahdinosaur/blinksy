@@ -18,6 +18,7 @@ use num_traits::Float;
 /// that arithmetic operations on sRGB values (like averaging or interpolation) will not
 /// produce perceptually correct results. For such operations, convert to `LinearSrgb` first.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Srgb {
     /// Red component (0.0 to 1.0)
     pub red: f32,

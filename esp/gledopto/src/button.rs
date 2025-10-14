@@ -111,6 +111,7 @@ impl DerefMut for FunctionButton<'_> {
 ///
 /// This wrapper provides the necessary time-related functionality for the button driver.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ButtonInstant(Instant);
 
 impl Sub for ButtonInstant {

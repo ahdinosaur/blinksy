@@ -237,6 +237,7 @@ pub trait ClockedWriterAsync<Word> {
 /// - `Led` - The LED protocol implementation (must implement ClockedLed)
 /// - `Writer` - The clocked writer
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ClockedDriver<Led, Writer> {
     /// Marker for the LED protocol type
     led: PhantomData<Led>,

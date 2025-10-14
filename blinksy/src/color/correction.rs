@@ -15,6 +15,7 @@ use num_traits::Float;
 /// - Calibrating a display system for accurate color reproduction
 /// - Compensating for RGB LED intensity differences
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ColorCorrection {
     /// Scaling factor for red channel
     pub red: f32,

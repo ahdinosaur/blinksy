@@ -1,4 +1,5 @@
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BitOrder {
     MostSignificantBit,
     LeastSignificantBit,
@@ -33,7 +34,8 @@ impl_word!(u64);
 impl_word!(u128);
 
 /// MSB-first bit iterator
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct BitsMsb<W: Word> {
     value: W,
     mask: W,

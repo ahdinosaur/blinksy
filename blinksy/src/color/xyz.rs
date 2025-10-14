@@ -12,6 +12,7 @@ use super::LinearSrgb;
 /// - **Device-Independent**: Based on human perception
 /// - **Linear**: Values are proportional to light intensity
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Xyz {
     /// X component (mix of cone responses, roughly corresponds to red)
     pub x: f32,

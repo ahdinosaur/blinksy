@@ -6,6 +6,7 @@ use super::{ColorCorrection, LinearSrgb};
 
 /// Color data ready for output to LED hardware
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LedColor<C> {
     /// Output RGB color data
     Rgb(LedRgb<C>),
@@ -88,6 +89,7 @@ impl<C> IntoIterator for LedColor<C> {
 
 /// RGB color values ready for output to LED hardware
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LedRgb<C>([C; 3]);
 
 impl<C: Component> LedRgb<C> {
@@ -165,6 +167,7 @@ impl<C> Index<usize> for LedRgb<C> {
 
 /// RGBW color values ready for output to LED hardware
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LedRgbw<C>([C; 4]);
 
 impl<C: Component> LedRgbw<C> {
@@ -260,6 +263,7 @@ impl<C> Index<usize> for LedRgbw<C> {
 /// Different LED chipsets have different ordering of color channels.
 /// This enum represents the possible arrangements.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LedChannels {
     /// RGB with 3 channels
     Rgb(RgbChannels),
@@ -281,6 +285,7 @@ impl LedChannels {
 ///
 /// Different RGB LED chipsets may use different ordering of the R, G, and B channels.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum RgbChannels {
     /// Red, Green, Blue
     RGB,
@@ -300,6 +305,7 @@ pub enum RgbChannels {
 ///
 /// Different RGBW LED chipsets may use different ordering of the R, G, B, and W channels.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum RgbwChannels {
     // RGB
     WRGB,

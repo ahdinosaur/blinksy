@@ -75,7 +75,7 @@ name = "blinksy-esp"
 version = "0.10.0"
 dependencies = [
  "blinksy",
- "defmt 0.3.100",
+ "defmt 1.0.1",
  "esp-hal",
  "heapless 0.9.1",
  "num-traits",
@@ -967,7 +967,7 @@ dependencies = [
  "blinksy-esp",
  "button-driver",
  "critical-section",
- "defmt 0.3.100",
+ "defmt 1.0.1",
  "embassy-executor",
  "embassy-time",
  "esp-alloc",

@@ -46,7 +46,8 @@ pub const fn rmt_buffer_size<Led: ClocklessLed>(pixel_count: usize) -> usize {
 
 /// All types of errors that can happen during the conversion and transmission
 /// of LED commands
-#[derive(Debug, defmt::Format)]
+#[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ClocklessRmtError {
     /// Raised in the event that the provided data container is not large enough
     BufferSizeExceeded,

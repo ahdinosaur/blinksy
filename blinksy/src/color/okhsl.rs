@@ -14,6 +14,7 @@ use num_traits::Float;
 /// - `s`: Saturation component (0.0 to 1.0) representing the color's intensity/purity
 /// - `l`: Lightness component (0.0 to 1.0) representing the color's brightness
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Okhsl {
     /// Hue component [0.0, 1.0) where 0 and 1 both represent red
     pub h: f32,

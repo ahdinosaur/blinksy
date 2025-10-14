@@ -139,6 +139,7 @@ where
 /// This type handles the low-level bit-banging of data and clock pins
 /// to transmit data using a clocked protocol.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ClockedDelay<Data, Clock, Delay>
 where
     Data: OutputPin,
@@ -190,6 +191,7 @@ where
 /// This enum wraps errors from the data and clock pins to provide
 /// a unified error type for the writer.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ClockedDelayError<Data, Clock>
 where
     Data: OutputPin,

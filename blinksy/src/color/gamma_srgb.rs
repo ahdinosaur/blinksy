@@ -17,6 +17,7 @@ use num_traits::Float;
 /// Unlike the standard sRGB transfer function which uses a piecewise curve,
 /// GammaSrgb uses a simple power function: C_gamma = C_linear^(1/gamma)
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GammaSrgb {
     /// Red component (0.0 to 1.0)
     pub red: f32,

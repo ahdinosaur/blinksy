@@ -4,6 +4,8 @@
 
 Migration guide (0.10 -> UNRELEASED)
 
+- `defmt` is now optional across all crates, defaults to enabled in `gledopto`.
+- `alloc` is now optional in `gledopto` crate.
 - `ControlBuilder::with_layout` generic type signature changes from `<Layout`> to `<Layout, const PIXEL_COUNT: usize>`
   - If your layout is `Layout`, then change `.with_layout<Layout>()` to `.with_layout::<Layout, { Layout::PIXEL_COUNT }>()`
 
@@ -156,11 +158,17 @@ let driver = ClockedDriver::default()
 
 Breaking changes:
 
+- [#93](https://github.com/ahdinosaur/blinksy/pull/93): Make more features optional
 - [#92](https://github.com/ahdinosaur/blinksy/pull/92): Document and enforce generic constants in ControlBuilder
 - [#90](https://github.com/ahdinosaur/blinksy/pull/90): Re-architect to pre-calculate a buffer for each frame
 - [#82](https://github.com/ahdinosaur/blinksy/pull/82): Use pixels buffer
   - Write all colors from `Pattern` iterator to pixel buffer, then write pixel buffer to LEDs with `Driver`.
 - [#87](https://github.com/ahdinosaur/blinksy/pull/87): Refactor clocked LED drivers
+
+Feature additions:
+
+- [#85](https://github.com/ahdinosaur/blinksy/pull/85): Pin RMT driver in RAM for examples
+
 
 ## 0.10
 

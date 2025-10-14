@@ -139,13 +139,14 @@ pub use esp_hal_embassy as hal_embassy;
 pub use hal_embassy::main as main_embassy;
 
 /// Re-export the ESP32 heap allocator
+#[cfg(feature = "alloc")]
 pub use esp_alloc as alloc;
 
-/// Re-export the ESP32 heap allocator
 pub use esp_bootloader_esp_idf as bootloader;
 
-// These modules provide error handling and debug printing
+#[cfg(feature = "backtrace")]
 pub use esp_backtrace as backtrace;
+#[cfg(any(feature = "println", feature = "defmt"))]
 pub use esp_println as println;
 
 /// Button handling functionality
@@ -154,6 +155,7 @@ pub mod button;
 /// Initializes the heap allocator with a 72KB heap.
 ///
 /// This is required for ESP32 targets that need dynamic memory allocation.
+#[cfg(feature = "alloc")]
 #[macro_export]
 macro_rules! heap_allocator {
     () => {

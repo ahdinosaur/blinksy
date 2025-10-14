@@ -25,6 +25,7 @@ use crate::{
 /// This implementation includes the "High Definition" color handling from FastLED, which
 /// optimizes the use of the 5-bit brightness and 8-bit per-channel values.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Apa102;
 
 impl Apa102 {

@@ -75,7 +75,7 @@ use std::sync::mpsc::{channel, Receiver, SendError, Sender};
 /// Configuration options for the desktop simulator.
 ///
 /// Allows customizing the appearance and behavior of the LED simulator window.
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct DesktopConfig {
     /// Window title
     pub window_title: String,

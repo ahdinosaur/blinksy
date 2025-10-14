@@ -25,6 +25,7 @@ use num_traits::Float;
 ///
 /// Reference: <https://bottosson.github.io/posts/oklab/>
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Oklab {
     /// Lightness component [0.0, 1.0]
     pub l: f32,

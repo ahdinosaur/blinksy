@@ -19,7 +19,11 @@ Migration guide (0.10 -> UNRELEASED)
 +  .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
 ```
 
-- Change `Driver` (and `DriverAsync`) trait interface:
+If using the `gledopto` high-level helper macros, this should be all you need to change.
+
+Below are changes for lower-level interfaces:
+
+- Change `Driver` (and `DriverAsync`) traits:
 
 ```rust
 pub trait Driver {
@@ -156,7 +160,6 @@ Breaking changes:
 - [#82](https://github.com/ahdinosaur/blinksy/pull/82): Use pixels buffer
   - Write all colors from `Pattern` iterator to pixel buffer, then write pixel buffer to LEDs with `Driver`.
 - [#87](https://github.com/ahdinosaur/blinksy/pull/87): Refactor clocked LED drivers
-
 
 ## 0.10
 

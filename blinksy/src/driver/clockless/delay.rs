@@ -85,7 +85,10 @@ where
 /// ```rust
 /// use embedded_hal::digital::OutputPin;
 /// use embedded_hal::delay::DelayNs;
-/// use blinksy::{driver::clockless::{ClocklessDriver, ClocklessDelay}, leds::Ws2812};
+/// use blinksy::{
+///     driver::clockless::{ClocklessDelay, ClocklessDelayBuilder, ClocklessDriver},
+///     leds::Ws2812
+/// };
 ///
 /// fn setup_leds<Data, Delay>(data: Data, delay: Delay)
 ///     -> ClocklessDriver<Ws2812, ClocklessDelay<Ws2812, Data, Delay>>

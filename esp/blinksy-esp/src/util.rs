@@ -21,7 +21,7 @@ where
         for _ in 0..chunk_size {
             match iter.next() {
                 Some(item) => {
-                    let _ = buf.push(item).expect("chunked: chunk size > buffer size");
+                    buf.push(item).expect("chunked: chunk size > buffer size");
                 }
                 None => break,
             }

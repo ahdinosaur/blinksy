@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn test_u8_msb() {
-        let bits: Vec<bool, 8> = word_to_bits_msb(&0b1010_0001_u8).collect();
+        let bits: Vec<bool, 8> = word_to_bits_msb(0b1010_0001_u8).collect();
 
         assert_eq!(
             bits,
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_u16_msb() {
-        let bits: Vec<bool, 16> = word_to_bits_msb(&0x0408_u16).collect();
+        let bits: Vec<bool, 16> = word_to_bits_msb(0x0408_u16).collect();
 
         assert_eq!(
             bits,

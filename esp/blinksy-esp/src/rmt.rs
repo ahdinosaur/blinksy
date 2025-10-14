@@ -59,7 +59,6 @@ pub struct ClocklessRmtBuilder<const RMT_BUFFER_SIZE: usize, Led, Chan, Pin> {
     led: PhantomData<Led>,
     channel: Chan,
     pin: Pin,
-    memsize: u8,
 }
 
 impl Default for ClocklessRmtBuilder<CHANNEL_RAM_SIZE, (), (), ()> {
@@ -68,7 +67,6 @@ impl Default for ClocklessRmtBuilder<CHANNEL_RAM_SIZE, (), (), ()> {
             led: PhantomData,
             channel: (),
             pin: (),
-            memsize: 1,
         }
     }
 }
@@ -81,20 +79,6 @@ impl<Led, Chan, Pin> ClocklessRmtBuilder<CHANNEL_RAM_SIZE, Led, Chan, Pin> {
             led: self.led,
             channel: self.channel,
             pin: self.pin,
-            memsize: 1,
-        }
-    }
-}
-
-impl<const RMT_BUFFER_SIZE: usize, Led, Chan, Pin>
-    ClocklessRmtBuilder<RMT_BUFFER_SIZE, Led, Chan, Pin>
-{
-    pub fn with_memsize(self, memsize: u8) -> Self {
-        Self {
-            led: self.led,
-            channel: self.channel,
-            pin: self.pin,
-            memsize,
         }
     }
 }
@@ -105,7 +89,6 @@ impl<const RMT_BUFFER_SIZE: usize, Chan, Pin> ClocklessRmtBuilder<RMT_BUFFER_SIZ
             led: PhantomData,
             channel: self.channel,
             pin: self.pin,
-            memsize: 1,
         }
     }
 }
@@ -119,7 +102,6 @@ impl<const RMT_BUFFER_SIZE: usize, Led, Pin> ClocklessRmtBuilder<RMT_BUFFER_SIZE
             led: self.led,
             channel,
             pin: self.pin,
-            memsize: 1,
         }
     }
 }
@@ -130,7 +112,6 @@ impl<const RMT_BUFFER_SIZE: usize, Led, Chan> ClocklessRmtBuilder<RMT_BUFFER_SIZ
             led: self.led,
             channel: self.channel,
             pin,
-            memsize: 1,
         }
     }
 }
@@ -147,7 +128,7 @@ where
         Pin: PeripheralOutput<'ch>,
         Dm: DriverMode,
     {
-        ClocklessRmt::new(self.channel, self.pin, self.memsize)
+        ClocklessRmt::new(self.channel, self.pin)
     }
 }
 
@@ -239,7 +220,7 @@ where
     /// # Returns
     ///
     /// A configured ClocklessRmt instance
-    pub fn new<C, O>(channel: C, pin: O, memsize: u8) -> Self
+    pub fn new<C, O>(channel: C, pin: O) -> Self
     where
         C: TxChannelCreator<'ch, Dm>,
         O: PeripheralOutput<'ch>,
@@ -247,10 +228,7 @@ where
         let config = TxChannelConfig::default()
             .with_clk_divider(Self::clock_divider())
             .with_idle_output_level(Level::Low)
-            .with_idle_output(true)
-            .with_carrier_modulation(false)
-            // 64 u32's per memory block, max of 8
-            .with_memsize(memsize);
+            .with_idle_output(true);
         let channel = channel.configure_tx(pin, config).unwrap();
         let pulses = Self::setup_pulses();
 

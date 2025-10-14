@@ -25,17 +25,14 @@ use blinksy::{
     util::bits::{word_to_bits_msb, Word},
 };
 use core::{fmt::Debug, marker::PhantomData};
+#[cfg(feature = "async")]
+use esp_hal::Async;
 use esp_hal::{
     clock::Clocks,
     gpio::{interconnect::PeripheralOutput, Level},
-    rmt::{
-        Channel, Error as RmtError, PulseCode, RawChannelAccess, TxChannel, TxChannelConfig,
-        TxChannelCreator, TxChannelInternal,
-    },
+    rmt::{Channel, Error as RmtError, PulseCode, Tx, TxChannelConfig, TxChannelCreator},
     Blocking, DriverMode,
 };
-#[cfg(feature = "async")]
-use esp_hal::{rmt::TxChannelAsync, Async};
 use heapless::Vec;
 
 use crate::util::chunked;
@@ -122,12 +119,11 @@ where
     Led: ClocklessLed,
     Led::Word: Word,
 {
-    pub fn build<'d, Dm, Tx>(self) -> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
+    pub fn build<'ch, Dm>(self) -> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<'ch, Dm, Tx>>
     where
-        Chan: TxChannelCreator<'d, Dm, Raw = Tx>,
-        Pin: PeripheralOutput<'d>,
+        Chan: TxChannelCreator<'ch, Dm>,
+        Pin: PeripheralOutput<'ch>,
         Dm: DriverMode,
-        Tx: RawChannelAccess + TxChannelInternal + 'static,
     {
         ClocklessRmt::new(self.channel, self.pin)
     }
@@ -149,7 +145,7 @@ where
 {
     led: PhantomData<Led>,
     channel: Option<TxChannel>,
-    pulses: (u32, u32, u32),
+    pulses: (PulseCode, PulseCode, PulseCode),
 }
 
 impl<const RMT_BUFFER_SIZE: usize, Led, TxChannel> ClocklessRmt<RMT_BUFFER_SIZE, Led, TxChannel>
@@ -171,7 +167,7 @@ where
             .with_memsize((RMT_BUFFER_SIZE / 64).min(8) as u8)
     }
 
-    fn setup_pulses() -> (u32, u32, u32) {
+    fn setup_pulses() -> (PulseCode, PulseCode, PulseCode) {
         let clocks = Clocks::get();
         let freq_hz = clocks.apb_clock.as_hz() / Self::clock_divider() as u32;
         let freq_mhz = freq_hz / 1_000_000;
@@ -192,7 +188,7 @@ where
     fn rmt_led<const FRAME_BUFFER_SIZE: usize>(
         &self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> impl Iterator<Item = u32> {
+    ) -> impl Iterator<Item = PulseCode> {
         let pulses = self.pulses;
         frame.into_iter().flat_map(move |word| {
             word_to_bits_msb(word).map(move |bit| match bit {
@@ -202,24 +198,24 @@ where
         })
     }
 
-    fn rmt_end(&self) -> impl IntoIterator<Item = u32> {
+    fn rmt_end(&self) -> impl IntoIterator<Item = PulseCode> {
         [self.pulses.2]
     }
 
     fn rmt<const FRAME_BUFFER_SIZE: usize>(
         &self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> impl Iterator<Item = u32> {
+    ) -> impl Iterator<Item = PulseCode> {
         self.rmt_led(frame).chain(self.rmt_end())
     }
 }
 
-impl<const RMT_BUFFER_SIZE: usize, Led, Dm, Tx> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Dm, Tx>>
+impl<'ch, const RMT_BUFFER_SIZE: usize, Led, Dm>
+    ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<'ch, Dm, Tx>>
 where
     Led: ClocklessLed,
     Led::Word: Word,
     Dm: DriverMode,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     /// Create a new adapter object that drives the pin using the RMT channel.
     ///
@@ -231,10 +227,10 @@ where
     /// # Returns
     ///
     /// A configured ClocklessRmt instance
-    pub fn new<'d, C, O>(channel: C, pin: O) -> Self
+    pub fn new<C, O>(channel: C, pin: O) -> Self
     where
-        C: TxChannelCreator<'d, Dm, Raw = Tx>,
-        O: PeripheralOutput<'d>,
+        C: TxChannelCreator<'ch, Dm>,
+        O: PeripheralOutput<'ch>,
     {
         let config = Self::tx_channel_config();
         let channel = channel.configure_tx(pin, config).unwrap();
@@ -248,11 +244,10 @@ where
     }
 }
 
-impl<const RMT_BUFFER_SIZE: usize, Led, Tx>
-    ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
+impl<'ch, const RMT_BUFFER_SIZE: usize, Led>
+    ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<'ch, Blocking, Tx>>
 where
     Led: ClocklessLed,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     /// Transmit buffer using RMT, blocking.
     ///
@@ -263,7 +258,7 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error
-    fn transmit_blocking(&mut self, buffer: &[u32]) -> Result<(), ClocklessRmtError> {
+    fn transmit_blocking(&mut self, buffer: &[PulseCode]) -> Result<(), ClocklessRmtError> {
         let channel = self.channel.take().unwrap();
         match channel.transmit(buffer).unwrap().wait() {
             Ok(chan) => {
@@ -279,10 +274,10 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<Led, Tx, const RMT_BUFFER_SIZE: usize> ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Async, Tx>>
+impl<'ch, const RMT_BUFFER_SIZE: usize, Led>
+    ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<'ch, Async, Tx>>
 where
     Led: ClocklessLed,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     /// Transmit buffer using RMT, async.
     ///
@@ -293,7 +288,7 @@ where
     /// # Returns
     ///
     /// Result indicating success or an error
-    async fn transmit_async(&mut self, buffer: &[u32]) -> Result<(), ClocklessRmtError> {
+    async fn transmit_async(&mut self, buffer: &[PulseCode]) -> Result<(), ClocklessRmtError> {
         let channel = self.channel.as_mut().unwrap();
         channel
             .transmit(buffer)
@@ -302,12 +297,11 @@ where
     }
 }
 
-impl<const RMT_BUFFER_SIZE: usize, Led, Tx> ClocklessWriter<Led>
-    for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Blocking, Tx>>
+impl<'ch, const RMT_BUFFER_SIZE: usize, Led> ClocklessWriter<Led>
+    for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<'ch, Blocking, Tx>>
 where
     Led: ClocklessLed,
     Led::Word: Word,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
 {
     type Error = ClocklessRmtError;
 
@@ -317,7 +311,7 @@ where
     ) -> Result<(), Self::Error> {
         for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
             // RMT buffer must end with 0.
-            rmt_buffer.push(0).unwrap();
+            rmt_buffer.push(PulseCode::end_marker()).unwrap();
             self.transmit_blocking(&rmt_buffer)?;
         }
 
@@ -326,11 +320,11 @@ where
 }
 
 #[cfg(feature = "async")]
-impl<const RMT_BUFFER_SIZE: usize, Led, Tx> ClocklessWriterAsync<Led>
-    for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<Async, Tx>>
+impl<'ch, const RMT_BUFFER_SIZE: usize, Led> ClocklessWriterAsync<Led>
+    for ClocklessRmt<RMT_BUFFER_SIZE, Led, Channel<'ch, Async, Tx>>
 where
-    Led: ClocklessLed<Word = u8>,
-    Tx: RawChannelAccess + TxChannelInternal + 'static,
+    Led: ClocklessLed,
+    Led::Word: Word,
 {
     type Error = ClocklessRmtError;
 
@@ -340,7 +334,7 @@ where
     ) -> Result<(), Self::Error> {
         for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
             // RMT buffer must end with 0.
-            rmt_buffer.push(0).unwrap();
+            rmt_buffer.push(PulseCode::end_marker()).unwrap();
             self.transmit_async(&rmt_buffer).await?;
         }
 

@@ -289,7 +289,7 @@ macro_rules! clocked_async {
 /// An APA102 driver configured for the Gledopto board
 #[cfg(feature = "async")]
 #[macro_export]
-macro_rules! apa102 {
+macro_rules! apa102_async {
     ($peripherals:ident) => {{
         $crate::clocked_async!($peripherals, $crate::blinksy::leds::Apa102)
     }};
@@ -318,6 +318,9 @@ macro_rules! rmt {
 /// A clockless driver configured for the LED type on the Gledopto board
 #[macro_export]
 macro_rules! clockless {
+    ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
+        $crate::clockless!($peripherals, $pixel_count, $led, 64)
+    }};
     ($peripherals:ident, $pixel_count:expr, $led:ty, buffered) => {{
         $crate::clockless!($peripherals, $pixel_count, $led, {
             $crate::blinksy_esp::rmt::rmt_buffer_size::<$led>($pixel_count)
@@ -389,28 +392,23 @@ macro_rules! ws2812 {
 #[cfg(feature = "async")]
 #[macro_export]
 macro_rules! clockless_async {
+    ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
+        $crate::clockless_async!($peripherals, $pixel_count, $led, 64)
+    }};
     ($peripherals:ident, $pixel_count:expr, $led:ty, $rmt_buffer_size:expr) => {{
         let led_pin = $peripherals.GPIO16;
-        let rmt = $crate::rmt!($peripherals).to_async();
+        let rmt = $crate::rmt!($peripherals).into_async();
 
         $crate::blinksy::driver::ClocklessDriver::default()
             .with_led::<$led>()
             .with_writer(
                 $crate::blinksy_esp::ClocklessRmtBuilder::default()
-                    .with_rmt_buffer_size::<$buffer_size>()
+                    .with_rmt_buffer_size::<$rmt_buffer_size>()
                     .with_led::<$led>()
                     .with_channel(rmt.channel0)
                     .with_pin(led_pin)
                     .build(),
             )
-    }};
-    ($peripherals:ident, $pixel_count:expr, buffered) => {{
-        $crate::clockless_async!($peripherals, $pixel_count, $led, {
-            $crate::blinksy_esp::rmt::rmt_buffer_size::<$led>($pixel_count)
-        })
-    }};
-    ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
-        $crate::clockless_async!($peripherals, $pixel_count, $led, 64)
     }};
 }
 
@@ -434,14 +432,6 @@ macro_rules! ws2812_async {
             $pixel_count,
             $crate::blinksy::leds::Ws2812,
             $rmt_buffer_size
-        )
-    }};
-    ($peripherals:ident, $pixel_count:expr, buffered) => {{
-        $crate::clockless_async!(
-            $peripherals,
-            $pixel_count,
-            $crate::blinksy::leds::Ws2812,
-            buffered
         )
     }};
     ($peripherals:ident, $pixel_count:expr) => {{

@@ -9,8 +9,8 @@
 //!
 //! ## Re-usable implementations
 //!
-//! - [`clocked`]: For clocked (two-wire) protocols (like [`APA102`](crate::leds::apa102))
-//! - [`clockless`]: For clockless (one-wire) protocols (like [`WS2812`](crate::leds::ws2812))
+//! - [`clocked`]: For clocked (two-wire) protocols (like [`APA102`](crate::leds::Apa102))
+//! - [`clockless`]: For clockless (one-wire) protocols (like [`WS2812`](crate::leds::Ws2812))
 
 use heapless::Vec;
 

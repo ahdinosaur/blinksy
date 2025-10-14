@@ -53,7 +53,7 @@ fn main() -> ! {
             position_scalar: 0.25,
         })
         .with_driver(ws2812!(p, VolumeCubeLayout::PIXEL_COUNT, buffered))
-        .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
+        .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(VolumeCubeLayout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.1);

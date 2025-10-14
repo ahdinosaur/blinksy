@@ -179,7 +179,7 @@ For all examples, see:
 - [Desktop examples in `./blinksy-desktop/examples`](./blinksy-desktop/examples)
 - [Embedded (with Gledopto) examples in `./esp/gledopto/examples`](./esp/gledopto/examples)
 
-### Embedded Gledopto: 3D Cube with Nosie Pattern
+### Embedded Gledopto: 3D Cube with Noise Pattern
 
 https://github.com/user-attachments/assets/36a2c6ad-7ae6-4498-85b3-ed76d0b62264
 
@@ -195,6 +195,7 @@ https://github.com/user-attachments/assets/36a2c6ad-7ae6-4498-85b3-ed76d0b62264
 use blinksy::{
     layout::{Layout3d, Shape3d, Vec3},
     layout3d,
+    leds::Ws2812,
     patterns::noise::{noise_fns, Noise3d, NoiseParams},
     ControlBuilder,
 };
@@ -272,6 +273,7 @@ fn main() -> ! {
             ..Default::default()
         })
         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.2);
@@ -327,6 +329,7 @@ fn main() {
                 ..Default::default()
             })
             .with_driver(driver)
+            .with_frame_buffer_size::<{ PanelLayout::PIXEL_COUNT }>()
             .build();
 
         loop {
@@ -358,21 +361,25 @@ https://github.com/user-attachments/assets/703fe31d-e7ca-4e08-ae2b-7829c0d4d52e
 use blinksy::{
     layout::Layout1d,
     layout1d,
+    leds::Ws2812,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
-use gledopto::{board, elapsed, main, ws2812};
+use gledopto::{board, bootloader, elapsed, main, ws2812};
+
+bootloader!();
 
 #[main]
 fn main() -> ! {
     let p = board!();
 
-    layout1d!(Layout, 60 * 5);
+    layout1d!(Layout, 50);
 
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
-        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT, buffered))
+        .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.2);
@@ -399,11 +406,14 @@ fn main() -> ! {
 use blinksy::{
     layout::Layout1d,
     layout1d,
+    leds::Ws2812,
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
 use embassy_executor::Spawner;
-use gledopto::{board, elapsed, init_embassy, main_embassy, ws2812_async};
+use gledopto::{board, bootloader, elapsed, init_embassy, main_embassy, ws2812_async};
+
+bootloader!();
 
 #[main_embassy]
 async fn main(_spawner: Spawner) {
@@ -411,12 +421,13 @@ async fn main(_spawner: Spawner) {
 
     init_embassy!(p);
 
-    layout1d!(Layout, 60 * 5);
+    layout1d!(Layout, 50);
 
     let mut control = ControlBuilder::new_1d_async()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
-        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
+        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT, buffered))
+        .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.2);
@@ -446,10 +457,11 @@ https://github.com/user-attachments/assets/1c1cf3a2-f65c-4152-b444-29834ac749ee
 use blinksy::{
     layout::{Layout2d, Shape2d, Vec2},
     layout2d,
+    leds::Apa102,
     patterns::noise::{noise_fns, Noise2d, NoiseParams},
     ControlBuilder,
 };
-use gledopto::{board, bootloader, elapsed, main, ws2812};
+use gledopto::{apa102, board, bootloader, elapsed, main};
 
 bootloader!();
 
@@ -472,6 +484,7 @@ fn main() -> ! {
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
         .with_driver(apa102!(p))
+        .with_frame_buffer_size::<{ Apa102::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 
     control.set_brightness(0.2);

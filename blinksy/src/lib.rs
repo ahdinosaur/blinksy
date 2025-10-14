@@ -35,9 +35,9 @@
 //!
 //! If you want help to support a new LED chipset, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 //!
-//! [WS2812B]: leds::ws2812
-//! [SK6812]: leds::sk6812
-//! [APA102]: leds::apa102
+//! [WS2812B]: leds::Ws2812
+//! [SK6812]: leds::Sk6812
+//! [APA102]: leds::Apa102
 //!
 //! ### Pattern (Effect) Library:
 //!
@@ -53,13 +53,12 @@
 //!
 //! **Clocked LED support (e.g. APA102):**
 //!
-//! | Micro | HAL            | Blinksy     | Recommended Driver | Backup Driver     |
+//! | Micro | HAL            | Blinksy     | Recommended Writer | Backup Writer
 //! |-------|----------------|-------------|--------------------|------------------|
-//! | ALL   | [embedded-hal] | [blinksy]   | [Spi][clocked-spi] | [Delay][clocked-delay] |
+//! | ALL   | [embedded-hal] | [blinksy]   | [embedded_hal::spi::SpiBus] / [embedded_hal_async::spi::SpiBus] | [Delay][clocked-delay] |
 //!
-//! [embedded-hal]: https://docs.rs/embedded-hal/latest/embedded_hal/
-//! [blinksy]: https://docs.rs/blinksy/0.10/blinksy/
-//! [clocked-spi]: crate::driver::clocked::ClockedSpi
+//! [embedded-hal]: embedded_hal
+//! [blinksy]: crate
 //! [clocked-delay]: crate::driver::clocked::ClockedDelay
 //!
 //! **Clockless LED support (e.g. WS2812):**
@@ -130,7 +129,7 @@
 //! let mut control = ControlBuilder::new_1d()
 //!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Rainbow>(RainbowParams::default())
-//!     .with_driver(/* insert your LED driver here */)
+//!     .with_driver(/* Insert your LED driver here */)
 //!     .with_frame_buffer_size::</* Length of frame buffer */>()
 //!     .build();
 //!
@@ -152,7 +151,7 @@
 //! let mut control = ControlBuilder::new_1d_async()
 //!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Rainbow>(RainbowParams::default())
-//!     .with_driver(/* insert your LED driver here */)
+//!     .with_driver(/* Insert your LED driver here */)
 //!     .with_frame_buffer_size::</* Length of frame buffer */>()
 //!     .build();
 //!
@@ -187,7 +186,7 @@
 //! let mut control = ControlBuilder::new_2d()
 //!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
-//!     .with_driver(/* insert your LED driver here */)
+//!     .with_driver(/* Insert your LED driver here */)
 //!     .with_frame_buffer_size::</* Length of frame buffer */>()
 //!     .build();
 //!
@@ -271,7 +270,7 @@
 //! let mut control = ControlBuilder::new_3d()
 //!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams::default())
-//!     .with_driver(/* insert your LED driver here */)
+//!     .with_driver(/* Insert your LED driver here */)
 //!     .with_frame_buffer_size::</* Length of frame buffer */>()
 //!     .build();
 //!
@@ -306,7 +305,7 @@
 //! let mut control = ControlBuilder::new_2d()
 //!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Noise2d<noise_fns::Perlin>>(NoiseParams::default())
-//!     .with_driver(/* insert your LED driver here */)
+//!     .with_driver(/* Insert your LED driver here */)
 //!     .build();
 //!
 //! control.set_brightness(0.5);
@@ -389,7 +388,7 @@
 //! let mut control = ControlBuilder::new_3d()
 //!     .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
 //!     .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams::default())
-//!     .with_driver(/* insert your LED driver here */)
+//!     .with_driver(/* Insert your LED driver here */)
 //!     .build();
 //!
 //! control.set_brightness(0.2);

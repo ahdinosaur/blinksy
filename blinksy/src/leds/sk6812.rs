@@ -4,7 +4,7 @@ use crate::{color::LedChannels, driver::ClocklessLed};
 
 /// # SK6812 LEDs
 ///
-/// This type describes the SK6812 LEDs, which are similar to [`super::ws2812`] but with white: RGB + W.
+/// This type describes the SK6812 LEDs, which are similar to [`super::Ws2812`] but with white: RGB + W.
 ///
 /// # Driver
 ///

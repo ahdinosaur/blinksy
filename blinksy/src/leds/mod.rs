@@ -16,6 +16,6 @@ pub use ws2812::Ws2812;
 
 use crate::driver::ClocklessLed;
 
-pub(crate) const fn clockless_frame_buffer_size<Led: ClocklessLed>(pixel_count: usize) -> usize {
+pub const fn clockless_frame_buffer_size<Led: ClocklessLed>(pixel_count: usize) -> usize {
     pixel_count * Led::LED_CHANNELS.channel_count()
 }

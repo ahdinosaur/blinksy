@@ -630,24 +630,3 @@ where
         Control::new(self.pattern, self.driver)
     }
 }
-
-#[cfg(feature = "async")]
-impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Pattern, Driver>
-    ControlBuilder<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Async, Layout, Pattern, Driver>
-where
-    Layout: LayoutForDim<Dim>,
-    Pattern: PatternTrait<Dim, Layout>,
-    Driver: DriverAsyncTrait,
-    Driver::Color: FromColor<Pattern::Color>,
-{
-    /// Builds the final [`Control`] struct.
-    ///
-    /// # Returns
-    ///
-    /// A fully configured Control instance
-    pub fn build(
-        self,
-    ) -> Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Async, Layout, Pattern, Driver> {
-        Control::new(self.pattern, self.driver)
-    }
-}

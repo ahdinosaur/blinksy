@@ -313,7 +313,6 @@ macro_rules! rmt {
 /// - `$pixel_count` - The number of LEDs
 /// - `$led` - The type of LED
 /// - `$rmt_buffer_size` (Optional) - The length of the RMT buffer
-///   - (Can be `buffered` literal to mean RMT buffer size should be complete frame.)
 ///
 /// # Returns
 ///
@@ -321,15 +320,6 @@ macro_rules! rmt {
 #[macro_export]
 macro_rules! clockless {
     ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
-        $crate::clockless!($peripherals, $pixel_count, $led, {
-            // $crate::hal::rmt::CHANNEL_RAM_SIZE
-            // $crate::hal::rmt::CHANNEL_RAM_SIZE is too big, causes too big of gaps.
-            <$led as $crate::blinksy::driver::clockless::ClocklessLed>::LED_CHANNELS.channel_count()
-                * 8
-                + 1
-        })
-    }};
-    ($peripherals:ident, $pixel_count:expr, $led:ty, buffered) => {{
         $crate::clockless!($peripherals, $pixel_count, $led, {
             $crate::blinksy_esp::rmt::rmt_buffer_size::<$led>($pixel_count)
         })
@@ -358,7 +348,6 @@ macro_rules! clockless {
 /// - `$peripherals` - The ESP32 peripherals instance
 /// - `$pixel_count` - The number of LEDs in the strip
 /// - `$rmt_buffer_size` (Optional) - The length of the RMT buffer
-///   - (Can be `buffered` literal to mean RMT buffer size should be complete frame.)
 ///
 /// # Returns
 ///
@@ -367,14 +356,6 @@ macro_rules! clockless {
 macro_rules! ws2812 {
     ($peripherals:ident, $pixel_count:expr) => {{
         $crate::clockless!($peripherals, $pixel_count, $crate::blinksy::leds::Ws2812)
-    }};
-    ($peripherals:ident, $pixel_count:expr, buffered) => {{
-        $crate::clockless!(
-            $peripherals,
-            $pixel_count,
-            $crate::blinksy::leds::Ws2812,
-            buffered
-        )
     }};
     ($peripherals:ident, $pixel_count:expr, $rmt_buffer_size:expr) => {{
         $crate::clockless!(
@@ -394,7 +375,6 @@ macro_rules! ws2812 {
 /// - `$pixel_count` - The number of LEDs
 /// - `$led` - The type of LED
 /// - `$rmt_buffer_size` (Optional) - The length of the RMT buffer
-///   - (Can be `buffered` literal to mean RMT buffer size should be complete frame.)
 ///
 /// # Returns
 ///
@@ -403,14 +383,6 @@ macro_rules! ws2812 {
 #[macro_export]
 macro_rules! clockless_async {
     ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
-        $crate::clockless_async!($peripherals, $pixel_count, $led, {
-            // $crate::hal::rmt::CHANNEL_RAM_SIZE is too big, causes too big of gaps.
-            <$led as $crate::blinksy::driver::clockless::ClocklessLed>::LED_CHANNELS.channel_count()
-                * 8
-                + 1
-        })
-    }};
-    ($peripherals:ident, $pixel_count:expr, $led:ty, buffered) => {{
         $crate::clockless_async!($peripherals, $pixel_count, $led, {
             $crate::blinksy_esp::rmt::rmt_buffer_size::<$led>($pixel_count)
         })
@@ -439,7 +411,6 @@ macro_rules! clockless_async {
 /// - `$peripherals` - The ESP32 peripherals instance
 /// - `$pixel_count` - The number of LEDs in the strip
 /// - `$rmt_buffer_size` (Optional) - The length of the RMT buffer
-///   - (Can be `buffered` literal to mean RMT buffer size should be complete frame.)
 ///
 /// # Returns
 ///
@@ -449,14 +420,6 @@ macro_rules! clockless_async {
 macro_rules! ws2812_async {
     ($peripherals:ident, $pixel_count:expr) => {{
         $crate::clockless_async!($peripherals, $pixel_count, $crate::blinksy::leds::Ws2812)
-    }};
-    ($peripherals:ident, $pixel_count:expr, buffered) => {{
-        $crate::clockless_async!(
-            $peripherals,
-            $pixel_count,
-            $crate::blinksy::leds::Ws2812,
-            buffered
-        )
     }};
     ($peripherals:ident, $pixel_count:expr, $rmt_buffer_size:expr) => {{
         $crate::clockless_async!(

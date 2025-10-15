@@ -81,7 +81,9 @@ fn main() -> ! {
         .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
-        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT, {
+            gledopto::hal::rmt::CHANNEL_RAM_SIZE
+        }))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 

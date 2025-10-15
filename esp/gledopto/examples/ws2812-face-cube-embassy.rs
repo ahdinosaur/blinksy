@@ -3,6 +3,7 @@
 #![feature(impl_trait_in_assoc_type)]
 
 use blinksy::{
+    driver::ClocklessLed,
     layout::{Layout3d, Shape3d, Vec3},
     layout3d,
     leds::Ws2812,
@@ -85,7 +86,9 @@ async fn main(_spawner: Spawner) {
         .with_pattern::<Noise3d<noise_fns::Perlin>>(NoiseParams {
             ..Default::default()
         })
-        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
+        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT, {
+            Ws2812::LED_CHANNELS.channel_count() * 8 + 1
+        }))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 

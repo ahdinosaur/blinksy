@@ -20,16 +20,17 @@ async fn main(_spawner: Spawner) {
 
     init_embassy!(p);
 
-    layout1d!(Layout, 50);
+    layout1d!(Layout, 10);
 
     let mut control = ControlBuilder::new_1d_async()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
-        .with_pattern::<Rainbow>(RainbowParams::default())
-        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT, buffered))
+        .with_pattern::<Rainbow>(RainbowParams {
+            time_scalar: 0.,
+            ..Default::default()
+        })
+        .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
-
-    control.set_brightness(0.2);
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();

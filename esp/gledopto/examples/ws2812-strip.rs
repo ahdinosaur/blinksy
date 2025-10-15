@@ -16,12 +16,12 @@ bootloader!();
 fn main() -> ! {
     let p = board!();
 
-    layout1d!(Layout, 10);
+    layout1d!(Layout, 1500);
 
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams {
-            time_scalar: 0.,
+            //time_scalar: 0.,
             ..Default::default()
         })
         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))

@@ -20,12 +20,12 @@ async fn main(_spawner: Spawner) {
 
     init_embassy!(p);
 
-    layout1d!(Layout, 10);
+    layout1d!(Layout, 1500);
 
     let mut control = ControlBuilder::new_1d_async()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams {
-            time_scalar: 0.,
+            //time_scalar: 0.,
             ..Default::default()
         })
         .with_driver(ws2812_async!(p, Layout::PIXEL_COUNT))

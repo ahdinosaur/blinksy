@@ -321,12 +321,9 @@ macro_rules! rmt {
 #[macro_export]
 macro_rules! clockless {
     ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
-        $crate::clockless!(
-            $peripherals,
-            $pixel_count,
-            $led,
-            $crate::esp_hal::rmt::CHANNEL_RAM_SIZE
-        )
+        $crate::clockless!($peripherals, $pixel_count, $led, {
+            $crate::hal::rmt::CHANNEL_RAM_SIZE
+        })
     }};
     ($peripherals:ident, $pixel_count:expr, $led:ty, buffered) => {{
         $crate::clockless!($peripherals, $pixel_count, $led, {
@@ -402,12 +399,9 @@ macro_rules! ws2812 {
 #[macro_export]
 macro_rules! clockless_async {
     ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
-        $crate::clockless_async!(
-            $peripherals,
-            $pixel_count,
-            $led,
-            $crate::esp_hal::rmt::CHANNEL_RAM_SIZE
-        )
+        $crate::clockless_async!($peripherals, $pixel_count, $led, {
+            $crate::hal::rmt::CHANNEL_RAM_SIZE
+        })
     }};
     ($peripherals:ident, $pixel_count:expr, $led:ty, buffered) => {{
         $crate::clockless_async!($peripherals, $pixel_count, $led, {

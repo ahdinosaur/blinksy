@@ -62,7 +62,6 @@
 
 use core::marker::PhantomData;
 use heapless::Vec;
-use num_traits::ToBytes;
 
 #[cfg(feature = "async")]
 use crate::driver::DriverAsync;
@@ -102,7 +101,7 @@ pub use self::delay::*;
 /// ```
 pub trait ClocklessLed {
     /// The word type (typically u8).
-    type Word: ToBytes + Component;
+    type Word: Component;
 
     /// Duration of high signal for transmitting a '0' bit.
     const T_0H: Nanoseconds;
@@ -246,8 +245,6 @@ impl<Led> ClocklessDriver<Led, ()> {
 impl<Led, Writer> Driver for ClocklessDriver<Led, Writer>
 where
     Led: ClocklessLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
     Writer: ClocklessWriter<Led>,
 {
     type Error = Writer::Error;
@@ -281,8 +278,6 @@ where
 impl<Led, Writer> DriverAsync for ClocklessDriver<Led, Writer>
 where
     Led: ClocklessLed,
-    Led::Word: ToBytes,
-    <Led::Word as ToBytes>::Bytes: IntoIterator<Item = u8>,
     Writer: ClocklessWriterAsync<Led>,
 {
     type Error = Writer::Error;

@@ -322,7 +322,11 @@ macro_rules! rmt {
 macro_rules! clockless {
     ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
         $crate::clockless!($peripherals, $pixel_count, $led, {
-            $crate::hal::rmt::CHANNEL_RAM_SIZE
+            // $crate::hal::rmt::CHANNEL_RAM_SIZE
+            // $crate::hal::rmt::CHANNEL_RAM_SIZE is too big, causes too big of gaps.
+            <$led as $crate::blinksy::driver::clockless::ClocklessLed>::LED_CHANNELS.channel_count()
+                * 8
+                + 1
         })
     }};
     ($peripherals:ident, $pixel_count:expr, $led:ty, buffered) => {{
@@ -400,7 +404,10 @@ macro_rules! ws2812 {
 macro_rules! clockless_async {
     ($peripherals:ident, $pixel_count:expr, $led:ty) => {{
         $crate::clockless_async!($peripherals, $pixel_count, $led, {
-            $crate::hal::rmt::CHANNEL_RAM_SIZE
+            // $crate::hal::rmt::CHANNEL_RAM_SIZE is too big, causes too big of gaps.
+            <$led as $crate::blinksy::driver::clockless::ClocklessLed>::LED_CHANNELS.channel_count()
+                * 8
+                + 1
         })
     }};
     ($peripherals:ident, $pixel_count:expr, $led:ty, buffered) => {{

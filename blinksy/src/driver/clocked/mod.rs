@@ -81,7 +81,6 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 
 use heapless::Vec;
-use num_traits::ToBytes;
 
 use crate::color::{ColorCorrection, FromColor};
 use crate::driver::Driver;
@@ -104,7 +103,7 @@ pub use self::delay::*;
 /// - `Color` - The color representation type
 pub trait ClockedLed {
     /// The word type (typically u8).
-    type Word: ToBytes;
+    type Word;
 
     /// The color representation type.
     type Color;

@@ -24,7 +24,7 @@ use blinksy::{
     driver::{clockless::ClocklessLed, ClocklessWriter},
     util::bits::{word_to_bits_msb, Word},
 };
-use core::{fmt::Debug, iter::once, marker::PhantomData};
+use core::{fmt::Debug, marker::PhantomData};
 #[cfg(feature = "async")]
 use esp_hal::Async;
 use esp_hal::{
@@ -178,7 +178,7 @@ where
         )
     }
 
-    fn rmt_led<const FRAME_BUFFER_SIZE: usize>(
+    fn frame_pulses<const FRAME_BUFFER_SIZE: usize>(
         &self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> impl Iterator<Item = PulseCode> {
@@ -189,17 +189,6 @@ where
                 true => pulses.1,
             })
         })
-    }
-
-    fn rmt_end(&self) -> impl IntoIterator<Item = PulseCode> {
-        once(self.pulses.2)
-    }
-
-    fn rmt<const FRAME_BUFFER_SIZE: usize>(
-        &self,
-        frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    ) -> impl Iterator<Item = PulseCode> {
-        self.rmt_led(frame).chain(self.rmt_end())
     }
 }
 
@@ -305,7 +294,7 @@ where
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        let rmt_pulses = self.rmt(frame);
+        let rmt_pulses = self.frame_pulses(frame);
         for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(rmt_pulses, RMT_BUFFER_SIZE - 1) {
             // RMT buffer must end with 0.
             rmt_buffer.push(PulseCode::end_marker()).unwrap();
@@ -329,7 +318,8 @@ where
         &mut self,
         frame: Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
-        for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(self.rmt(frame), RMT_BUFFER_SIZE - 1) {
+        let rmt_pulses = self.frame_pulses(frame);
+        for mut rmt_buffer in chunked::<_, RMT_BUFFER_SIZE>(rmt_pulses, RMT_BUFFER_SIZE - 1) {
             // RMT buffer must end with 0.
             rmt_buffer.push(PulseCode::end_marker()).unwrap();
             self.transmit_async(&rmt_buffer).await?;

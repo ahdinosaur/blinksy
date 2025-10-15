@@ -21,7 +21,7 @@ fn main() -> ! {
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
         .with_pattern::<Rainbow>(RainbowParams::default())
-        .with_driver(ws2812!(p, Layout::PIXEL_COUNT, buffered))
+        .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
 

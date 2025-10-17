@@ -9,7 +9,7 @@
 //!
 //! - Define your LED [`layout`] in 1D, 2D, or 3D space
 //! - Create your visual [`pattern`] (effect), or choose from our built-in [`patterns`] library
-//!   - The pattern will compute colors for each LED based on its position
+//!   - The pattern will compute colors for each LED based on its position in space
 //! - Setup a [`driver`] to send each frame of colors to your [`leds`]
 //!
 //! ## Features
@@ -77,7 +77,7 @@
 //!
 //! [clockless-spi]: https://github.com/ahdinosaur/blinksy/issues/12
 //! [esp-hal]: https://docs.espressif.com/projects/rust/esp-hal/latest/
-//! [blinksy-esp]: https://docs.rs/blinksy-esp/0.10/
+//! [blinksy-esp]: https://docs.rs/blinksy-esp/0.11/
 //! [rmt]: https://docs.espressif.com/projects/rust/esp-hal/latest/
 //! [rp-hal]: https://github.com/rp-rs/rp-hal/
 //! [rp-issue]: https://github.com/ahdinosaur/blinksy/issues/36
@@ -101,7 +101,7 @@
 //!
 //! If you want help to support a new target, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 //!
-//! [Gledopto]: https://docs.rs/gledopto/0.10/gledopto
+//! [Gledopto]: https://docs.rs/gledopto/0.11/gledopto
 //!
 //! ## Quick Start
 //!
@@ -114,9 +114,7 @@
 //!
 //! [blinksy-quickstart-1d-rope]: https://github.com/ahdinosaur/blinksy-quickstart-1d-rope
 //! [blinksy-quickstart-3d-grid]: https://github.com/ahdinosaur/blinksy-quickstart-3d-grid
-//! [control]: https://docs.rs/blinksy/0.10/blinksy/control/index.html
-//!
-//! ### 1D Strip with Rainbow Pattern (Blocking)
+//! [control]: https://docs.rs/blinksy/0.11/blinksy/control/index.html
 //!
 //! ### 1D Strip with Rainbow Pattern (Blocking)
 //!

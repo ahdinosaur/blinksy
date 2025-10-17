@@ -44,14 +44,14 @@
 
 - Define your LED [`layout`][layout] in 1D, 2D, or 3D space
 - Create your visual [`pattern`][pattern] (effect), or choose from our built-in [`patterns`][patterns] library
-  - The pattern will compute colors for each LED based on its position
-- Setup a [`driver`][driver] to send each frame of colors to your LEDs, using our built-in [`drivers`][drivers] library.
+  - The pattern will compute colors for each LED based on its position in space
+- Setup a [`driver`] to send each frame of colors to your [`leds`]
 
-[layout]: https://docs.rs/blinksy/0.10/blinksy/layout/index.html
-[pattern]: https://docs.rs/blinksy/0.10/blinksy/pattern/index.html
-[patterns]: https://docs.rs/blinksy/0.10/blinksy/patterns/index.html
-[driver]: https://docs.rs/blinksy/0.10/blinksy/driver/index.html
-[drivers]: https://docs.rs/blinksy/0.10/blinksy/drivers/index.html
+[layout]: https://docs.rs/blinksy/0.11/blinksy/layout/index.html
+[pattern]: https://docs.rs/blinksy/0.11/blinksy/pattern/index.html
+[patterns]: https://docs.rs/blinksy/0.11/blinksy/patterns/index.html
+[driver]: https://docs.rs/blinksy/0.11/blinksy/driver/index.html
+[drivers]: https://docs.rs/blinksy/0.11/blinksy/drivers/index.html
 
 ## Features
 
@@ -70,9 +70,9 @@
 - **[WS2812B][ws2812]**: Affordable RGB LED, aka NeoPixel
 - **[SK6812][sk6812]**: RGBW LED
 
-[clockless]: https://docs.rs/blinksy/0.10/blinksy/driver/clockless/index.html
-[ws2812]: https://docs.rs/blinksy/0.10/blinksy/drivers/ws2812/index.html
-[sk6812]: https://docs.rs/blinksy/latest/blinksy/drivers/sk6812/index.html
+[clockless]: https://docs.rs/blinksy/0.11/blinksy/driver/clockless/index.html
+[ws2812]: https://docs.rs/blinksy/0.11/blinksy/drivers/ws2812/index.html
+[sk6812]: https://docs.rs/blinksy/0.11/blinksy/drivers/sk6812/index.html
 
 #### [Clocked][clocked]: Two-wire (data and clock)
 
@@ -80,8 +80,8 @@
 
 If you want help to support a new LED chipset, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
-[clocked]: https://docs.rs/blinksy/0.10/blinksy/driver/clocked/index.html
-[apa102]: https://docs.rs/blinksy/0.10/blinksy/drivers/apa102/index.html
+[clocked]: https://docs.rs/blinksy/0.11/blinksy/driver/clocked/index.html
+[apa102]: https://docs.rs/blinksy/0.11/blinksy/drivers/apa102/index.html
 
 ### Pattern (Effect) Library:
 
@@ -90,8 +90,8 @@ If you want help to support a new LED chipset, [make an issue](https://github.co
 
 If you want help to port a pattern from FastLED / WLED to Rust, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
-[rainbow]: https://docs.rs/blinksy/0.10/blinksy/patterns/rainbow/index.html
-[noise]: https://docs.rs/blinksy/0.10/blinksy/patterns/noise/index.html
+[rainbow]: https://docs.rs/blinksy/0.11/blinksy/patterns/rainbow/index.html
+[noise]: https://docs.rs/blinksy/0.11/blinksy/patterns/noise/index.html
 
 ### Microcontroller Family Support
 
@@ -101,8 +101,8 @@ Clocked LED support (e.g. APA102):
 |---|---|---|---|---|
 |ALL|[embedded-hal]|[blinksy]|[Spi][clocked-spi]|[Delay][clocked-delay]|
 
-[clocked-spi]: https://docs.rs/blinksy/0.10.0/blinksy/driver/clocked/struct.ClockedSpiDriver.html
-[clocked-delay]:https://docs.rs/blinksy/0.10.0/blinksy/driver/clocked/struct.ClockedDelayDriver.html
+[clocked-spi]: https://docs.rs/blinksy/0.11.0/blinksy/driver/clocked/struct.ClockedSpiDriver.html
+[clocked-delay]:https://docs.rs/blinksy/0.11.0/blinksy/driver/clocked/struct.ClockedDelayDriver.html
 
 Clockless LED support (e.g. WS2812)
 
@@ -121,10 +121,10 @@ Clockless LED support (e.g. WS2812)
 If you want help to support a new microcontroller family, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
 [embedded-hal]: https://docs.rs/embedded-hal/latest/embedded_hal/
-[blinksy]: https://docs.rs/blinksy/0.10/blinksy/
+[blinksy]: https://docs.rs/blinksy/0.11/blinksy/
 [clockless-spi]: https://github.com/ahdinosaur/blinksy/issues/12
 [esp-hal]: https://docs.espressif.com/projects/rust/esp-hal/latest/
-[blinksy-esp]: https://docs.rs/blinksy-esp/0.10/blinksy-esp/
+[blinksy-esp]: https://docs.rs/blinksy-esp/0.11/blinksy-esp/
 [rmt]: https://docs.espressif.com/projects/rust/esp-hal/latest/
 [rp-hal]: https://github.com/rp-rs/rp-hal/
 [rp-issue]: https://github.com/ahdinosaur/blinksy/issues/36
@@ -148,7 +148,7 @@ These are ready-to-go LED controllers with board support crates to make things e
 
 If you want help to support a new target, [make an issue](https://github.com/ahdinosaur/blinksy/issues)!
 
-[gledopto]: https://docs.rs/gledopto/0.10/gledopto
+[gledopto]: https://docs.rs/gledopto/0.11/gledopto
 
 ## Quick Start
 
@@ -161,7 +161,7 @@ To start using the library, see [control][control].
 
 [blinksy-quickstart-1d-rope]: https://github.com/ahdinosaur/blinksy-quickstart-1d-rope
 [blinksy-quickstart-3d-grid]: https://github.com/ahdinosaur/blinksy-quickstart-3d-grid
-[control]: https://docs.rs/blinksy/0.10/blinksy/control/index.html
+[control]: https://docs.rs/blinksy/0.11/blinksy/control/index.html
 
 ## Modules
 

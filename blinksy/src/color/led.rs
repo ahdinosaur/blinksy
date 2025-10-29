@@ -418,3 +418,32 @@ impl RgbwChannels {
         }
     }
 }
+
+pub trait RgbOrder {
+    const RGB_CHANNELS: RgbChannels;
+}
+
+pub struct RgbOrderIsRgb;
+impl RgbOrder for RgbOrderIsRgb {
+    const RGB_CHANNELS: RgbChannels = RgbChannels::RGB;
+}
+pub struct RgbOrderIsRbg;
+impl RgbOrder for RgbOrderIsRbg {
+    const RGB_CHANNELS: RgbChannels = RgbChannels::RBG;
+}
+pub struct RgbOrderIsGrb;
+impl RgbOrder for RgbOrderIsGrb {
+    const RGB_CHANNELS: RgbChannels = RgbChannels::GRB;
+}
+pub struct RgbOrderIsGbr;
+impl RgbOrder for RgbOrderIsGbr {
+    const RGB_CHANNELS: RgbChannels = RgbChannels::GBR;
+}
+pub struct RgbOrderIsBrg;
+impl RgbOrder for RgbOrderIsBrg {
+    const RGB_CHANNELS: RgbChannels = RgbChannels::BRG;
+}
+pub struct RgbOrderIsBgr;
+impl RgbOrder for RgbOrderIsBgr {
+    const RGB_CHANNELS: RgbChannels = RgbChannels::BGR;
+}

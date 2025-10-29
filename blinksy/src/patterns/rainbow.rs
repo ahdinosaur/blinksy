@@ -78,6 +78,11 @@ where
         Self { params }
     }
 
+    /// Sets an existing Rainbow pattern with the specified parameters.
+    fn set(&mut self, params: Self::Params) {
+        self.params = params;
+    }
+
     /// Generates colors for a 1D layout.
     ///
     /// The rainbow pattern creates a smooth transition of hues across the layout,
@@ -113,6 +118,11 @@ where
         Self { params }
     }
 
+    /// Sets an existing Rainbow pattern with the specified parameters.
+    fn set(&mut self, params: Self::Params) {
+        self.params = params;
+    }
+
     /// Generates colors for a 2D layout.
     ///
     /// In 2D, the rainbow pattern uses the x-coordinate to determine hue,
@@ -146,6 +156,11 @@ where
     /// Creates a new Rainbow pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
         Self { params }
+    }
+
+    /// Sets an existing Rainbow pattern with the specified parameters.
+    fn set(&mut self, params: Self::Params) {
+        self.params = params;
     }
 
     /// Generates colors for a 3D layout.

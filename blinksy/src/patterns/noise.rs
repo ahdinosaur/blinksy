@@ -123,6 +123,11 @@ where
         }
     }
 
+    /// Sets an existing Noise1d pattern with the specified parameters.
+    fn set(&mut self, params: Self::Params) {
+        self.params = params;
+    }
+
     /// Generates colors for a 1D layout using noise.
     ///
     /// The pattern uses the LED position and time as inputs to a 2D noise function,
@@ -181,6 +186,11 @@ where
             value_noise: Noise::default().seed(1),
             params,
         }
+    }
+
+    /// Sets an existing Noise2d pattern with the specified parameters.
+    fn set(&mut self, params: Self::Params) {
+        self.params = params;
     }
 
     /// Generates colors for a 2D layout using noise.
@@ -248,6 +258,11 @@ where
             value_noise: Noise::default().seed(1),
             params,
         }
+    }
+
+    /// Sets an existing Noise3d pattern with the specified parameters.
+    fn set(&mut self, params: Self::Params) {
+        self.params = params;
     }
 
     /// Generates colors for a 3D layout using noise.

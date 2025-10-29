@@ -60,6 +60,10 @@ use crate::layout::LayoutForDim;
 ///         Self { params }
 ///     }
 ///
+///     fn new(&mut self, params: Self::Params) {
+///         self.params = params;
+///     }
+///
 ///     fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
 ///         let offset = (time_in_ms as f32 * self.params.speed);
 ///         let step = 0.5 * self.params.scale;
@@ -83,6 +87,9 @@ where
 
     /// Creates a new pattern instance with the specified parameters.
     fn new(params: Self::Params) -> Self;
+
+    /// Sets an existing pattern instance with the specified parameters.
+    fn set(&mut self, params: Self::Params);
 
     /// Generates colors for all LEDs in the layout at the given time.
     ///

@@ -26,15 +26,6 @@
 
 #[macro_export]
 macro_rules! pattern_switch {
-    // Helper: generate match arms like A => B, B => C, ..., Last => First for Toggle
-    (@pairs $name:ident; $first:ident; $current:ident, $next:ident $(, $rest:ident)*) => {
-        $name::$current => $name::$next,
-        $crate::pattern_switch!(@pairs $name; $first; $next $(, $rest)*)
-    };
-    (@pairs $name:ident; $first:ident; $last:ident) => {
-        $name::$last => $name::$first,
-    };
-
     (
         $(#[$meta:meta])*
         $vis:vis mod $mod_name:ident {
@@ -48,8 +39,8 @@ macro_rules! pattern_switch {
 
             #[derive(Copy, Clone, Debug, Eq, PartialEq)]
             pub enum Active {
-                $first_name
-                $(, $rest_name)*
+                $first_name,
+                $( $rest_name, )*
             }
 
             pub enum Iter<I_$first_name $(, I_$rest_name)*> {
@@ -141,8 +132,8 @@ macro_rules! pattern_switch {
                         },
                         Params::Toggle => {
                             self.active = match self.active {
-                                $crate::pattern_switch!(
-                                    @next_arms Active;
+                                $crate::cycle_arms!(
+                                    Active;
                                     $first_name;
                                     $first_name $(, $rest_name)*
                                 )
@@ -168,5 +159,17 @@ macro_rules! pattern_switch {
                 }
             }
         }
+    };
+}
+
+// Helper: generate match arms like A => B, B => C, ..., Last => First
+#[macro_export]
+macro_rules! cycle_arms {
+    ($name:ident; $first:ident; $current:ident, $next:ident $(, $rest:ident)*) => {
+        $name::$current => $name::$next,
+        $crate::cycle_arms!($name; $first; $next $(, $rest)*)
+    };
+    ($name:ident; $first:ident; $last:ident) => {
+        $name::$last => $name::$first,
     };
 }

@@ -102,10 +102,7 @@ pub struct Control<
     Layout,
     Pattern,
     Driver,
-> where
-    Layout: LayoutForDim<Dim>,
-    Pattern: PatternTrait<Dim, Layout>,
-{
+> {
     dim: PhantomData<Dim>,
     exec: PhantomData<Exec>,
     layout: PhantomData<Layout>,
@@ -124,9 +121,6 @@ impl<
         Pattern,
         Driver,
     > Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Exec, Layout, Pattern, Driver>
-where
-    Layout: LayoutForDim<Dim>,
-    Pattern: PatternTrait<Dim, Layout>,
 {
     /// Creates a new control system.
     ///
@@ -166,6 +160,54 @@ where
     /// - `correction` - Color correction factors
     pub fn set_color_correction(&mut self, correction: ColorCorrection) {
         self.correction = correction;
+    }
+}
+
+impl<
+        const PIXEL_COUNT: usize,
+        const FRAME_BUFFER_SIZE: usize,
+        Dim,
+        Exec,
+        Layout,
+        Pattern,
+        Driver,
+    > Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Exec, Layout, Pattern, Driver>
+where
+    Layout: LayoutForDim<Dim>,
+    Pattern: PatternTrait<Dim, Layout>,
+{
+    /// Sets the params for the pattern.
+    ///
+    /// # Arguments
+    ///
+    /// - `params` - `Pattern::Params`, `Params` type associated with `NextPattern` type.
+    pub fn set_params(&mut self, params: Pattern::Params) {
+        self.pattern.set(params);
+    }
+
+    /// Sets a new pattern (with params) for the control.
+    ///
+    /// # Type parameters
+    ///
+    /// - `NextPattern` - The pattern type implementing Pattern<Dim, Layout>
+    ///
+    /// # Arguments
+    ///
+    /// - `params` - `NextPattern::Params`, `Params` type associated with `NextPattern` type.
+    pub fn set_pattern<NextPattern: PatternTrait<Dim, Layout>>(
+        self,
+        params: NextPattern::Params,
+    ) -> Control<PIXEL_COUNT, FRAME_BUFFER_SIZE, Dim, Exec, Layout, NextPattern, Driver> {
+        let pattern = NextPattern::new(params);
+        Control {
+            dim: PhantomData,
+            exec: PhantomData,
+            layout: PhantomData,
+            pattern,
+            driver: self.driver,
+            brightness: self.brightness,
+            correction: self.correction,
+        }
     }
 }
 

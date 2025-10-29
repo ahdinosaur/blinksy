@@ -44,6 +44,9 @@ gledopto-ws2812-face-cube-embassy:
 gledopto-ws2812-volume-cube:
   cd esp && cargo run --release -p gledopto --example ws2812-volume-cube --features gl_c_016wl_d
 
+gledopto-ws2812-pattern-switch:
+  cd esp && cargo run --release -p gledopto --example ws2812-pattern-switch --features gl_c_016wl_d
+
 ##
 # Testing
 ##

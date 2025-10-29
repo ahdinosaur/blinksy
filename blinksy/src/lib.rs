@@ -404,6 +404,7 @@ pub mod layout;
 pub mod leds;
 pub mod markers;
 pub mod pattern;
+pub mod pattern_switch;
 pub mod patterns;
 pub mod time;
 pub mod util;

@@ -96,6 +96,7 @@ macro_rules! pattern_switch {
 
             impl<Dim, Layout> PatternTrait<Dim, Layout> for Switch
             where
+                Layout: $crate::layout::LayoutForDim<Dim>,
                 $first_type: PatternTrait<Dim, Layout>,
                 $(
                     $rest_type: PatternTrait<
@@ -110,12 +111,12 @@ macro_rules! pattern_switch {
             {
                 type Color = <$first_type as PatternTrait<Dim, Layout>>::Color;
 
-                type Params = Params<
+                type Params = self::Params<
                     <$first_type as PatternTrait<Dim, Layout>>::Params
                     $( , <$rest_type as PatternTrait<Dim, Layout>>::Params )*
                 >;
 
-                type Iter = Iter<
+                type Iter = self::Iter<
                     <$first_type as PatternTrait<Dim, Layout>>::Iter
                     $( , <$rest_type as PatternTrait<Dim, Layout>>::Iter )*
                 >;
@@ -140,20 +141,18 @@ macro_rules! pattern_switch {
 
                 fn set(&mut self, params: Self::Params) {
                     match params {
-                        Params::Set(sp) => match sp {
-                            SetParam::$first_name(p) => self.$first_name.set(p),
-                            $( SetParam::$rest_name(p) => self.$rest_name.set(p), )*
+                        Self::Params::Set(sp) => match sp {
+                            self::SetParam::$first_name(p) => self.$first_name.set(p),
+                            $( self::SetParam::$rest_name(p) => self.$rest_name.set(p), )*
                         },
-                        Params::Toggle => {
-                            self.active = match self.active {
-                                $crate::cycle_arms!(
-                                    Active;
-                                    $first_name;
-                                    $first_name $(, $rest_name)*
-                                )
-                            };
+                        Self::Params::Toggle => {
+                            self.active = $crate::cycle_match!(
+                                Active;
+                                $first_name;
+                                $first_name $(, $rest_name)*
+                            );
                         }
-                        Params::Select(a) => {
+                        Self::Params::Select(a) => {
                             self.active = a;
                         }
                     }
@@ -162,11 +161,11 @@ macro_rules! pattern_switch {
                 fn tick(&mut self, time_in_ms: u64) -> Self::Iter {
                     match self.active {
                         Active::$first_name => {
-                            Iter::$first_name(self.$first_name.tick(time_in_ms))
+                            self::Iter::$first_name(self.$first_name.tick(time_in_ms))
                         }
                         $(
                             Active::$rest_name => {
-                                Iter::$rest_name(self.$rest_name.tick(time_in_ms))
+                                self::Iter::$rest_name(self.$rest_name.tick(time_in_ms))
                             }
                         )*
                     }
@@ -185,5 +184,18 @@ macro_rules! cycle_arms {
     };
     ($name:ident; $first:ident; $last:ident) => {
         $name::$last => $name::$first,
+    };
+}
+
+#[macro_export]
+macro_rules! cycle_match {
+    ($name:ident; $value:expr; $first:ident $(, $rest:ident)* ) => {
+        match $value {
+            $crate::cycle_arms!(
+                $name;
+                $first;
+                $first $(, $rest)*
+            )
+        }
     };
 }

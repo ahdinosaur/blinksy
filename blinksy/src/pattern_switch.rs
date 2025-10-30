@@ -1,5 +1,3 @@
-#![allow(unused_macros)]
-
 // Public macro: generate a module containing
 // - Active: which pattern is active
 // - SetParam: typed payload for updating params of a specific inner pattern
@@ -43,35 +41,51 @@ macro_rules! pattern_switch {
                 $( $rest_name, )*
             }
 
-            pub enum Iter<I_$first_name $(, I_$rest_name)*> {
-                $first_name(I_$first_name),
-                $( $rest_name(I_$rest_name), )*
-            }
+            $crate::paste::paste! {
+                pub enum Iter<
+                    [<I_ $first_name>] $(, [<I_ $rest_name>] )*
+                > {
+                    $first_name([<I_ $first_name>]),
+                    $( $rest_name([<I_ $rest_name>]), )*
+                }
 
-            impl<T, I_$first_name $(, I_$rest_name)*>
-                core::iter::Iterator for Iter<I_$first_name $(, I_$rest_name)*>
-            where
-                I_$first_name: Iterator<Item = T>,
-                $( I_$rest_name: Iterator<Item = T>, )*
-            {
-                type Item = T;
-                fn next(&mut self) -> Option<Self::Item> {
-                    match self {
-                        Self::$first_name(i) => i.next(),
-                        $( Self::$rest_name(i) => i.next(), )*
+                impl<
+                    T,
+                    [<I_ $first_name>] $(, [<I_ $rest_name>] )*
+                > core::iter::Iterator
+                    for Iter<[<I_ $first_name>] $(, [<I_ $rest_name>] )*>
+                where
+                    [<I_ $first_name>]: Iterator<Item = T>,
+                    $( [<I_ $rest_name>]: Iterator<Item = T>, )*
+                {
+                    type Item = T;
+
+                    fn next(&mut self) -> Option<Self::Item> {
+                        match self {
+                            Self::$first_name(i) => i.next(),
+                            $( Self::$rest_name(i) => i.next(), )*
+                        }
                     }
                 }
-            }
 
-            pub enum SetParam<P_$first_name $(, P_$rest_name)*> {
-                $first_name(P_$first_name),
-                $( $rest_name(P_$rest_name), )*
-            }
+                pub enum SetParam<
+                    [<P_ $first_name>] $(, [<P_ $rest_name>])*
+                > {
+                    $first_name([<P_ $first_name>]),
+                    $( $rest_name([<P_ $rest_name>]), )*
+                }
 
-            pub enum Params<P_$first_name $(, P_$rest_name)*> {
-                Set(SetParam<P_$first_name $(, P_$rest_name)*>),
-                Toggle,
-                Select(Active),
+                pub enum Params<
+                    [<P_ $first_name>] $(, [<P_ $rest_name>])*
+                > {
+                    Set(
+                        SetParam<
+                            [<P_ $first_name>] $(, [<P_ $rest_name>])*
+                        >
+                    ),
+                    Toggle,
+                    Select(Active),
+                }
             }
 
             pub struct Switch {

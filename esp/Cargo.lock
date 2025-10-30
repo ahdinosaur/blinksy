@@ -64,6 +64,7 @@ dependencies = [
  "heapless 0.9.1",
  "noise-functions",
  "num-traits",
+ "paste",
  "smart-leds-trait",
 ]
 

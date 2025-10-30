@@ -410,3 +410,5 @@ pub mod time;
 pub mod util;
 
 pub use self::control::*;
+
+pub use paste;

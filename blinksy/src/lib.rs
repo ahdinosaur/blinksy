@@ -411,4 +411,5 @@ pub mod util;
 
 pub use self::control::*;
 
+pub use enum_macros;
 pub use paste;

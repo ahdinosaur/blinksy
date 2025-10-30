@@ -16,7 +16,7 @@ use gledopto::{board, bootloader, elapsed, function_button, main, ws2812};
 bootloader!();
 
 blinksy::pattern_switch! {
-    pub mod Patterns {
+    pub mod patterns {
         Rainbow: Rainbow,
         Noise: Noise1d<noise_fns::Perlin>,
     }
@@ -31,7 +31,7 @@ fn main() -> ! {
     // Build Control with the wrapper pattern; start with Rainbow active.
     let mut control = ControlBuilder::new_1d()
         .with_layout::<Layout, { Layout::PIXEL_COUNT }>()
-        .with_pattern::<Patterns::Switch>(Patterns::Params::Select(Patterns::Active::Rainbow))
+        .with_pattern::<patterns::Switch>(patterns::Params::Select(patterns::Active::Rainbow))
         .with_driver(ws2812!(p, Layout::PIXEL_COUNT))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout::PIXEL_COUNT) }>()
         .build();
@@ -48,19 +48,19 @@ fn main() -> ! {
 
         // Toggle pattern on single click
         if button.is_clicked() {
-            control.set_params(Patterns::Params::Toggle);
+            control.set_params(patterns::Params::Toggle);
         }
 
         // Example: change Noise params and select Noise on double click
         if button.is_double_clicked() {
-            control.set_params(Patterns::Params::Set(StripPatterns::SetParam::Noise(
+            control.set_params(patterns::Params::Set(patterns::SetParam::Noise(
                 NoiseParams {
                     time_scalar: 0.2 / 1e3,
                     position_scalar: 0.4,
                     ..Default::default()
                 },
             )));
-            control.set_params(Patterns::Params::Select(StripPatterns::Active::Noise));
+            control.set_params(patterns::Params::Select(patterns::Active::Noise));
         }
 
         button.reset();

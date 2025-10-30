@@ -55,6 +55,7 @@ dependencies = [
  "defmt 0.3.100",
  "embedded-hal",
  "embedded-hal-async",
+ "enum_macros",
  "fugit",
  "glam",
  "heapless",
@@ -317,6 +318,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c4c685bbef7fe13c3c6dd4da26841ed3980ef33e841cddfa15ce8a8fb3f1884"
 dependencies = [
  "embedded-hal",
+]
+
+[[package]]
+name = "enum_macros"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3803a93025986a8fd52f477f192c95717ce9f49964de5c823b8b1eb4137e5032"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -33,9 +33,10 @@ macro_rules! pattern_switch {
     ) => {
         $(#[$meta])*
         $vis mod $mod_name {
+            use $crate::layout::LayoutForDim;
             use $crate::pattern::Pattern as PatternTrait;
 
-            #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+            #[derive(Copy, Clone, Debug, Eq, PartialEq, $crate::enum_macros::NextVariant)]
             pub enum Active {
                 $first_name,
                 $( $rest_name, )*
@@ -96,7 +97,7 @@ macro_rules! pattern_switch {
 
             impl<Dim, Layout> PatternTrait<Dim, Layout> for Switch
             where
-                Layout: $crate::layout::LayoutForDim<Dim>,
+                Layout: LayoutForDim<Dim>,
                 $first_type: PatternTrait<Dim, Layout>,
                 $(
                     $rest_type: PatternTrait<
@@ -116,11 +117,6 @@ macro_rules! pattern_switch {
                     $( , <$rest_type as PatternTrait<Dim, Layout>>::Params )*
                 >;
 
-                type Iter = self::Iter<
-                    <$first_type as PatternTrait<Dim, Layout>>::Iter
-                    $( , <$rest_type as PatternTrait<Dim, Layout>>::Iter )*
-                >;
-
                 fn new(params: Self::Params) -> Self {
                     let mut s = Self {
                         $first_name: <$first_type as PatternTrait<
@@ -133,69 +129,42 @@ macro_rules! pattern_switch {
                                 Layout
                             >>::new(Default::default()),
                         )*
-                        active: Active::$first_name,
+                        active: self::Active::$first_name,
                     };
                     s.set(params);
                     s
                 }
 
                 fn set(&mut self, params: Self::Params) {
+                    use self::{Params, SetParam};
                     match params {
-                        Self::Params::Set(sp) => match sp {
-                            self::SetParam::$first_name(p) => self.$first_name.set(p),
-                            $( self::SetParam::$rest_name(p) => self.$rest_name.set(p), )*
+                        Params::Set(sp) => match sp {
+                            SetParam::$first_name(p) => self.$first_name.set(p),
+                            $( SetParam::$rest_name(p) => self.$rest_name.set(p), )*
                         },
-                        Self::Params::Toggle => {
-                            self.active = $crate::cycle_match!(
-                                Active;
-                                $first_name;
-                                $first_name $(, $rest_name)*
-                            );
+                        Params::Toggle => {
+                            self.active = self.active.next_variant();
                         }
-                        Self::Params::Select(a) => {
+                        Params::Select(a) => {
                             self.active = a;
                         }
                     }
                 }
 
-                fn tick(&mut self, time_in_ms: u64) -> Self::Iter {
+                fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color> {
+                    use self::{Active, Iter};
                     match self.active {
                         Active::$first_name => {
-                            self::Iter::$first_name(self.$first_name.tick(time_in_ms))
+                            Iter::$first_name(self.$first_name.tick(time_in_ms))
                         }
                         $(
                             Active::$rest_name => {
-                                self::Iter::$rest_name(self.$rest_name.tick(time_in_ms))
+                                Iter::$rest_name(self.$rest_name.tick(time_in_ms))
                             }
                         )*
                     }
                 }
             }
-        }
-    };
-}
-
-// Helper: generate match arms like A => B, B => C, ..., Last => First
-#[macro_export]
-macro_rules! cycle_arms {
-    ($name:ident; $first:ident; $current:ident, $next:ident $(, $rest:ident)*) => {
-        $name::$current => $name::$next,
-        $crate::cycle_arms!($name; $first; $next $(, $rest)*)
-    };
-    ($name:ident; $first:ident; $last:ident) => {
-        $name::$last => $name::$first,
-    };
-}
-
-#[macro_export]
-macro_rules! cycle_match {
-    ($name:ident; $value:expr; $first:ident $(, $rest:ident)* ) => {
-        match $value {
-            $crate::cycle_arms!(
-                $name;
-                $first;
-                $first $(, $rest)*
-            )
         }
     };
 }

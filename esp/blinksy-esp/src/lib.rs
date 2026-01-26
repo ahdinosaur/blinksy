@@ -28,7 +28,6 @@
 //!     patterns::rainbow::{Rainbow, RainbowParams},
 //! };
 //! use blinksy_esp::{rmt::ClocklessRmtBuilder, time::elapsed};
-//! 
 //!
 //! #[hal::main]
 //! fn main() -> ! {
@@ -49,7 +48,7 @@
 //!         let rmt = hal::rmt::Rmt::new(p.RMT, rmt_clk_freq).unwrap();
 //!         let rmt_channel = rmt.channel0;
 //!
-//!         // Create the driver using the ClocklessRmt builder."]
+//!         // Create the driver using the ClocklessRmt builder.
 //!         ClocklessDriver::default().with_led::<Ws2812>().with_writer(
 //!             ClocklessRmtBuilder::default()
 //!                 .with_rmt_buffer_size::<{ Layout::PIXEL_COUNT * 3 * 8 + 1 }>()
@@ -77,7 +76,7 @@
 //!         green: 0.0,
 //!         blue: 1.0,
 //!     });
-//! 
+//!
 //!     loop {
 //!         let elapsed_in_ms = elapsed().as_millis();
 //!         control.tick(elapsed_in_ms).unwrap();

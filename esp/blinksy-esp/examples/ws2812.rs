@@ -8,16 +8,16 @@
 #![deny(clippy::large_stack_frames)]
 
 use esp_alloc as _;
-use esp_hal::{self as hal, delay::Delay};
 use esp_hal::main;
+use esp_hal::{self as hal, delay::Delay};
 
 use blinksy::{
-    ControlBuilder,
     driver::ClocklessDriver,
     layout::Layout1d,
     layout1d,
     leds::Ws2812,
     patterns::rainbow::{Rainbow, RainbowParams},
+    ControlBuilder,
 };
 use blinksy_esp::{rmt::ClocklessRmtBuilder, time::elapsed};
 

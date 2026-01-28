@@ -18,16 +18,16 @@
 //! #![no_main]
 //!
 //! use esp_hal as hal;
-//!
+//! use esp_alloc as _;
 //! use blinksy::{
-//!     driver::ClocklessLed,
-//!     drivers::ws2812::Ws2812Led,
+//!     ControlBuilder,
+//!     driver::ClocklessDriver,
 //!     layout::Layout1d,
 //!     layout1d,
+//!     leds::Ws2812,
 //!     patterns::rainbow::{Rainbow, RainbowParams},
-//!     ControlBuilder,
 //! };
-//! use blinksy_esp::{create_rmt_buffer, time::elapsed, Ws2812Rmt};
+//! use blinksy_esp::{rmt::ClocklessRmtBuilder, time::elapsed};
 //!
 //! #[hal::main]
 //! fn main() -> ! {
@@ -48,15 +48,15 @@
 //!         let rmt = hal::rmt::Rmt::new(p.RMT, rmt_clk_freq).unwrap();
 //!         let rmt_channel = rmt.channel0;
 //!
-//!         // Create the driver using the ClocklessRmt builder."]
-//!         blinksy::driver::ClocklessDriver::default()
-//!             .with_led::<Ws2812>()
-//!             .with_writer(ClocklessRmtBuilder::default()
+//!         // Create the driver using the ClocklessRmt builder.
+//!         ClocklessDriver::default().with_led::<Ws2812>().with_writer(
+//!             ClocklessRmtBuilder::default()
 //!                 .with_rmt_buffer_size::<{ Layout::PIXEL_COUNT * 3 * 8 + 1 }>()
 //!                 .with_led::<Ws2812>()
 //!                 .with_channel(rmt_channel)
 //!                 .with_pin(data_pin)
-//!                 .build())
+//!                 .build(),
+//!         )
 //!     };
 //!
 //!     // Build the Blinky controller
@@ -70,6 +70,12 @@
 //!         .build();
 //!
 //!     control.set_brightness(0.2); // Set initial brightness (0.0 to 1.0)
+//!
+//!     control.set_color_correction(blinksy::color::ColorCorrection {
+//!         red: 0.0,
+//!         green: 0.0,
+//!         blue: 1.0,
+//!     });
 //!
 //!     loop {
 //!         let elapsed_in_ms = elapsed().as_millis();

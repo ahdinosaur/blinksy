@@ -53,3 +53,6 @@ pub mod driver;
 
 /// Time utilities
 pub mod time;
+
+/// Fake button input
+pub mod button;

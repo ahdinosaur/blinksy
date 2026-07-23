@@ -14,8 +14,12 @@ categories = ["multimedia", "rendering"]
 
 [dependencies]
 blinksy = { path = "../blinksy", version = "0.11" }
+button-driver = { version = "0.2.5", features = ["std"] }
 egui = "0.28"
 egui-miniquad = "0.15.0"
 glam = { version = "0.30.1" }
 heapless = "0.9.1"
 miniquad = "0.4"
+
+[dev-dependencies]
+rand = "0.10.2"

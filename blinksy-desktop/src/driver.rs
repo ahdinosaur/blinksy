@@ -67,10 +67,14 @@ use blinksy::{
     markers::{Dim1d, Dim2d, Dim3d},
 };
 use core::{fmt, marker::PhantomData};
+use egui::ahash::{HashMap, HashMapExt as _};
 use egui_miniquad as egui_mq;
 use glam::{vec3, Mat4, Vec3, Vec4, Vec4Swizzles};
+pub use miniquad::KeyCode;
 use miniquad::*;
 use std::sync::mpsc::{channel, Receiver, SendError, Sender};
+
+use crate::button::{ButtonState, DesktopButton};
 
 /// Configuration options for the desktop simulator.
 ///
@@ -125,6 +129,7 @@ impl Default for DesktopConfig {
 pub struct Desktop<Dim, Layout> {
     driver: DesktopDriver<Dim, Layout>,
     stage: DesktopStageOptions,
+    buttons: HashMap<KeyCode, ButtonState>,
 }
 
 impl Desktop<Dim1d, ()> {
@@ -187,7 +192,11 @@ impl Desktop<Dim1d, ()> {
             is_window_closed: is_window_closed_2,
         };
 
-        Desktop { driver, stage }
+        Desktop {
+            driver,
+            stage,
+            buttons: HashMap::new(),
+        }
     }
 }
 
@@ -252,7 +261,11 @@ impl Desktop<Dim2d, ()> {
             is_window_closed: is_window_closed_2,
         };
 
-        Desktop { driver, stage }
+        Desktop {
+            driver,
+            stage,
+            buttons: HashMap::new(),
+        }
     }
 }
 
@@ -317,7 +330,11 @@ impl Desktop<Dim3d, ()> {
             is_window_closed: is_window_closed_2,
         };
 
-        Desktop { driver, stage }
+        Desktop {
+            driver,
+            stage,
+            buttons: HashMap::new(),
+        }
     }
 }
 
@@ -330,11 +347,23 @@ where
     where
         F: 'static + FnOnce(DesktopDriver<Dim, Layout>) + Send,
     {
-        let Self { driver, stage } = self;
+        let Self {
+            driver,
+            stage,
+            buttons,
+        } = self;
 
         std::thread::spawn(move || f(driver));
 
-        DesktopStage::start(move || DesktopStage::new(stage));
+        DesktopStage::start(move || DesktopStage::new(stage, buttons));
+    }
+
+    /// Registers a keycode to be treated as a button input.
+    /// Take care not to conflict with the keys used for camera control (R,O) to avoid surprising behavior.
+    pub fn with_button(mut self, keycode: KeyCode, button: &DesktopButton) -> Self {
+        let state = button.clone_state();
+        self.buttons.insert(keycode, state);
+        self
     }
 }
 
@@ -990,6 +1019,7 @@ struct DesktopStage {
     ui_manager: UiManager,
     led_picker: LedPicker,
     renderer: Renderer,
+    buttons: HashMap<KeyCode, ButtonState>,
 }
 
 impl DesktopStage {
@@ -1010,7 +1040,7 @@ impl DesktopStage {
     }
 
     /// Create a new DesktopStage with the given LED positions, colors, and configuration.
-    fn new(options: DesktopStageOptions) -> Self {
+    fn new(options: DesktopStageOptions, buttons: HashMap<KeyCode, ButtonState>) -> Self {
         let DesktopStageOptions {
             positions,
             receiver,
@@ -1056,6 +1086,7 @@ impl DesktopStage {
             ui_manager,
             led_picker,
             renderer,
+            buttons,
         };
 
         // Setup buffers
@@ -1226,10 +1257,16 @@ impl EventHandler for DesktopStage {
         if !self.ui_manager.want_mouse_capture {
             self.handle_camera_input(keycode);
         }
+        if let Some(button_state) = self.buttons.get_mut(&keycode) {
+            button_state.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
     }
 
     fn key_up_event(&mut self, keycode: KeyCode, keymods: KeyMods) {
         self.ui_manager.key_up_event(keycode, keymods);
+        if let Some(button_state) = self.buttons.get_mut(&keycode) {
+            button_state.store(false, std::sync::atomic::Ordering::Relaxed);
+        }
     }
 
     fn char_event(&mut self, character: char, _keymods: KeyMods, _repeat: bool) {

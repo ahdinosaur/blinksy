@@ -37,7 +37,7 @@ use crate::{
 };
 
 /// Configuration parameters for the Rainbow pattern.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct RainbowParams {
     /// Controls the speed of the animation (higher = faster)
@@ -78,6 +78,11 @@ where
         Self { params }
     }
 
+    /// Updates the pattern configuration while it's running.
+    fn set_params(&mut self, params: Self::Params) {
+        self.params = params;
+    }
+
     /// Generates colors for a 1D layout.
     ///
     /// The rainbow pattern creates a smooth transition of hues across the layout,
@@ -113,6 +118,11 @@ where
         Self { params }
     }
 
+    /// Updates the pattern configuration while it's running.
+    fn set_params(&mut self, params: Self::Params) {
+        self.params = params;
+    }
+
     /// Generates colors for a 2D layout.
     ///
     /// In 2D, the rainbow pattern uses the x-coordinate to determine hue,
@@ -146,6 +156,11 @@ where
     /// Creates a new Rainbow pattern with the specified parameters.
     fn new(params: Self::Params) -> Self {
         Self { params }
+    }
+
+    /// Updates the pattern configuration while it's running.
+    fn set_params(&mut self, params: Self::Params) {
+        self.params = params;
     }
 
     /// Generates colors for a 3D layout.

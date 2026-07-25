@@ -167,6 +167,15 @@ where
     pub fn set_color_correction(&mut self, correction: ColorCorrection) {
         self.correction = correction;
     }
+
+    /// Updates the pattern's configuration.
+    ///
+    /// # Arguments
+    ///
+    /// - `params` - The new configuration parameters for the pattern
+    pub fn set_pattern_params(&mut self, params: Pattern::Params) {
+        self.pattern.set_params(params);
+    }
 }
 
 impl<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Dim, Layout, Pattern, Driver>

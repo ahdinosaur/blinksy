@@ -72,7 +72,7 @@ pub mod noise_fns {
 }
 
 /// Configuration parameters for noise patterns.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NoiseParams {
     /// Controls the speed of animation (higher = faster)
@@ -121,6 +121,11 @@ where
             value_noise: Noise::default().seed(1),
             params,
         }
+    }
+
+    /// Updates the pattern configuration while it's running.
+    fn set_params(&mut self, params: Self::Params) {
+        self.params = params;
     }
 
     /// Generates colors for a 1D layout using noise.
@@ -181,6 +186,11 @@ where
             value_noise: Noise::default().seed(1),
             params,
         }
+    }
+
+    /// Updates the pattern configuration while it's running.
+    fn set_params(&mut self, params: Self::Params) {
+        self.params = params;
     }
 
     /// Generates colors for a 2D layout using noise.
@@ -248,6 +258,11 @@ where
             value_noise: Noise::default().seed(1),
             params,
         }
+    }
+
+    /// Updates the pattern configuration while it's running.
+    fn set_params(&mut self, params: Self::Params) {
+        self.params = params;
     }
 
     /// Generates colors for a 3D layout using noise.

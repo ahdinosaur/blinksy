@@ -94,4 +94,18 @@ where
     ///
     /// An iterator yielding one color per LED in the layout
     fn tick(&self, time_in_ms: u64) -> impl Iterator<Item = Self::Color>;
+
+    /// Updates the pattern's configuration.
+    ///
+    /// # Arguments
+    ///
+    /// - `params` - The new configuration parameters for the pattern
+    ///
+    /// Most patterns will have an implementation like this:
+    /// ```skip
+    ///     fn set_params(&mut self, params: Self::Params) {
+    ///         self.params = params;
+    ///     }
+    /// ```
+    fn set_params(&mut self, params: Self::Params);
 }

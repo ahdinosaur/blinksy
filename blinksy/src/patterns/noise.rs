@@ -72,7 +72,7 @@ pub mod noise_fns {
 }
 
 /// Configuration parameters for noise patterns.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct NoiseParams {
     /// Controls the speed of animation (higher = faster)

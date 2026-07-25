@@ -37,7 +37,7 @@ use crate::{
 };
 
 /// Configuration parameters for the Rainbow pattern.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct RainbowParams {
     /// Controls the speed of the animation (higher = faster)

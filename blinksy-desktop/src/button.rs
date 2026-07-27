@@ -1,5 +1,5 @@
 //! # Fake desktop button input
-//! This module provides an emulated button input system like that of [`gledopto::button::FunctionButton`].
+//! This module provides an emulated button input system like that of `gledopto::button::FunctionButton`.
 
 use std::{
     ops::{Deref, DerefMut},
@@ -11,7 +11,7 @@ use button_driver::{Button, ButtonConfig, Mode, PinWrapper};
 
 pub type ButtonState = Arc<AtomicBool>;
 
-/// An emulated button input which maps a keypress to [`button-driver`].
+/// An emulated button input which maps a keypress to `button-driver`.
 ///
 /// The idea is, if you want to use a button in your embedded application,
 /// you can use this to preview its behaviour on the desktop.

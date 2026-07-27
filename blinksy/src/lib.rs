@@ -409,3 +409,6 @@ pub mod time;
 pub mod util;
 
 pub use self::control::*;
+
+/// Re-exported for the `blinksy::composite_pattern` macro.
+pub use pastey;

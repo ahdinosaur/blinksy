@@ -69,6 +69,10 @@ use crate::layout::LayoutForDim;
 ///             Okhsv::new(hue, 1.0, 1.0)
 ///         })
 ///     }
+///
+///     fn set_params(&mut self, params: Self::Params) {
+///        self.params = params;
+///     }
 /// }
 /// ```
 pub trait Pattern<Dim, Layout>

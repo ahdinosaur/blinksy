@@ -218,7 +218,7 @@ where
             .with_clk_divider(Self::clock_divider())
             .with_idle_output_level(Level::Low)
             .with_idle_output(true);
-        let channel = channel.configure_tx(pin, config).unwrap();
+        let channel = channel.configure_tx(&config).unwrap().with_pin(pin);
         let pulses = Self::setup_pulses();
 
         Self {

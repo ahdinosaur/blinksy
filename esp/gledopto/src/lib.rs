@@ -200,7 +200,10 @@ macro_rules! function_button {
 macro_rules! init_embassy {
     ($peripherals:ident) => {{
         let timg0 = $crate::hal::timer::timg::TimerGroup::new($peripherals.TIMG0);
-        $crate::rtos::start(timg0.timer0);
+        let sw_int = $crate::hal::interrupt::software::SoftwareInterruptControl::new(
+            $peripherals.SW_INTERRUPT,
+        );
+        $crate::rtos::start(timg0.timer0, sw_int.software_interrupt0);
     }};
 }
 

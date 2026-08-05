@@ -398,6 +398,8 @@
 //!
 
 pub mod color;
+#[doc(hidden)] // hidden because the module exports a macro so appears empty
+pub mod composite;
 pub mod control;
 pub mod driver;
 pub mod layout;
@@ -409,3 +411,6 @@ pub mod time;
 pub mod util;
 
 pub use self::control::*;
+
+/// Re-exported for the `blinksy::composite_pattern` macro.
+pub use pastey;

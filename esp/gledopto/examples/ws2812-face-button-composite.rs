@@ -34,7 +34,14 @@ type Noise1 = Noise2d<OpenSimplex2>;
 type Noise2 = Noise2d<Perlin>;
 type Noise3 = Noise2d<Simplex>;
 
-blinksy::composite_pattern!(Composite, Okhsv, Dim2d, Layout2d, Noise1, Noise2, Noise3);
+blinksy::composite_pattern! {
+    // NOTE! This is a macro, not a struct; arguments must appear in strict order.
+    name: Composite,
+    color: Okhsv,
+    dims: Dim2d,
+    layout: Layout2d,
+    patterns: [Noise1, Noise2, Noise3]
+}
 
 const MS_PER_S: f32 = 1e3;
 
@@ -65,7 +72,7 @@ fn main() -> ! {
     let mut params = CompositeParams::Noise1(NoiseParams::default());
     let mut control = ControlBuilder::new_2d()
         .with_layout::<Layout2, { Layout2::PIXEL_COUNT }>()
-        .with_pattern::<Composite<Layout2>>(params)
+        .with_pattern::<Composite<Layout2>>(params.clone())
         .with_driver(gledopto::ws2812!(p, Layout2::PIXEL_COUNT))
         .with_frame_buffer_size::<{ Ws2812::frame_buffer_size(Layout2::PIXEL_COUNT) }>()
         .build();
@@ -77,7 +84,7 @@ fn main() -> ! {
         button.tick();
         if button.is_clicked() || button.held_time().is_some() {
             params = params.next();
-            control.set_pattern_params(params);
+            control.set_pattern_params(params.clone());
         }
         button.reset();
         control.tick(gledopto::elapsed().as_millis()).unwrap();

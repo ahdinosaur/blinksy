@@ -43,7 +43,14 @@
 /// type Noise2 = Noise2d<Perlin>;
 /// type Noise3 = Noise2d<Simplex>;
 ///
-/// blinksy::composite_pattern!(Composite, Okhsv, Dim2d, Layout2d, Noise1, Noise2, Noise3);
+/// blinksy::composite_pattern! {
+///     // NOTE! This is a macro, not a struct; arguments must appear in strict order.
+///     name: MyComposite,
+///     color: Okhsv,
+///     dims: Dim2d,
+///     layout: Layout2d,
+///     patterns: [Noise1, Noise2, Noise3]
+/// }
 ///
 /// ```
 ///
@@ -65,7 +72,13 @@
 ///
 #[macro_export]
 macro_rules! composite_pattern {
-    ($name:ident, $color: ident, $dims: ident, $layout_class:ident, $($pattern:ident),+) => { blinksy::pastey::paste! {
+    (
+        name: $name:ident,
+        color: $color:ty,
+        dims: $dims:ty,
+        layout: $layout_class:path,
+        patterns: [$($pattern:ty),+ $(,)?] $(,)?
+    ) => { blinksy::pastey::paste! {
         /// Composite pattern that can switch between multiple patterns
         pub enum $name<Layout>
         where
@@ -74,7 +87,7 @@ macro_rules! composite_pattern {
             $($pattern($pattern),)+
             // An uninstantiable variant is necessary to make the enum generic over Layout.
             #[doc(hidden)]
-            __Phantom(core::convert::Infallible, core::marker::PhantomData<Layout>),
+            __Phantom(core::marker::PhantomData<Layout>),
         }
 
         impl <Dims, Layout> blinksy::pattern::Pattern<Dims, Layout> for $name<Layout>
@@ -97,7 +110,7 @@ macro_rules! composite_pattern {
                         ),
                     )+
                     // The phantom variant is guaranteed unreachable, as Infallible cannot be instantiated.
-                    Self::__Phantom(_, _) => unreachable!(),
+                    Self::__Phantom(_) => unreachable!(),
                 }
             }
             fn set_params(&mut self, params: Self::Params) {
@@ -118,11 +131,10 @@ macro_rules! composite_pattern {
 
         /// Composite parameters type
         ///
-        /// NOTE: In order for this type to actually be `Copy`, all the patterns and the `Layout` must be `Copy`.
-        /// This is not enforced by the macro, so be careful when using it.
+        /// NOTE: All the patterns' parameters and the `Layout` must be `Clone`.
         ///
         /// You can use
-        #[derive(Clone, Copy, Debug)]
+        #[derive(Clone, Debug)]
         pub enum [<$name Params>]<Layout>
         where
             Layout: $layout_class,

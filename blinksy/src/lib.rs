@@ -398,6 +398,8 @@
 //!
 
 pub mod color;
+#[doc(hidden)] // hidden because the module exports a macro so appears empty
+pub mod composite;
 pub mod control;
 pub mod driver;
 pub mod layout;

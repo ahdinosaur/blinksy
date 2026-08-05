@@ -10,7 +10,5 @@
 //!
 //! [`composite_pattern!`]: crate::composite_pattern!
 
-#[doc(hidden)] // hidden because the module exports a macro so appears empty
-pub mod composite;
 pub mod noise;
 pub mod rainbow;

@@ -10,5 +10,6 @@
 //!
 //! [`composite_pattern!`]: crate::composite_pattern!
 
+#[cfg(feature = "noise")]
 pub mod noise;
 pub mod rainbow;

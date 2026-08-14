@@ -20,6 +20,10 @@ egui-miniquad = "0.15.0"
 glam = { version = "0.30.1" }
 heapless = "0.9.1"
 miniquad = "0.4"
+embassy-time = { version = "0.5.1", optional = true, features = ["std"] }
 
 [dev-dependencies]
 rand = "0.10.2"
+
+[features]
+async = ["blinksy/async", "dep:embassy-time", "button-driver/embassy"]

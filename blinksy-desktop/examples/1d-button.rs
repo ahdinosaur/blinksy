@@ -48,7 +48,7 @@ where
 fn main() {
     // Press the space bar to change the color of the strip.
     // This example only cares about single clicks, so we set the release and hold times really short.
-    let mut button = DesktopButton::new(
+    let mut button = DesktopButton::new_std(
         Duration::from_micros(900),
         Duration::from_millis(1),
         Duration::from_millis(1),

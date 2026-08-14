@@ -60,12 +60,15 @@
 //!
 //! [`Driver`]: blinksy::driver::Driver
 
+#[cfg(feature = "async")]
+use blinksy::driver::DriverAsync;
 use blinksy::{
     color::{ColorCorrection, FromColor, LinearSrgb, Srgb},
     driver::Driver,
     layout::{Layout1d, Layout2d, Layout3d, LayoutForDim},
     markers::{Dim1d, Dim2d, Dim3d},
 };
+use button_driver::InstantProvider;
 use core::{fmt, marker::PhantomData};
 use egui::ahash::{HashMap, HashMapExt as _};
 use egui_miniquad as egui_mq;
@@ -358,9 +361,30 @@ where
         DesktopStage::start(move || DesktopStage::new(stage, buttons));
     }
 
+    #[cfg(feature = "async")]
+    pub async fn start_async<F, Fut>(self, f: F)
+    where
+        // F is an async function (desugared here)
+        F: FnOnce(DesktopDriver<Dim, Layout>) -> Fut,
+        Fut: std::future::Future<Output = ()> + 'static + Send,
+    {
+        let Self {
+            driver,
+            stage,
+            buttons,
+        } = self;
+
+        std::thread::spawn(move || DesktopStage::start(move || DesktopStage::new(stage, buttons)));
+        f(driver).await
+    }
+
     /// Registers a keycode to be treated as a button input.
     /// Take care not to conflict with the keys used for camera control (R,O) to avoid surprising behavior.
-    pub fn with_button(mut self, keycode: KeyCode, button: &DesktopButton) -> Self {
+    pub fn with_button<D, I>(mut self, keycode: KeyCode, button: &DesktopButton<D, I>) -> Self
+    where
+        D: Clone + Ord,
+        I: InstantProvider<D> + PartialEq,
+    {
         let state = button.clone_state();
         self.buttons.insert(keycode, state);
         self
@@ -489,6 +513,41 @@ where
 impl<Dim, Layout> Drop for DesktopDriver<Dim, Layout> {
     fn drop(&mut self) {
         let _ = self.send(LedMessage::Quit);
+    }
+}
+
+#[cfg(feature = "async")]
+impl<Dim, Layout> DriverAsync for DesktopDriver<Dim, Layout>
+where
+    Layout: LayoutForDim<Dim>,
+{
+    type Error = <Self as Driver>::Error;
+    type Color = <Self as Driver>::Color;
+    type Word = <Self as Driver>::Word;
+
+    fn encode<const PIXEL_COUNT: usize, const FRAME_BUFFER_SIZE: usize, Pixels, Color>(
+        &mut self,
+        pixels: Pixels,
+        brightness: f32,
+        correction: ColorCorrection,
+    ) -> heapless::Vec<Self::Word, FRAME_BUFFER_SIZE>
+    where
+        Pixels: IntoIterator<Item = Color>,
+        Self::Color: FromColor<Color>,
+    {
+        <Self as Driver>::encode::<PIXEL_COUNT, FRAME_BUFFER_SIZE, Pixels, Color>(
+            self, pixels, brightness, correction,
+        )
+    }
+
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: heapless::Vec<Self::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        let colors: Vec<LinearSrgb> = frame.into_iter().collect();
+        // This calls the synchronous send method, which is fine because it is guaranteed not to block.
+        self.send(LedMessage::UpdateColors(colors))?;
+        Ok(())
     }
 }
 

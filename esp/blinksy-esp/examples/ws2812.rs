@@ -93,7 +93,7 @@ fn main() -> ! {
             });
         }
         led_on_off = !led_on_off;
-        let elapsed_in_ms = elapsed().as_micros();
+        let elapsed_in_ms = elapsed().as_millis();
         control.tick(elapsed_in_ms).unwrap();
         delay.delay_millis(500);
     }

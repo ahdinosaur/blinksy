@@ -152,6 +152,9 @@ pub use esp_println as println;
 /// Button handling functionality
 pub mod button;
 
+/// Power control handling functionality
+pub mod power_control;
+
 /// Initializes the heap allocator with a 72KB heap.
 ///
 /// This is required for ESP32 targets that need dynamic memory allocation.
@@ -192,6 +195,13 @@ macro_rules! board {
 macro_rules! function_button {
     ($peripherals:ident) => {
         $crate::button::FunctionButton::new($peripherals.GPIO0)
+    };
+}
+
+#[macro_export]
+macro_rules! power_control {
+    ($peripherals:ident) => {
+        $crate::power_control::PowerControl::new($peripherals.GPIO18);
     };
 }
 

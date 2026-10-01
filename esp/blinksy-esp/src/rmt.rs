@@ -28,7 +28,7 @@ use core::{fmt::Debug, marker::PhantomData};
 #[cfg(feature = "async")]
 use esp_hal::Async;
 use esp_hal::{
-    clock::Clocks,
+    clock,
     gpio::{interconnect::PeripheralOutput, Level},
     rmt::{
         Channel, Error as RmtError, PulseCode, Tx, TxChannelConfig, TxChannelCreator,
@@ -161,8 +161,7 @@ where
     }
 
     fn setup_pulses() -> (PulseCode, PulseCode, PulseCode) {
-        let clocks = Clocks::get();
-        let freq_hz = clocks.apb_clock.as_hz() / Self::clock_divider() as u32;
+        let freq_hz = clock::ll::apb_clk_frequency() / Self::clock_divider() as u32;
         let freq_mhz = freq_hz / 1_000_000;
 
         let t_0h = ((Led::T_0H.to_nanos() * freq_mhz) / 1_000) as u16;

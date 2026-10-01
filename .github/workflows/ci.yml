@@ -12,7 +12,7 @@ on:
 env:
   RUSTFLAGS: -Dwarnings
   CARGO_TERM_COLOR: always
-  MSRV: "1.88.0"
+  MSRV: "1.95.0"
   DEFMT_LOG: trace
 
 # Cancel any currently running workflows from the same PR, branch, or
@@ -32,7 +32,7 @@ jobs:
       matrix:
         toolchain:
           - stable
-          - 1.88.0 # msrv
+          - 1.95.0 # msrv
 
     env:
       CARGO_TARGET_DIR: ${{ github.workspace }}/target

@@ -29,9 +29,14 @@ use esp_hal::{
     timer::timg::TimerGroup,
     Async,
 };
-use panic_rtt_target as _;
+use esp_println as _;
 
 extern crate alloc;
+
+#[panic_handler]
+fn panic(_: &core::panic::PanicInfo) -> ! {
+    loop {}
+}
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -41,8 +46,6 @@ esp_bootloader_esp_idf::esp_app_desc!();
 )]
 #[esp_rtos::main]
 async fn main(_spawner: Spawner) -> ! {
-    rtt_target::rtt_init_defmt!();
-
     let cpu_clock = esp_hal::clock::CpuClock::max();
     let config = esp_hal::Config::default().with_cpu_clock(cpu_clock);
     let p = esp_hal::init(config);

@@ -20,6 +20,7 @@ use blinksy::{
     ControlBuilder,
 };
 use blinksy_esp::{rmt::ClocklessRmtBuilder, time::elapsed};
+use esp_println as _;
 
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {

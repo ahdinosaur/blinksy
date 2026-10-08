@@ -107,7 +107,12 @@ version = "0.11.0"
 dependencies = [
  "blinksy",
  "defmt 1.1.1",
+ "embassy-executor",
+ "esp-alloc 0.9.0",
+ "esp-bootloader-esp-idf",
  "esp-hal",
+ "esp-println",
+ "esp-rtos",
  "heapless 0.9.1",
  "num-traits",
 ]

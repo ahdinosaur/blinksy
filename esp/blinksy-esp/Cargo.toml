@@ -19,41 +19,57 @@ defmt = { version = "1.0.1", optional = true }
 heapless = "0.9.1"
 num-traits = { version = "0.2", default-features = false, features = ["libm"] }
 
+[dev-dependencies]
+esp-hal = { version = "1.2.0", features = ["unstable"] }
+esp-alloc = "0.9.0"
+esp-bootloader-esp-idf = "0.5.0"
+esp-rtos = { version = "0.4.0", features = ["embassy"] }
+embassy-executor = "0.10.0"
+esp-println = "0.16.0"
+
+[[example]]
+name = "ws2812-spi-matrix-8x8"
+required-features = ["defmt", "async"]
+
+[[example]]
+name = "ws2812"
+required-features = ["defmt"]
+
 [features]
 default = []
 async = [
   "blinksy/async",
 ]
-defmt = ["dep:defmt", "blinksy/defmt", "esp-hal/defmt"]
+defmt = ["dep:defmt", "blinksy/defmt", "esp-hal/defmt", "esp-println/defmt-espflash"]
 
 # Chip Support Feature Flags
 # Target the ESP32-C2.
 esp32c2 = [
-  "esp-hal/esp32c2",
+  "esp-hal/esp32c2", "esp-alloc/esp32c2", "esp-bootloader-esp-idf/esp32c2", "esp-rtos/esp32c2", "esp-println/esp32c2"
 ]
 # Target the ESP32-C3.
 esp32c3 = [
-  "esp-hal/esp32c3",
+  "esp-hal/esp32c3", "esp-alloc/esp32c3", "esp-bootloader-esp-idf/esp32c3", "esp-rtos/esp32c3", "esp-println/esp32c3"
 ]
 # Target the ESP32-C6.
 esp32c6 = [
-  "esp-hal/esp32c6",
+  "esp-hal/esp32c6", "esp-alloc/esp32c6", "esp-bootloader-esp-idf/esp32c6", "esp-rtos/esp32c6", "esp-println/esp32c6"
 ]
 # Target the ESP32-H2.
 esp32h2 = [
-  "esp-hal/esp32h2",
+  "esp-hal/esp32h2", "esp-alloc/esp32h2", "esp-bootloader-esp-idf/esp32h2", "esp-rtos/esp32h2", "esp-println/esp32h2"
 ]
 # Target the ESP32.
 esp32 = [
-  "esp-hal/esp32",
+  "esp-hal/esp32", "esp-alloc/esp32", "esp-bootloader-esp-idf/esp32", "esp-rtos/esp32", "esp-println/esp32"
 ]
 # Target the ESP32-S2.
 esp32s2 = [
-  "esp-hal/esp32s2",
+  "esp-hal/esp32s2", "esp-alloc/esp32s2", "esp-bootloader-esp-idf/esp32s2", "esp-rtos/esp32s2", "esp-println/esp32s2"
 ]
 # Target the ESP32-S3.
 esp32s3 = [
-  "esp-hal/esp32s3",
+  "esp-hal/esp32s3", "esp-alloc/esp32s3", "esp-bootloader-esp-idf/esp32s3", "esp-rtos/esp32s3", "esp-println/esp32s3"
 ]
 
 [package.metadata.docs.rs]

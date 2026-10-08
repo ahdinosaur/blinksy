@@ -77,30 +77,6 @@ pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_toleranc
     duration_ns_to_freq_hz(max_clock_period_ns)
 }
 
-fn encode_spi_buffer<
-    Led: ClocklessLed,
-    const FRAME_BUFFER_SIZE: usize,
-    const SPI_BUFFER_SIZE: usize,
-    const N: usize,
-    SpiWord,
->(
-    frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
-    buffer: &mut BitArray<[SpiWord; SPI_BUFFER_SIZE], Msb0>,
-    pulses: &Pulses<N>,
-) where
-    [SpiWord; SPI_BUFFER_SIZE]: BitViewSized,
-    Led::Word: BitView,
-{
-    let mut dest = buffer.as_mut_bitslice();
-    for v in frame {
-        for bit in v.view_bits::<Msb0>() {
-            let pattern = pulses.get(*bit);
-            dest[..pattern.len()].clone_from_bitslice(pattern.bits());
-            dest = &mut dest[pattern.len()..]
-        }
-    }
-}
-
 pub struct ClocklessSpi<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,
@@ -203,5 +179,29 @@ where
         let mut buffer = BitArray::<[SpiWord; BUFFER_SIZE], Msb0>::ZERO;
         encode_spi_buffer::<Led, _, _, _, _>(frame, &mut buffer, &self.pulses);
         self.spi.write(&buffer.into_inner()).await
+    }
+}
+
+fn encode_spi_buffer<
+    Led: ClocklessLed,
+    const FRAME_BUFFER_SIZE: usize,
+    const SPI_BUFFER_SIZE: usize,
+    const N: usize,
+    SpiWord,
+>(
+    frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    buffer: &mut BitArray<[SpiWord; SPI_BUFFER_SIZE], Msb0>,
+    pulses: &Pulses<N>,
+) where
+    [SpiWord; SPI_BUFFER_SIZE]: BitViewSized,
+    Led::Word: BitView,
+{
+    let mut dest = buffer.as_mut_bitslice();
+    for v in frame {
+        for bit in v.view_bits::<Msb0>() {
+            let pattern = pulses.get(*bit);
+            dest[..pattern.len()].clone_from_bitslice(pattern.bits());
+            dest = &mut dest[pattern.len()..]
+        }
     }
 }

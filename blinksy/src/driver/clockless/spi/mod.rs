@@ -14,7 +14,8 @@ use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
 mod encoding;
-use encoding::{duration_ns_to_freq_hz, freq_hz_to_duration_ns, Pulses, Timing};
+pub use encoding::Timing;
+use encoding::{duration_ns_to_freq_hz, freq_hz_to_duration_ns, Pulses};
 mod builder;
 pub use builder::ClocklessSpiBuilder;
 
@@ -164,6 +165,7 @@ where
     SpiWord: Copy + 'static,
 {
     spi: Spi,
+    /// Details of the timing used for sending the SPI signal
     pub timing: Timing<Led>,
     pulses: Pulses<PULSE_SIZE>,
     spi_word: PhantomData<SpiWord>,
@@ -177,6 +179,7 @@ where
     SpiWord: Copy + 'static,
 {
     spi: Spi,
+    /// Details of the timing used for sending the SPI signal
     pub timing: Timing<Led>,
     pulses: Pulses<PULSE_SIZE>,
     spi_word: PhantomData<SpiWord>,

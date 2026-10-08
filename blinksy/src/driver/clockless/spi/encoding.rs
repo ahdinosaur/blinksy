@@ -2,12 +2,21 @@ use crate::driver::ClocklessLed;
 use bitvec::{array::BitArray, order::Msb0, slice::BitSlice};
 use core::marker::PhantomData;
 
+/// Represents the timing (in number of SPI bits) to encode zero, one and reset LED signals
+///
+/// These timings are equivalent to those in [`ClocklessLed`] but converted to number of SPI bits for
+/// a particular SPI frequency.
 pub struct Timing<Led: ClocklessLed> {
     clock_period_ns: u32,
+    /// Number of SPI bits for the zero signal high
     pub t_0h: u32,
+    /// Number of SPI bits for the zero signal low
     pub t_0l: u32,
+    /// Number of SPI bits for the one signal high
     pub t_1h: u32,
+    /// Number of SPI bits for the one signal low
     pub t_1l: u32,
+    /// Number of SPI bits for the reset signal
     pub t_reset: u32,
     led: PhantomData<Led>,
 }
@@ -33,6 +42,7 @@ impl<Led: ClocklessLed> Timing<Led> {
         self.t_1h + self.t_1l
     }
 
+    /// Returns total number of SPI bits needed to send a zero or a one signal
     pub const fn duty_cycle_bits(&self) -> u32 {
         let t0 = self.t0();
         let t1 = self.t1();
@@ -44,6 +54,8 @@ impl<Led: ClocklessLed> Timing<Led> {
         }
     }
 
+    /// Returns the maximum error in nanoseconds that this encoding
+    /// has compared to the ideal timings in [`ClocklessLed`]
     pub const fn max_error_ns(&self) -> u32 {
         let error_0h_ns = Led::T_0H.to_nanos() - self.t_0h * self.clock_period_ns;
         let error_0l_ns = Led::T_0L.to_nanos() - self.t_0l * self.clock_period_ns;

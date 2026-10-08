@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 ///
 /// These timings are equivalent to those in [`ClocklessLed`] but converted to number of SPI bits for
 /// a particular SPI frequency.
-pub struct Timing<Led: ClocklessLed> {
+pub struct ClocklessSpiTiming<Led: ClocklessLed> {
     clock_period_ns: u32,
     /// Number of SPI bits for the zero signal high
     pub t_0h: u32,
@@ -21,7 +21,7 @@ pub struct Timing<Led: ClocklessLed> {
     led: PhantomData<Led>,
 }
 
-impl<Led: ClocklessLed> Timing<Led> {
+impl<Led: ClocklessLed> ClocklessSpiTiming<Led> {
     pub(crate) const fn new(clock_period_ns: u32) -> Self {
         Self {
             clock_period_ns,
@@ -111,7 +111,7 @@ pub(crate) struct Pulses<const N: usize> {
 }
 
 impl<const N: usize> Pulses<N> {
-    pub(crate) fn new<Led: ClocklessLed>(timing: &Timing<Led>) -> Pulses<N> {
+    pub(crate) fn new<Led: ClocklessLed>(timing: &ClocklessSpiTiming<Led>) -> Pulses<N> {
         Self {
             zero: PulseCode::new(timing.t_0h as usize, timing.t_0l as usize),
             one: PulseCode::new(timing.t_1h as usize, timing.t_1l as usize),

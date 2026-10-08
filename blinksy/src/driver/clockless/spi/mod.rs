@@ -13,7 +13,7 @@ use crate::driver::ClocklessWriterAsync;
 use crate::driver::{ClocklessLed, ClocklessWriter};
 
 mod encoding;
-pub use encoding::Timing;
+pub use encoding::ClocklessSpiTiming;
 use encoding::{duration_ns_to_freq_hz, freq_hz_to_duration_ns, Pulses};
 mod builder;
 pub use builder::ClocklessSpiBuilder;
@@ -49,7 +49,7 @@ where
     Word: Copy + 'static,
 {
     let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
-    let timing = Timing::<Led>::new(clock_period_ns);
+    let timing = ClocklessSpiTiming::<Led>::new(clock_period_ns);
 
     // TODO: Check that resulting timings are within spec for the LED and error if not
     let spi_word_bits = size_of::<Word>() * 8;
@@ -88,7 +88,7 @@ where
     Word: Copy + 'static,
 {
     let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
-    let timing = Timing::<Led>::new(clock_period_ns);
+    let timing = ClocklessSpiTiming::<Led>::new(clock_period_ns);
     let spi_word_bits = size_of::<Word>() * 8;
 
     let total_bits = timing.duty_cycle_bits() as usize;
@@ -121,7 +121,7 @@ pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_toleranc
     let mut max_clock_period_ns = 0;
     let mut clock_period_ns = 1;
     loop {
-        let error_ns = Timing::<Led>::new(clock_period_ns).max_error_ns();
+        let error_ns = ClocklessSpiTiming::<Led>::new(clock_period_ns).max_error_ns();
         if error_ns < target_tolerance_ns && clock_period_ns > max_clock_period_ns {
             max_clock_period_ns = clock_period_ns;
         }
@@ -177,7 +177,7 @@ where
 {
     spi: Spi,
     /// Details of the timing used for sending the SPI signal
-    pub timing: Timing<Led>,
+    pub timing: ClocklessSpiTiming<Led>,
     pulses: Pulses<PULSE_SIZE>,
     spi_word: PhantomData<SpiWord>,
 }
@@ -228,7 +228,7 @@ where
 {
     spi: Spi,
     /// Details of the timing used for sending the SPI signal
-    pub timing: Timing<Led>,
+    pub timing: ClocklessSpiTiming<Led>,
     pulses: Pulses<PULSE_SIZE>,
     spi_word: PhantomData<SpiWord>,
 }
@@ -241,7 +241,7 @@ where
     SpiWord: Copy + 'static,
 {
     pub fn new(spi: Spi, freq_hz: u32) -> Self {
-        let timing = Timing::new(freq_hz_to_duration_ns(freq_hz));
+        let timing = ClocklessSpiTiming::new(freq_hz_to_duration_ns(freq_hz));
         Self {
             spi,
             pulses: Pulses::new(&timing),
@@ -260,7 +260,7 @@ where
     Spi: SpiBusAsync<SpiWord>,
 {
     pub fn new(spi: Spi, freq_hz: u32) -> Self {
-        let timing = Timing::new(freq_hz_to_duration_ns(freq_hz));
+        let timing = ClocklessSpiTiming::new(freq_hz_to_duration_ns(freq_hz));
         Self {
             spi,
             pulses: Pulses::new::<Led>(&timing),

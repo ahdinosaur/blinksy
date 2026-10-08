@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use core::marker::PhantomData;
 
 use bitvec::prelude::*;
@@ -22,7 +23,7 @@ pub use builder::ClocklessSpiBuilder;
 /// # Usage
 ///
 /// ```
-/// clockless_spi_buffer_size::<Led, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ)
+/// clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ)
 /// ```
 ///
 /// # Type Arguments
@@ -60,6 +61,27 @@ where
     total_bits.div_ceil(spi_word_bits)
 }
 
+/// Calculates the size required for encoding one bit into the SPI buffer.
+///
+/// # Usage
+///
+/// ```
+/// clockless_spi_pulse_size::<Ws2812, SpiDma<Async>, _>(SPI_FREQ_HZ)
+/// ```
+///
+/// # Type Arguments
+///
+/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// - `Spi` - The SPI driver you're using (must implement SpiBus)
+/// - `Word` - The word type of the Spi driver (should be able to be inferred from Spi)
+///
+/// # Arguments
+///
+/// - `freq_hz` - Clock frequency (in Hz) that SPI is running at
+///
+/// # Returns
+///
+/// Size is in units of the SPI word size
 pub const fn clockless_spi_pulse_size<Led: ClocklessLed, Spi, Word>(freq_hz: u32) -> usize
 where
     Spi: SpiBus<Word>,

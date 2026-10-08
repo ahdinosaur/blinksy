@@ -12,6 +12,9 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+# radium 0.7 is a dependency of the latest released version of bitvec which breaks on esp32. So using an unreleased
+# version for now. See https://github.com/ferrilab/ferrilab/issues/1#issuecomment-4243321551
+bitvec = { git = "https://github.com/ferrilab/ferrilab.git", rev = "6af4ab0a33233573326f4b27f0193a2c956aada5", default-features = false }
 defmt = { version = "0.3.10", optional = true }
 embedded-hal = "1.0.0"
 embedded-hal-async = { version = "1.0.0", optional = true }

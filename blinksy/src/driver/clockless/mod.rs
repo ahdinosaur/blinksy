@@ -27,6 +27,8 @@
 //! ## Writers
 //!
 //! - ~~[`ClocklessDelay`]: Writer using GPIO bit-banging with a delay timer~~
+//! - [`ClocklessSpi`]: Writer using any SPI that implements the [`embedded_hal::spi::SpiBus`] trait
+//! - [`ClocklessSpiAsync`]: Writer using any SPI that implements the [`embedded_hal_async::spi::SpiBus`] trait
 //! - [`blinksy-esp::ClocklessRmt`]: Writer using RMT on the ESP32
 //!
 //! [`blinksy-esp::ClocklessRmt`]: https://docs.rs/blinksy-esp/0.10/blinksy_esp/type.ClocklessRmt.html
@@ -73,8 +75,10 @@ use crate::{
 };
 
 mod delay;
+mod spi;
 
 pub use self::delay::*;
+pub use self::spi::*;
 
 /// Trait that defines the timing parameters and protocol specifics for a clockless LED chipset.
 ///
@@ -126,14 +130,6 @@ pub trait ClocklessLed {
     /// Different LED chipsets may expect data in different channel orders (e.g., RGB, GRB, RGBW).
     const LED_CHANNELS: LedChannels;
 
-    /// Calculates the total cycle time for a bit transmission.
-    ///
-    /// Returns the maximum of (T_0H + T_0L) and (T_1H + T_1L) to ensure
-    /// timing is correct regardless of bit value.
-    fn t_cycle() -> Nanoseconds {
-        (Self::T_0H + Self::T_0L).max(Self::T_1H + Self::T_1L)
-    }
-
     /// Encodes a buffer to represent the next frame update.
     ///
     /// This method:
@@ -172,6 +168,17 @@ pub trait ClocklessLed {
             data.into_iter()
         }))
     }
+}
+
+/// Calculates the total cycle time for a bit transmission.
+///
+/// Returns the maximum of (T_0H + T_0L) and (T_1H + T_1L) to ensure
+/// timing is correct regardless of bit value.
+pub const fn t_cycle<Led: ClocklessLed>() -> Nanoseconds {
+    let t0_ns = Led::T_0H.to_nanos() + Led::T_0L.to_nanos();
+    let t1_ns = Led::T_1H.to_nanos() + Led::T_1L.to_nanos();
+    let t = if t0_ns > t1_ns { t0_ns } else { t1_ns };
+    Nanoseconds::nanos(t)
 }
 
 /// Trait for types that can write data words to a clockless protocol.

@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 use core::marker::PhantomData;
 
 use bitvec::prelude::*;

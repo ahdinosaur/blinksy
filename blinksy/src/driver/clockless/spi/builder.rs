@@ -1,4 +1,3 @@
-#![allow(missing_docs)]
 use core::marker::PhantomData;
 
 use embedded_hal::spi::SpiBus;

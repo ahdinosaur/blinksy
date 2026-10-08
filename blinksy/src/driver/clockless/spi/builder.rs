@@ -17,13 +17,13 @@ pub struct ClocklessSpiBuilder<
     Led,
     SpiWord,
     Freq,
-    Dm,
+    Exec,
 > {
     spi: Spi,
     freq_hz: Freq,
     led: PhantomData<Led>,
     spi_word: PhantomData<SpiWord>,
-    dm: PhantomData<Dm>,
+    exec: PhantomData<Exec>,
 }
 
 impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord, Freq>
@@ -37,7 +37,7 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord, Freq>
             freq_hz: self.freq_hz,
             led: PhantomData,
             spi_word: PhantomData,
-            dm: PhantomData,
+            exec: PhantomData,
         }
     }
 }
@@ -54,7 +54,7 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord, Dm>
             freq_hz,
             led: PhantomData,
             spi_word: PhantomData,
-            dm: PhantomData,
+            exec: PhantomData,
         }
     }
 }
@@ -70,7 +70,7 @@ impl<const BUFFER_SIZE: usize, Spi, Led, SpiWord, Freq, Dm>
             freq_hz: self.freq_hz,
             led: PhantomData,
             spi_word: PhantomData,
-            dm: PhantomData,
+            exec: PhantomData,
         }
     }
 }
@@ -86,7 +86,7 @@ impl<const N: usize, const PULSE_SIZE: usize, Spi, Led, SpiWord, Freq, Dm>
             freq_hz: self.freq_hz,
             led: PhantomData,
             spi_word: PhantomData,
-            dm: PhantomData,
+            exec: PhantomData,
         }
     }
 }
@@ -103,7 +103,7 @@ impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, SpiWord, Freq, Dm>
             freq_hz: self.freq_hz,
             led: PhantomData,
             spi_word: PhantomData,
-            dm: PhantomData,
+            exec: PhantomData,
         }
     }
 }
@@ -115,7 +115,7 @@ impl<Led, SpiWord> Default for ClocklessSpiBuilder<0, 0, (), Led, SpiWord, (), B
             freq_hz: (),
             led: PhantomData,
             spi_word: PhantomData,
-            dm: PhantomData,
+            exec: PhantomData,
         }
     }
 }

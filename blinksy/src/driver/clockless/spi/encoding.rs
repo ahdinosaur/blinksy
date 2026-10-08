@@ -2,14 +2,6 @@ use crate::driver::ClocklessLed;
 use bitvec::{array::BitArray, order::Msb0, slice::BitSlice};
 use core::marker::PhantomData;
 
-pub const fn freq_hz_to_duration_ns(freq_hz: u32) -> u32 {
-    1_000_000_000 / freq_hz
-}
-
-pub const fn duration_ns_to_freq_hz(duration_ns: u32) -> u32 {
-    1_000_000_000 / duration_ns
-}
-
 pub struct Timing<Led: ClocklessLed> {
     clock_period_ns: u32,
     pub t_0h: u32,
@@ -21,7 +13,7 @@ pub struct Timing<Led: ClocklessLed> {
 }
 
 impl<Led: ClocklessLed> Timing<Led> {
-    pub const fn new(clock_period_ns: u32) -> Self {
+    pub(crate) const fn new(clock_period_ns: u32) -> Self {
         Self {
             clock_period_ns,
             t_0h: Led::T_0H.to_nanos() / clock_period_ns,
@@ -75,13 +67,13 @@ impl<Led: ClocklessLed> Timing<Led> {
     }
 }
 
-pub struct PulseCode<const N: usize> {
+pub(crate) struct PulseCode<const N: usize> {
     buffer: BitArray<[u8; N], Msb0>,
     len: usize,
 }
 
 impl<const N: usize> PulseCode<N> {
-    pub fn new(high: usize, low: usize) -> Self {
+    fn new(high: usize, low: usize) -> Self {
         let mut buffer = BitArray::new([0u8; N]);
         for mut v in &mut buffer[..high] {
             v.set(true);
@@ -92,33 +84,41 @@ impl<const N: usize> PulseCode<N> {
         }
     }
 
-    pub fn bits(&self) -> &BitSlice<u8, Msb0> {
+    pub(crate) fn bits(&self) -> &BitSlice<u8, Msb0> {
         &self.buffer[..self.len]
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.len
     }
 }
 
-pub struct Pulses<const N: usize> {
+pub(crate) struct Pulses<const N: usize> {
     zero: PulseCode<N>,
     one: PulseCode<N>,
 }
 
 impl<const N: usize> Pulses<N> {
-    pub fn new<Led: ClocklessLed>(timing: &Timing<Led>) -> Pulses<N> {
+    pub(crate) fn new<Led: ClocklessLed>(timing: &Timing<Led>) -> Pulses<N> {
         Self {
             zero: PulseCode::new(timing.t_0h as usize, timing.t_0l as usize),
             one: PulseCode::new(timing.t_1h as usize, timing.t_1l as usize),
         }
     }
 
-    pub fn get(&self, value: bool) -> &PulseCode<N> {
+    pub(crate) fn get(&self, value: bool) -> &PulseCode<N> {
         if value {
             &self.one
         } else {
             &self.zero
         }
     }
+}
+
+pub(crate) const fn freq_hz_to_duration_ns(freq_hz: u32) -> u32 {
+    1_000_000_000 / freq_hz
+}
+
+pub(crate) const fn duration_ns_to_freq_hz(duration_ns: u32) -> u32 {
+    1_000_000_000 / duration_ns
 }

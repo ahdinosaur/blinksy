@@ -121,6 +121,42 @@ pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_toleranc
     duration_ns_to_freq_hz(max_clock_period_ns)
 }
 
+/// Writer for clockless LEDs using [SPI](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface)
+///
+/// This works for any SPI driver that implements the [`embedded_hal::spi::SpiBus`] or [`embedded_hal_async::spi::SpiBus`] traits.
+///
+/// # How this works
+///
+/// Given an SPI that you have set to a particular frequency we figure out how to send the data out to best match the timings required by the LED.
+/// In general, it's not possible to *exactly* match the timings. However, there is a timing tolerance (in the datasheets) that allows for a certain
+/// amount of error. With [`clockless_spi_ideal_frequency_hz`] you can figure out the ideal frequency to run your SPI at given a certain
+/// acceptable timing tolerance. A good starting point is the tolerance from the datasheet. For example in the case of WS2812B that is 150 ns.
+/// The higher the tolerance that you and your hardware allows, the smaller number of bits in the SPI buffer that each bit can be encoded in and the
+/// less memory and processing you will use.
+///
+/// # Usage
+///
+/// ```
+/// const SPI_FREQ_HZ: u32 = clockless_spi_ideal_frequency_hz::<Ws2812>(150);
+///
+/// // Create your spi driver (platform dependent) that implements the embedded-hal SpiBus trait.
+/// // Set its frequency to SPI_FREQ_HZ and configure the MOSI (master out slave in) pin.
+/// // The other SPI pins are not needed.
+/// //
+/// // let spi = ...
+///
+/// let writer = ClocklessSpiBuilder::default()
+///    .with_spi(spi)
+///    .with_freq_hz(SPI_FREQ_HZ)
+///    // Note that Spi should be the type of spi above
+///    .with_buffer_size::<{ clockless_spi_buffer_size::<Ws2812, Spi, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) }>()
+///    .with_pulse_size::<{ clockless_spi_pulse_size::<Ws2812, Spi, _>(SPI_FREQ_HZ) }>()
+///    .build();
+///
+/// let driver = ClocklessDriver::default()
+///     .with_led::<Ws2812>()
+///     .with_writer(writer);
+/// ```
 pub struct ClocklessSpi<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
 where
     Led: ClocklessLed,

@@ -22,7 +22,7 @@ pub use builder::ClocklessSpiBuilder;
 ///
 /// # Usage
 ///
-/// ```
+/// ```rust,ignore
 /// clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ)
 /// ```
 ///
@@ -65,7 +65,7 @@ where
 ///
 /// # Usage
 ///
-/// ```
+/// ```rust,ignore
 /// clockless_spi_pulse_size::<Ws2812, SpiDma<Async>, _>(SPI_FREQ_HZ)
 /// ```
 ///
@@ -148,7 +148,7 @@ pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_toleranc
 ///
 /// # Usage
 ///
-/// ```
+/// ```rust,ignore
 /// const SPI_FREQ_HZ: u32 = clockless_spi_ideal_frequency_hz::<Ws2812>(150);
 ///
 /// // Create your spi driver (platform dependent) that implements the embedded-hal SpiBus trait.
@@ -197,7 +197,7 @@ where
 ///
 /// # Usage
 ///
-/// ```
+/// ```rust,ignore
 /// const SPI_FREQ_HZ: u32 = clockless_spi_ideal_frequency_hz::<Ws2812>(150);
 ///
 /// // Create your spi driver (platform dependent) that implements the embedded-hal-async SpiBus trait.

@@ -65,7 +65,7 @@
 //!
 //! | Micro          | HAL         | Blinksy       | Recommended Driver     | Backup Driver |
 //! |----------------|-------------|---------------|------------------------|---------------|
-//! | ALL            | [embedded-hal] | [blinksy]  | -                      | TODO [Spi #12][clockless-spi] |
+//! | ALL            | [embedded-hal] | [blinksy]  | -                      | [Spi][clockless-spi] |
 //! | ESP32          | [esp-hal]   | [blinksy-esp] | [Rmt][rmt]             | - |
 //! | RP (2040/2350) | [rp-hal]    | TODO          | TODO [#36][rp-issue]   | - |
 //! | STM32          | [stm32-hal] | TODO          | TODO [#78][stm32-issue] | - |
@@ -75,7 +75,7 @@
 //! | CH32           | [ch32-hal]  | TODO          | TODO [#80][ch32-issue] | - |
 //! | ???            | -           | -             | -                      | - |
 //!
-//! [clockless-spi]: https://github.com/ahdinosaur/blinksy/issues/12
+//! [clockless-spi]: crate::driver::clockless::ClocklessSpi
 //! [esp-hal]: https://docs.espressif.com/projects/rust/esp-hal/latest/
 //! [blinksy-esp]: https://docs.rs/blinksy-esp/0.11/
 //! [rmt]: https://docs.espressif.com/projects/rust/esp-hal/latest/

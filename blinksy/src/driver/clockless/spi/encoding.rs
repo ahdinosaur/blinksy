@@ -17,7 +17,7 @@ pub struct Timing<Led: ClocklessLed> {
     pub t_1h: u32,
     pub t_1l: u32,
     pub t_reset: u32,
-    _led: PhantomData<Led>,
+    led: PhantomData<Led>,
 }
 
 impl<Led: ClocklessLed> Timing<Led> {
@@ -29,7 +29,7 @@ impl<Led: ClocklessLed> Timing<Led> {
             t_1h: Led::T_1H.to_nanos() / clock_period_ns,
             t_1l: Led::T_1L.to_nanos() / clock_period_ns,
             t_reset: Led::T_RESET.to_nanos() / clock_period_ns,
-            _led: PhantomData,
+            led: PhantomData,
         }
     }
 

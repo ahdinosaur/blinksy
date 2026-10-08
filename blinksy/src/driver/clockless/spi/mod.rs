@@ -110,7 +110,7 @@ where
     spi: Spi,
     pub timing: Timing<Led>,
     pulses: Pulses<PULSE_SIZE>,
-    _spi_word: PhantomData<SpiWord>,
+    spi_word: PhantomData<SpiWord>,
 }
 
 #[cfg(feature = "async")]
@@ -123,7 +123,7 @@ where
     spi: Spi,
     pub timing: Timing<Led>,
     pulses: Pulses<PULSE_SIZE>,
-    _spi_word: PhantomData<SpiWord>,
+    spi_word: PhantomData<SpiWord>,
 }
 
 impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
@@ -139,7 +139,7 @@ where
             spi,
             pulses: Pulses::new(&timing),
             timing,
-            _spi_word: PhantomData,
+            spi_word: PhantomData,
         }
     }
 }
@@ -158,7 +158,7 @@ where
             spi,
             pulses: Pulses::new::<Led>(&timing),
             timing,
-            _spi_word: PhantomData,
+            spi_word: PhantomData,
         }
     }
 }

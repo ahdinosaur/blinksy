@@ -27,6 +27,8 @@
 //! ## Writers
 //!
 //! - ~~[`ClocklessDelay`]: Writer using GPIO bit-banging with a delay timer~~
+//! - [`ClocklessSpi`]: Writer using any SPI that implements the [`embedded_hal::spi::SpiBus`] trait
+//! - [`ClocklessSpiAsync`]: Writer using any SPI that implements the [`embedded_hal_async::spi::SpiBus`] trait
 //! - [`blinksy-esp::ClocklessRmt`]: Writer using RMT on the ESP32
 //!
 //! [`blinksy-esp::ClocklessRmt`]: https://docs.rs/blinksy-esp/0.10/blinksy_esp/type.ClocklessRmt.html

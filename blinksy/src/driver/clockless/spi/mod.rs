@@ -17,6 +17,28 @@ use encoding::{duration_ns_to_freq_hz, freq_hz_to_duration_ns, Pulses, Timing};
 mod builder;
 pub use builder::ClocklessSpiBuilder;
 
+/// Calculates the buffer size required for encoding one frame into bits that are sent to SPI
+///
+/// # Usage
+///
+/// ```
+/// clockless_spi_buffer_size::<Led, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ)
+/// ```
+///
+/// # Type Arguments
+///
+/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
+/// - `Spi` - The SPI driver you're using (must implement SpiBus)
+/// - `Word` - The word type of the Spi driver (should be able to be inferred from Spi)
+///
+/// # Arguments
+///
+/// - `pixel_count` - Number of pixels
+/// - `freq_hz` - Clock frequency (in Hz) that SPI is running at
+///
+/// # Returns
+///
+/// Buffer size is in units of the SPI word size
 pub const fn clockless_spi_buffer_size<Led: ClocklessLed, Spi, Word>(
     pixel_count: usize,
     freq_hz: u32,

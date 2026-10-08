@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use core::marker::PhantomData;
 
 use embedded_hal::spi::SpiBus;
@@ -10,6 +11,7 @@ use crate::driver::ClocklessSpi;
 use crate::driver::ClocklessSpiAsync;
 use crate::markers::{Async, Blocking};
 
+/// Builder for [`ClocklessSpi`] and [`ClocklessSpiAsync`]
 pub struct ClocklessSpiBuilder<
     const BUFFER_SIZE: usize,
     const PULSE_SIZE: usize,

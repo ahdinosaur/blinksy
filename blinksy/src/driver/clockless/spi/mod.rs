@@ -96,12 +96,24 @@ where
     total_bits.div_ceil(spi_word_bits)
 }
 
-// Brute-force an "ideal" clock frequency to run the SPI bus at
-// Lower frequencies are better because they mean that we need fewer spi bits to
-// encode a single LED bit which means less processing and memory usage. However
-// lower frequencies increase the timing errors.
-// Each LED has a tolerance for timing variations. We take advantage of this to pick
-// the lowest clock frequency that gives us errors within our chosen target tolerance.
+/// Calculates the "ideal" clock frequency the the SPI bus at given a particular target LED timing tolerance in nanoseconds.
+///
+/// The higher the target tolerance, the smaller the number of bits required for encoding and the lower the SPI frequency needs to
+/// be with lower memory and CPU usage.
+///
+/// You probably want to use the tolerance from the LED datasheet though your hardware may still work with a higher tolerance.
+///
+/// # Type Arguments
+///
+/// - `Led` - The LED protocol implementation (must implement ClocklessLed)
+///
+/// # Arguments
+///
+/// - `target_tolerance_ns` - The acceptable timing error in nanoseconds
+///
+/// # Returns
+///
+/// Frequency in Hz
 pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
     // There's going to be some smart ways of doing this but for the time being
     // let's just do the simplest possible thing and explore a whole range of timings

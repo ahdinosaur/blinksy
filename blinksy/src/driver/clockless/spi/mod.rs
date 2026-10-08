@@ -139,12 +139,12 @@ pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_toleranc
 ///
 /// # How this works
 ///
-/// Given an SPI that you have set to a particular frequency we figure out how to send the data out to best match the timings required by the LED.
-/// In general, it's not possible to *exactly* match the timings. However, there is a timing tolerance (in the datasheets) that allows for a certain
-/// amount of error. With [`clockless_spi_ideal_frequency_hz`] you can figure out the ideal frequency to run your SPI at given a certain
-/// acceptable timing tolerance. A good starting point is the tolerance from the datasheet. For example in the case of WS2812B that is 150 ns.
-/// The higher the tolerance that you and your hardware allows, the smaller number of bits in the SPI buffer that each bit can be encoded in and the
-/// less memory and processing you will use.
+/// Given an SPI running at particular frequency the driver figures out how to send the data out that best matches the timings required by the LED.
+///
+/// In general, it's not possible to *exactly* match the timings. However, clockless LEDs have some designed tolerance built in.
+///
+/// Given an acceptable timing error (which we can look up in the LED datasheet) we can calculate an "ideal" SPI frequency.
+/// Use [`clockless_spi_ideal_frequency_hz`] to do this first.
 ///
 /// # Usage
 ///
@@ -188,12 +188,12 @@ where
 ///
 /// # How this works
 ///
-/// Given an SPI that you have set to a particular frequency we figure out how to send the data out to best match the timings required by the LED.
-/// In general, it's not possible to *exactly* match the timings. However, there is a timing tolerance (in the datasheets) that allows for a certain
-/// amount of error. With [`clockless_spi_ideal_frequency_hz`] you can figure out the ideal frequency to run your SPI at given a certain
-/// acceptable timing tolerance. A good starting point is the tolerance from the datasheet. For example in the case of WS2812B that is 150 ns.
-/// The higher the tolerance that you and your hardware allows, the smaller number of bits in the SPI buffer that each bit can be encoded in and the
-/// less memory and processing you will use.
+/// Given an SPI running at particular frequency the driver figures out how to send the data out that best matches the timings required by the LED.
+///
+/// In general, it's not possible to *exactly* match the timings. However, clockless LEDs have some designed tolerance built in.
+///
+/// Given an acceptable timing error (which we can look up in the LED datasheet) we can calculate an "ideal" SPI frequency.
+/// Use [`clockless_spi_ideal_frequency_hz`] to do this first.
 ///
 /// # Usage
 ///

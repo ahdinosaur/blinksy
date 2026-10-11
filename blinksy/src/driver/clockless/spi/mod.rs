@@ -175,6 +175,7 @@ where
     spi: Spi,
     /// Details of the timing used for sending the SPI signal
     pub timing: ClocklessSpiTiming<Led>,
+    reset_required: bool,
     pulses: Pulses<SpiWord, PULSE_SIZE>,
     spi_word: PhantomData<SpiWord>,
 }
@@ -227,6 +228,7 @@ where
     /// Details of the timing used for sending the SPI signal
     pub timing: ClocklessSpiTiming<Led>,
     pulses: Pulses<SpiWord, PULSE_SIZE>,
+    reset_required: bool,
     spi_word: PhantomData<SpiWord>,
 }
 
@@ -243,6 +245,8 @@ where
             spi,
             pulses: Pulses::new(&timing),
             timing,
+            // We need to send a reset to the LED before we do anything else
+            reset_required: true,
             spi_word: PhantomData,
         }
     }
@@ -262,6 +266,8 @@ where
             spi,
             pulses: Pulses::new::<Led>(&timing),
             timing,
+            // We need to send a reset to the LED before we do anything else
+            reset_required: true,
             spi_word: PhantomData,
         }
     }
@@ -282,6 +288,12 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         let mut buffer = [SpiWord::ZERO; BUFFER_SIZE];
+        // Send a reset signal to the LEDs before we send the first data to make sure they are in a good state
+        if self.reset_required {
+            let reset_size = (self.timing.t_reset as usize).div_ceil(size_of::<SpiWord>() * 8);
+            self.spi.write(&buffer[..reset_size])?;
+            self.reset_required = false;
+        }
         encode_spi_buffer::<Led, _, _>(&frame, &mut buffer, &self.pulses);
         self.spi.write(&buffer)
     }
@@ -303,6 +315,12 @@ where
         frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
     ) -> Result<(), Self::Error> {
         let mut buffer = [SpiWord::ZERO; BUFFER_SIZE];
+        // Send a reset signal to the LEDs before we send the first data to make sure they are in a good state
+        if self.reset_required {
+            let reset_size = (self.timing.t_reset as usize).div_ceil(size_of::<SpiWord>() * 8);
+            self.spi.write(&buffer[..reset_size]).await?;
+            self.reset_required = false;
+        }
         encode_spi_buffer::<Led, _, _>(&frame, &mut buffer, &self.pulses);
         self.spi.write(&buffer).await
     }

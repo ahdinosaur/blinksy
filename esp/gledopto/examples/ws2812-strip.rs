@@ -8,13 +8,15 @@ use blinksy::{
     patterns::rainbow::{Rainbow, RainbowParams},
     ControlBuilder,
 };
-use gledopto::{board, bootloader, elapsed, main, ws2812};
+use gledopto::{board, bootloader, elapsed, main, power_control, ws2812};
 
 bootloader!();
 
 #[main]
 fn main() -> ! {
     let p = board!();
+
+    let mut power_control = power_control!(p);
 
     layout1d!(Layout, 50);
 
@@ -26,6 +28,7 @@ fn main() -> ! {
         .build();
 
     control.set_brightness(0.2);
+    power_control.turn_on();
 
     loop {
         let elapsed_in_ms = elapsed().as_millis();

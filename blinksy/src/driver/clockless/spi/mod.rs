@@ -1,0 +1,344 @@
+use core::marker::PhantomData;
+
+use embedded_hal::spi::SpiBus;
+#[cfg(feature = "async")]
+use embedded_hal_async::spi::SpiBus as SpiBusAsync;
+
+use crate::driver::t_cycle;
+#[cfg(feature = "async")]
+use crate::driver::ClocklessWriterAsync;
+use crate::driver::{ClocklessLed, ClocklessWriter};
+use crate::util::bits::{word_to_bits_msb, BitWriterMsb, Word};
+
+mod encoding;
+pub use encoding::ClocklessSpiTiming;
+use encoding::{duration_ns_to_freq_hz, freq_hz_to_duration_ns, Pulses};
+mod builder;
+pub use builder::ClocklessSpiBuilder;
+
+/// Calculates the buffer size required for encoding one frame into bits that are sent to SPI
+///
+/// # Usage
+///
+/// ```rust,ignore
+/// clockless_spi_buffer_size::<Ws2812, SpiDma<Async>, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ)
+/// ```
+///
+/// # Type Arguments
+///
+/// - `Led` - The LED protocol implementation (must implement [`ClocklessLed`])
+/// - `Spi` - The SPI driver you're using (must implement [`SpiBus`])
+/// - `Word` - The word type of the SPI driver (should be able to be inferred from `Spi`)
+///
+/// # Arguments
+///
+/// - `pixel_count` - Number of pixels
+/// - `freq_hz` - Clock frequency (in Hz) that SPI is running at
+///
+/// # Returns
+///
+/// Buffer size is in units of the SPI word size
+pub const fn clockless_spi_buffer_size<Led: ClocklessLed, Spi, Word>(
+    pixel_count: usize,
+    freq_hz: u32,
+) -> usize
+where
+    Spi: SpiBus<Word>,
+    Word: Copy + 'static,
+{
+    let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
+    let timing = ClocklessSpiTiming::<Led>::new(clock_period_ns);
+
+    // TODO: Check that resulting timings are within spec for the LED and error if not
+    let total_bits = Led::Word::BITS as usize
+        * Led::LED_CHANNELS.channel_count()
+        * pixel_count
+        * timing.duty_cycle_bits() as usize
+        + timing.t_reset as usize;
+    total_bits.div_ceil(size_of::<Word>() * 8)
+}
+
+/// Calculates the size required for encoding one bit into the SPI buffer.
+///
+/// # Usage
+///
+/// ```rust,ignore
+/// clockless_spi_pulse_size::<Ws2812, SpiDma<Async>, _>(SPI_FREQ_HZ)
+/// ```
+///
+/// # Type Arguments
+///
+/// - `Led` - The LED protocol implementation (must implement [`ClocklessLed`])
+/// - `Spi` - The SPI driver you're using (must implement [`SpiBus`])
+/// - `Word` - The word type of the SPI driver (should be able to be inferred from `Spi`)
+///
+/// # Arguments
+///
+/// - `freq_hz` - Clock frequency (in Hz) that SPI is running at
+///
+/// # Returns
+///
+/// Size is in units of the SPI word size
+pub const fn clockless_spi_pulse_size<Led: ClocklessLed, Spi, Word>(freq_hz: u32) -> usize
+where
+    Spi: SpiBus<Word>,
+    Word: Copy + 'static,
+{
+    let clock_period_ns = freq_hz_to_duration_ns(freq_hz);
+    let timing = ClocklessSpiTiming::<Led>::new(clock_period_ns);
+    let spi_word_bits = size_of::<Word>() * 8;
+
+    let total_bits = timing.duty_cycle_bits() as usize;
+    total_bits.div_ceil(spi_word_bits)
+}
+
+/// Calculates the "ideal" clock frequency the the SPI bus at given a particular target LED timing tolerance in nanoseconds.
+///
+/// The higher the target tolerance, the smaller the number of bits required for encoding and the lower the SPI frequency needs to
+/// be with lower memory and CPU usage.
+///
+/// You probably want to use the tolerance from the LED datasheet though your hardware may still work with a higher tolerance.
+///
+/// # Type Arguments
+///
+/// - `Led` - The LED protocol implementation (must implement [`ClocklessLed`])
+///
+/// # Arguments
+///
+/// - `target_tolerance_ns` - The acceptable timing error in nanoseconds
+///
+/// # Returns
+///
+/// Frequency in Hz
+pub const fn clockless_spi_ideal_frequency_hz<Led: ClocklessLed>(target_tolerance_ns: u32) -> u32 {
+    // There's going to be some smart ways of doing this but for the time being
+    // let's just do the simplest possible thing and explore a whole range of timings
+    // and see what works best.
+    let t_cycle_ns = t_cycle::<Led>().to_nanos();
+    let mut max_clock_period_ns = 0;
+    let mut clock_period_ns = 1;
+    loop {
+        let error_ns = ClocklessSpiTiming::<Led>::new(clock_period_ns).max_error_ns();
+        if error_ns < target_tolerance_ns && clock_period_ns > max_clock_period_ns {
+            max_clock_period_ns = clock_period_ns;
+        }
+        clock_period_ns += 1;
+        if clock_period_ns >= t_cycle_ns {
+            break;
+        }
+    }
+    duration_ns_to_freq_hz(max_clock_period_ns)
+}
+
+/// Writer for clockless LEDs using [SPI](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface)
+///
+/// This works for any SPI driver that implements the [`embedded_hal::spi::SpiBus`] trait.
+///
+/// # How this works
+///
+/// Given an SPI running at particular frequency the driver figures out how to send the data out that best matches the timings required by the LED.
+///
+/// In general, it's not possible to *exactly* match the timings. However, clockless LEDs have some designed tolerance built in.
+///
+/// Given an acceptable timing error (which we can look up in the LED datasheet) we can calculate an "ideal" SPI frequency.
+/// Use [`clockless_spi_ideal_frequency_hz`] to do this first.
+///
+/// # Usage
+///
+/// ```rust,ignore
+/// const SPI_FREQ_HZ: u32 = clockless_spi_ideal_frequency_hz::<Ws2812>(150);
+///
+/// // Create your spi driver (platform dependent) that implements the embedded-hal SpiBus trait.
+/// // Set its frequency to SPI_FREQ_HZ and configure the MOSI (master out slave in) pin.
+/// // The other SPI pins are not needed.
+/// //
+/// // let spi = ...
+///
+/// let writer = ClocklessSpiBuilder::default()
+///    .with_spi(spi)
+///    .with_freq_hz(SPI_FREQ_HZ)
+///    // Note that Spi should be the type of spi above
+///    .with_buffer_size::<{ clockless_spi_buffer_size::<Ws2812, Spi, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) }>()
+///    .with_pulse_size::<{ clockless_spi_pulse_size::<Ws2812, Spi, _>(SPI_FREQ_HZ) }>()
+///    .build();
+///
+/// let driver = ClocklessDriver::default()
+///     .with_led::<Ws2812>()
+///     .with_writer(writer);
+/// ```
+pub struct ClocklessSpi<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
+where
+    Led: ClocklessLed,
+    Spi: SpiBus<SpiWord>,
+    SpiWord: Copy + 'static,
+{
+    spi: Spi,
+    /// Details of the timing used for sending the SPI signal
+    pub timing: ClocklessSpiTiming<Led>,
+    reset_required: bool,
+    pulses: Pulses<SpiWord, PULSE_SIZE>,
+    spi_word: PhantomData<SpiWord>,
+}
+
+/// Async writer for clockless LEDs using [SPI](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface)
+///
+/// This works for any SPI driver that implements the [`embedded_hal_async::spi::SpiBus`] trait.
+///
+/// # How this works
+///
+/// Given an SPI running at particular frequency the driver figures out how to send the data out that best matches the timings required by the LED.
+///
+/// In general, it's not possible to *exactly* match the timings. However, clockless LEDs have some designed tolerance built in.
+///
+/// Given an acceptable timing error (which we can look up in the LED datasheet) we can calculate an "ideal" SPI frequency.
+/// Use [`clockless_spi_ideal_frequency_hz`] to do this first.
+///
+/// # Usage
+///
+/// ```rust,ignore
+/// const SPI_FREQ_HZ: u32 = clockless_spi_ideal_frequency_hz::<Ws2812>(150);
+///
+/// // Create your spi driver (platform dependent) that implements the embedded-hal-async SpiBus trait.
+/// // Set its frequency to SPI_FREQ_HZ and configure the MOSI (master out slave in) pin.
+/// // The other SPI pins are not needed.
+/// //
+/// // let spi = ...
+///
+/// let writer = ClocklessSpiBuilder::default()
+///    .with_spi(spi)
+///    .with_freq_hz(SPI_FREQ_HZ)
+///    // Note that Spi should be the type of spi above
+///    .with_buffer_size::<{ clockless_spi_buffer_size::<Ws2812, Spi, _>(Layout::PIXEL_COUNT, SPI_FREQ_HZ) }>()
+///    .with_pulse_size::<{ clockless_spi_pulse_size::<Ws2812, Spi, _>(SPI_FREQ_HZ) }>()
+///    .with_async()
+///    .build();
+///
+/// let driver = ClocklessDriver::default()
+///     .with_led::<Ws2812>()
+///     .with_writer(writer);
+/// ```
+#[cfg(feature = "async")]
+pub struct ClocklessSpiAsync<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
+where
+    Led: ClocklessLed,
+    Spi: SpiBusAsync<SpiWord>,
+    SpiWord: Copy + 'static,
+{
+    spi: Spi,
+    /// Details of the timing used for sending the SPI signal
+    pub timing: ClocklessSpiTiming<Led>,
+    pulses: Pulses<SpiWord, PULSE_SIZE>,
+    reset_required: bool,
+    spi_word: PhantomData<SpiWord>,
+}
+
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
+    ClocklessSpi<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
+where
+    Led: ClocklessLed,
+    Spi: SpiBus<SpiWord>,
+    SpiWord: Word + 'static,
+{
+    pub fn new(spi: Spi, freq_hz: u32) -> Self {
+        let timing = ClocklessSpiTiming::new(freq_hz_to_duration_ns(freq_hz));
+        Self {
+            spi,
+            pulses: Pulses::new(&timing),
+            timing,
+            // We need to send a reset to the LED before we do anything else
+            reset_required: true,
+            spi_word: PhantomData,
+        }
+    }
+}
+
+#[cfg(feature = "async")]
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord>
+    ClocklessSpiAsync<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
+where
+    Led: ClocklessLed,
+    SpiWord: Word + 'static,
+    Spi: SpiBusAsync<SpiWord>,
+{
+    pub fn new(spi: Spi, freq_hz: u32) -> Self {
+        let timing = ClocklessSpiTiming::new(freq_hz_to_duration_ns(freq_hz));
+        Self {
+            spi,
+            pulses: Pulses::new::<Led>(&timing),
+            timing,
+            // We need to send a reset to the LED before we do anything else
+            reset_required: true,
+            spi_word: PhantomData,
+        }
+    }
+}
+
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord> ClocklessWriter<Led>
+    for ClocklessSpi<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
+where
+    Led: ClocklessLed,
+    Led::Word: Word,
+    Spi: SpiBus<SpiWord>,
+    SpiWord: Word + 'static,
+{
+    type Error = Spi::Error;
+
+    fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        let mut buffer = [SpiWord::ZERO; BUFFER_SIZE];
+        // Send a reset signal to the LEDs before we send the first data to make sure they are in a good state
+        if self.reset_required {
+            let reset_size = (self.timing.t_reset as usize).div_ceil(size_of::<SpiWord>() * 8);
+            self.spi.write(&buffer[..reset_size])?;
+            self.reset_required = false;
+        }
+        encode_spi_buffer::<Led, _, _>(&frame, &mut buffer, &self.pulses);
+        self.spi.write(&buffer)
+    }
+}
+
+#[cfg(feature = "async")]
+impl<const BUFFER_SIZE: usize, const PULSE_SIZE: usize, Led, Spi, SpiWord> ClocklessWriterAsync<Led>
+    for ClocklessSpiAsync<BUFFER_SIZE, PULSE_SIZE, Led, Spi, SpiWord>
+where
+    Led: ClocklessLed,
+    Led::Word: Word,
+    Spi: SpiBusAsync<SpiWord>,
+    SpiWord: Word + 'static,
+{
+    type Error = Spi::Error;
+
+    async fn write<const FRAME_BUFFER_SIZE: usize>(
+        &mut self,
+        frame: heapless::Vec<Led::Word, FRAME_BUFFER_SIZE>,
+    ) -> Result<(), Self::Error> {
+        let mut buffer = [SpiWord::ZERO; BUFFER_SIZE];
+        // Send a reset signal to the LEDs before we send the first data to make sure they are in a good state
+        if self.reset_required {
+            let reset_size = (self.timing.t_reset as usize).div_ceil(size_of::<SpiWord>() * 8);
+            self.spi.write(&buffer[..reset_size]).await?;
+            self.reset_required = false;
+        }
+        encode_spi_buffer::<Led, _, _>(&frame, &mut buffer, &self.pulses);
+        self.spi.write(&buffer).await
+    }
+}
+
+fn encode_spi_buffer<Led, const N: usize, SpiWord>(
+    frame: &[Led::Word],
+    buffer: &mut [SpiWord],
+    pulses: &Pulses<SpiWord, N>,
+) where
+    Led::Word: Word,
+    Led: ClocklessLed,
+    SpiWord: Word + 'static,
+{
+    let mut writer = BitWriterMsb::new(buffer);
+    for word in frame {
+        for bit in word_to_bits_msb(*word) {
+            writer.write_bits(pulses.get(bit).bits());
+        }
+    }
+}
